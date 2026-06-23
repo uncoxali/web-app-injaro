@@ -1,6 +1,16 @@
 import type { NextConfig } from "next";
 
+const API_ORIGIN = process.env.API_PROXY_TARGET || "https://api.injaro.info";
+
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${API_ORIGIN}/:path*`,
+      },
+    ];
+  },
   env: {
     NEXT_PUBLIC_API_BASE: process.env.NEXT_PUBLIC_API_BASE,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,

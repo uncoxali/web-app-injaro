@@ -1,8 +1,6 @@
 import { cookieUtils } from "./cookies";
 import { redirectToLogin } from "./auth-utils";
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "https://api.injaro.info";
+import { API_BASE } from "./api-base";
 
 interface AuthFetchOptions extends RequestInit {
   skipAuth?: boolean;

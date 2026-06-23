@@ -1,8 +1,6 @@
 import type { Location } from "@/store/map";
 import { redirectToLogin } from "@/lib/auth-utils";
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "https://api.injaro.info";
+import { API_BASE } from "@/lib/api-base";
 
 export interface LandingEvent {
   event_slug: string;

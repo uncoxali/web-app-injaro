@@ -6,8 +6,7 @@ import { motion } from "framer-motion";
 import { getSavedEvents, type SavedEvent } from "@/lib/api/events";
 import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/ui/error-state";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://api.injaro.info";
+import { imgUrl } from "@/lib/utils";
 
 export default function SavedEventsPage() {
   const router = useRouter();
@@ -93,7 +92,7 @@ export default function SavedEventsPage() {
                 <div className="aspect-[4/3] bg-surface overflow-hidden">
                   {ev.thumbnail ? (
                     <img
-                      src={API_BASE + ev.thumbnail}
+                      src={imgUrl(ev.thumbnail) ?? ""}
                       alt={ev.topic}
                       className="w-full h-full object-cover"
                     />

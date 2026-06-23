@@ -7,8 +7,7 @@ import toast from "react-hot-toast";
 import { submitInviteResponse } from "@/lib/api/events";
 import { authFetch } from "@/lib/auth-fetch";
 import { Spinner } from "@/components/ui/spinner";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://api.injaro.info";
+import { imgUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/error-state";
 
@@ -132,7 +131,7 @@ export function InviteClient({ invite: initialInvite, slug, fetchError: serverEr
             <div className="w-full aspect-[16/9] rounded-2xl bg-gradient-to-br from-primary/10 to-surface border border-border/60 overflow-hidden mb-6">
               {invite.thumbnail ? (
                 <img
-                  src={invite.thumbnail.startsWith("http") ? invite.thumbnail : API_BASE + invite.thumbnail}
+                  src={imgUrl(invite.thumbnail) ?? ""}
                   alt=""
                   className="w-full h-full object-cover"
                 />

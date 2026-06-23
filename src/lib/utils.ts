@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { API_BASE } from "@/lib/api-base";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -10,7 +11,6 @@ export function toPersianDigits(num: string | number): string {
   return String(num).replace(/[0-9]/g, (d) => persianDigits[parseInt(d)]);
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://api.injaro.info";
 const MEDIA_BASE =
   process.env.NEXT_PUBLIC_MEDIA_BASE || "https://injaro.darkube.ir";
 
