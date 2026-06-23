@@ -8,7 +8,7 @@ export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
       className={cn(
-        "animate-pulse rounded-md bg-border/60",
+        "rounded-lg bg-gradient-to-r from-border/40 via-border/60 to-border/40 bg-[length:200%_100%] animate-shimmer",
         className
       )}
     />

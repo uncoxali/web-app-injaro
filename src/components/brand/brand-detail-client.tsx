@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { getLocationDetail, type LocationDetail } from "@/lib/api/locations";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { cn, imgUrl } from "@/lib/utils";
@@ -104,19 +105,17 @@ export function BrandDetailClient({
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
-      {/* Back Button */}
       <button
         onClick={() => router.back()}
         aria-label="بازگشت"
-        className="fixed top-4 start-4 z-20 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm shadow-md flex items-center justify-center text-text-primary"
+        className="fixed top-4 start-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-sm shadow-md flex items-center justify-center text-text-primary hover:bg-background transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <polyline points="9 18 15 12 9 6" />
         </svg>
       </button>
 
-      {/* Banner */}
-      <div ref={bannerRef} className="relative h-56 overflow-hidden bg-gradient-to-b from-primary/5 to-surface">
+      <div ref={bannerRef} className="relative h-56 overflow-hidden bg-gradient-to-b from-primary/[0.04] to-surface">
         {data.banner ? (
           <div
             className="absolute inset-0 bg-cover bg-center"
@@ -126,22 +125,21 @@ export function BrandDetailClient({
             }}
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary/5 to-surface" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary/[0.04] to-surface" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
       </div>
 
-      {/* Header Info */}
       <div className="relative px-4 -mt-12 z-10">
         <div className="flex items-end gap-4">
           {data.logo ? (
             <img
               src={imgUrl(data.logo)}
               alt={data.name}
-              className="w-20 h-20 rounded-2xl border-4 border-white shadow-lg object-cover bg-white"
+              className="w-20 h-20 rounded-2xl border-4 border-background shadow-lg object-cover bg-surface"
             />
           ) : (
-            <div className="w-20 h-20 rounded-2xl border-4 border-white shadow-lg bg-surface flex items-center justify-center">
+            <div className="w-20 h-20 rounded-2xl border-4 border-background shadow-lg bg-gradient-to-br from-primary/10 to-surface flex items-center justify-center">
               <span className="text-2xl font-bold text-primary">
                 {data.name.slice(0, 1)}
               </span>
@@ -151,18 +149,17 @@ export function BrandDetailClient({
             <h1 className="text-xl font-bold text-text-primary">
               {data.name}
             </h1>
-            <span className="inline-block mt-1 text-[11px] px-2.5 py-0.5 rounded-full bg-primary/8 text-primary font-medium">
+            <Badge variant="primary" size="sm" className="mt-1">
               دسته {data.category}
-            </span>
+            </Badge>
           </div>
         </div>
       </div>
 
-      {/* Actions */}
       <div className="flex gap-2 px-4 mt-5">
         <button
           onClick={() => setShowQr(true)}
-          className="flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-border/60 bg-white text-xs font-medium text-text-secondary hover:border-primary/30 transition-colors"
+          className="flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-border/50 bg-surface text-xs font-medium text-text-secondary hover:border-primary/30 hover:text-primary transition-all"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <rect x="3" y="3" width="7" height="7" />
@@ -174,7 +171,7 @@ export function BrandDetailClient({
         </button>
         <button
           onClick={handleNavigate}
-          className="flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-border/60 bg-white text-xs font-medium text-text-secondary hover:border-primary/30 transition-colors"
+          className="flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-border/50 bg-surface text-xs font-medium text-text-secondary hover:border-primary/30 hover:text-primary transition-all"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
@@ -184,7 +181,7 @@ export function BrandDetailClient({
         </button>
         <button
           onClick={handleShare}
-          className="flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-border/60 bg-white text-xs font-medium text-text-secondary hover:border-primary/30 transition-colors"
+          className="flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-border/50 bg-surface text-xs font-medium text-text-secondary hover:border-primary/30 hover:text-primary transition-all"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <circle cx="18" cy="5" r="3" />
@@ -197,11 +194,10 @@ export function BrandDetailClient({
         </button>
       </div>
 
-      {/* Tab Bar */}
       <div
         ref={tabBarRef}
         className={cn(
-          "sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b border-border/50 mt-5 transition-shadow",
+          "sticky top-0 z-10 bg-background/90 backdrop-blur-md border-b border-border/40 mt-5 transition-shadow",
           tabBarSticky && "shadow-sm"
         )}
       >
@@ -221,7 +217,8 @@ export function BrandDetailClient({
               {activeTab === tab.key && (
                 <motion.div
                   layoutId="brand-tab-underline"
-                  className="absolute bottom-0 left-[10%] right-[10%] h-0.5 rounded-full bg-primary"
+                  className="absolute bottom-0 left-[15%] right-[15%] h-0.5 rounded-full bg-primary"
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
                 />
               )}
             </button>
@@ -229,7 +226,6 @@ export function BrandDetailClient({
         </div>
       </div>
 
-      {/* Tab Content */}
       <div className="flex-1 px-4 pt-5 pb-8">
         <AnimatePresence mode="wait">
           <motion.div
@@ -246,18 +242,13 @@ export function BrandDetailClient({
         </AnimatePresence>
       </div>
 
-      {/* QR Modal */}
       <Modal open={showQr} onClose={() => setShowQr(false)} title="QR کد">
         <div className="flex flex-col items-center py-4">
           {data.qr_code ? (
-            <img
-              src={imgUrl(data.qr_code)}
-              alt="QR"
-              className="w-48 h-48 rounded-xl"
-            />
+            <img src={imgUrl(data.qr_code)} alt="QR" className="w-48 h-48 rounded-xl" />
           ) : (
-            <div className="w-48 h-48 rounded-xl bg-surface border border-border flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-text-secondary/30">
+            <div className="w-48 h-48 rounded-xl bg-gradient-to-br from-primary/[0.04] to-surface border border-border flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-text-secondary/20">
                 <rect x="2" y="2" width="5" height="5" />
                 <rect x="17" y="2" width="5" height="5" />
                 <rect x="2" y="17" width="5" height="5" />
@@ -270,16 +261,12 @@ export function BrandDetailClient({
               </svg>
             </div>
           )}
-          <p className="text-xs text-text-secondary mt-3">
-            اسکن کنید تا برند را مشاهده کنید
-          </p>
+          <p className="text-xs text-text-secondary mt-3">اسکن کنید تا برند را مشاهده کنید</p>
         </div>
       </Modal>
     </div>
   );
 }
-
-/* ─── About Tab ─── */
 
 function AboutTab({
   data,
@@ -296,11 +283,10 @@ function AboutTab({
         </p>
       )}
 
-      {/* Address + Mini Map */}
       {data.address && (
         <button
           onClick={onNavigate}
-          className="flex items-start gap-3 p-3 rounded-xl bg-surface border border-border/60 text-right"
+          className="flex items-start gap-3 p-3 rounded-xl bg-surface border border-border/50 text-right hover:border-primary/30 transition-colors"
         >
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
@@ -314,20 +300,19 @@ function AboutTab({
               {data.address}
             </p>
           </div>
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-secondary shrink-0 mt-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-secondary/50 shrink-0 mt-1.5">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
       )}
 
-      {/* Links */}
       <div className="flex flex-col gap-2">
         {data.website && (
           <a
             href={data.website}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 p-3 rounded-xl bg-white border border-border/60 hover:border-primary/30 transition-colors"
+            className="flex items-center gap-3 p-3 rounded-xl bg-surface border border-border/50 hover:border-primary/30 transition-all"
           >
             <div className="w-9 h-9 rounded-lg bg-primary/5 flex items-center justify-center shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
@@ -337,7 +322,7 @@ function AboutTab({
               </svg>
             </div>
             <span className="text-sm text-text-primary flex-1">وبسایت</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-secondary/50">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
               <polyline points="15 3 21 3 21 9" />
               <line x1="10" y1="14" x2="21" y2="3" />
@@ -349,9 +334,9 @@ function AboutTab({
             href={data.instagram}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 p-3 rounded-xl bg-white border border-border/60 hover:border-primary/30 transition-colors"
+            className="flex items-center gap-3 p-3 rounded-xl bg-surface border border-border/50 hover:border-primary/30 transition-all"
           >
-            <div className="w-9 h-9 rounded-lg bg-pink-50 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-primary/5 flex items-center justify-center shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E4405F" strokeWidth="1.5">
                 <rect x="2" y="2" width="20" height="20" rx="5" />
                 <circle cx="12" cy="12" r="5" />
@@ -359,7 +344,7 @@ function AboutTab({
               </svg>
             </div>
             <span className="text-sm text-text-primary flex-1">اینستاگرام</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-secondary/50">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
               <polyline points="15 3 21 3 21 9" />
               <line x1="10" y1="14" x2="21" y2="3" />
@@ -369,22 +354,21 @@ function AboutTab({
         {data.phone && (
           <a
             href={`tel:${data.phone}`}
-            className="flex items-center gap-3 p-3 rounded-xl bg-white border border-border/60 hover:border-primary/30 transition-colors"
+            className="flex items-center gap-3 p-3 rounded-xl bg-surface border border-border/50 hover:border-primary/30 transition-all"
           >
-            <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-success/5 flex items-center justify-center shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="1.5">
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
               </svg>
             </div>
             <span className="text-sm text-text-primary flex-1" dir="ltr">{data.phone}</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-secondary/50">
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </a>
         )}
       </div>
 
-      {/* Navigate Button */}
       <Button fullWidth onClick={onNavigate}>
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="ml-1.5">
           <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
@@ -396,15 +380,13 @@ function AboutTab({
   );
 }
 
-/* ─── Events Tab ─── */
-
 function EventsTab({ events }: { events: LocationDetail["events"] }) {
   const router = useRouter();
 
   if (!events || events.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-secondary/30">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-secondary/20">
           <rect x="3" y="4" width="18" height="18" rx="2" />
           <line x1="16" y1="2" x2="16" y2="6" />
           <line x1="8" y1="2" x2="8" y2="6" />
@@ -421,7 +403,7 @@ function EventsTab({ events }: { events: LocationDetail["events"] }) {
         <button
           key={ev.event_slug}
           onClick={() => router.push(`/events/${ev.event_slug}`)}
-          className="flex items-start gap-3 p-3 rounded-xl bg-white border border-border/60 hover:border-primary/30 transition-colors text-right"
+          className="flex items-start gap-3 p-3 rounded-xl bg-surface border border-border/50 hover:border-primary/30 hover:shadow-sm transition-all text-right"
         >
           {ev.thumbnail && (
             <img
@@ -440,7 +422,7 @@ function EventsTab({ events }: { events: LocationDetail["events"] }) {
               </p>
             )}
           </div>
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-secondary shrink-0 mt-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-secondary/40 shrink-0 mt-1">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
@@ -449,13 +431,11 @@ function EventsTab({ events }: { events: LocationDetail["events"] }) {
   );
 }
 
-/* ─── Kenar Tab ─── */
-
 function KenarTab({ items }: { items: LocationDetail["kenar"] }) {
   if (!items || items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-secondary/30">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-secondary/20">
           <rect x="3" y="3" width="7" height="7" />
           <rect x="14" y="3" width="7" height="7" />
           <rect x="3" y="14" width="7" height="7" />
@@ -487,7 +467,7 @@ function KenarCard({ item }: { item: NonNullable<LocationDetail["kenar"]>[number
   return (
     <button
       onClick={handleClick}
-      className="flex flex-col rounded-xl bg-white border border-border/60 overflow-hidden hover:border-primary/30 transition-colors text-right"
+      className="flex flex-col rounded-xl bg-surface border border-border/50 overflow-hidden hover:border-primary/30 hover:shadow-sm transition-all text-right active:scale-[0.98]"
     >
       {item.image ? (
         <div className="aspect-[4/3] bg-surface overflow-hidden">
@@ -498,8 +478,8 @@ function KenarCard({ item }: { item: NonNullable<LocationDetail["kenar"]>[number
           />
         </div>
       ) : (
-        <div className="aspect-[4/3] bg-gradient-to-br from-primary/5 to-surface flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-secondary/30">
+        <div className="aspect-[4/3] bg-gradient-to-br from-primary/[0.04] to-surface flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-secondary/20">
             <rect x="3" y="3" width="18" height="18" rx="2" />
             <circle cx="8.5" cy="8.5" r="1.5" />
             <polyline points="21 15 16 10 5 21" />
@@ -507,7 +487,7 @@ function KenarCard({ item }: { item: NonNullable<LocationDetail["kenar"]>[number
         </div>
       )}
       <div className="p-2.5">
-        <p className="text-xs font-medium text-text-primary line-clamp-2">
+        <p className="text-xs font-medium text-text-primary line-clamp-2 leading-snug">
           {item.title}
         </p>
       </div>

@@ -53,7 +53,7 @@ export function Select({
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          "flex h-11 w-full items-center justify-between rounded-lg border bg-white px-3 text-sm transition-colors",
+          "flex h-11 w-full items-center justify-between rounded-lg border bg-surface px-3 text-sm transition-colors",
           "focus:border-primary focus:ring-1 focus:ring-primary/20",
           error ? "border-error" : "border-border",
           !selected && "text-text-secondary/60"
@@ -77,7 +77,7 @@ export function Select({
         </svg>
       </button>
       {open && (
-        <div className="absolute z-50 mt-14 w-[calc(100%-2rem)] max-w-sm rounded-lg border border-border bg-white shadow-lg animate-fade-in">
+        <div className="absolute z-50 mt-14 w-[calc(100%-2rem)] max-w-sm rounded-lg border border-border bg-surface shadow-lg animate-fade-in">
           {options.map((option) => (
             <button
               key={option.value}

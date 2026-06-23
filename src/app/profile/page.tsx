@@ -160,7 +160,7 @@ export default function EditProfilePage() {
                 value={livingCity}
                 onChange={(e) => setLivingCity(e.target.value)}
                 className={cn(
-                  "h-11 w-full rounded-lg border bg-white px-3 text-sm text-text-primary outline-none transition-colors appearance-none",
+                  "h-11 w-full rounded-lg border bg-surface px-3 text-sm text-text-primary outline-none transition-colors appearance-none",
                   "focus:border-primary focus:ring-1 focus:ring-primary/20",
                   "border-border"
                 )}
@@ -180,7 +180,7 @@ export default function EditProfilePage() {
                 value={job}
                 onChange={(e) => setJob(e.target.value)}
                 className={cn(
-                  "h-11 w-full rounded-lg border bg-white px-3 text-sm text-text-primary outline-none transition-colors appearance-none",
+                  "h-11 w-full rounded-lg border bg-surface px-3 text-sm text-text-primary outline-none transition-colors appearance-none",
                   "focus:border-primary focus:ring-1 focus:ring-primary/20",
                   "border-border"
                 )}
@@ -262,7 +262,7 @@ function FloatingLabelInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder=" "
         className={cn(
-          "peer h-14 w-full rounded-xl border bg-white px-4 pt-5 pb-1 text-sm text-text-primary outline-none transition-colors",
+          "peer h-14 w-full rounded-xl border bg-surface px-4 pt-5 pb-1 text-sm text-text-primary outline-none transition-colors",
           "focus:border-primary focus:ring-1 focus:ring-primary/20",
           error ? "border-error" : "border-border"
         )}

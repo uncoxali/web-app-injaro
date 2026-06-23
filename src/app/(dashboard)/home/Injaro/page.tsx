@@ -14,8 +14,10 @@ import { isTehranArea, TEHRAN_CENTER } from "@/lib/map-utils";
 import { isAuthenticated } from "@/lib/auth-utils";
 import { getCategories, type Category } from "@/lib/api/categories";
 import dynamic from "next/dynamic";
+
+
 import { SearchHeader } from "@/components/map/search-header";
-import { CategorySelect } from "@/components/map/category-select";
+import { CategoriesBar } from "@/components/map/categories-bar";
 import { LocationBottomSheet } from "@/components/map/location-bottom-sheet";
 import { SponsorsFloating } from "@/components/map/sponsors-floating";
 
@@ -31,10 +33,13 @@ export default function InjaroHomePage() {
   const setFlyToTarget = useMapStore((s) => s.setFlyToTarget);
   const setFitBoundsTarget = useMapStore((s) => s.setFitBoundsTarget);
   const setClusteringEnabled = useMapStore((s) => s.setClusteringEnabled);
+  const sheetOpen = useMapStore((s) => s.sheetOpen);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [guest, setGuest] = useState(() => !isAuthenticated());
   const landingLocationsRef = useRef<LandingLocation[]>([]);
+
+
 
   const doZoom = useCallback(
     (mapMarkers: Location[]) => {
@@ -140,35 +145,39 @@ export default function InjaroHomePage() {
       .then(setCategories)
       .catch(() => {});
 
-    fetchLocations(null);
+    fetchLocations();
   }, [fetchLocations]);
 
   const handleCategorySelect = useCallback(
     (categoryId: number | null) => {
-      if (guest) return;
       setSelectedMapCategory(categoryId);
-      fetchLocations(categoryId);
+      if (isAuthenticated()) {
+        fetchLocations(categoryId);
+      }
     },
-    [guest, setSelectedMapCategory, fetchLocations]
+    [setSelectedMapCategory, fetchLocations]
   );
 
   const handleSearch = useCallback(
     (query: string) => {
-      fetchLocations(guest ? null : selectedMapCategory, query || undefined);
+      fetchLocations(isAuthenticated() ? selectedMapCategory : undefined, query || undefined);
     },
-    [guest, selectedMapCategory, fetchLocations]
+    [selectedMapCategory, fetchLocations]
   );
 
+  const hasCategories = categories.length > 0;
+
   return (
-    <div className="relative w-full h-dvh overflow-hidden flex flex-col">
+    <div className="relative w-full h-dvh overflow-hidden flex flex-col bg-black">
       <div className="absolute inset-0 z-0">
         <MapboxMap onLoad={() => {}} />
       </div>
 
-      <div className="relative z-20 flex flex-col gap-3 pt-4">
+      <div className="relative z-20 flex flex-col gap-3 px-3 pt-3">
         <SearchHeader onSearch={handleSearch} />
-        {!guest && categories.length > 0 && (
-          <CategorySelect
+
+        {hasCategories && (
+          <CategoriesBar
             categories={categories}
             selected={selectedMapCategory}
             onSelect={handleCategorySelect}

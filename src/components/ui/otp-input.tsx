@@ -118,7 +118,7 @@ export function OTPInput({
           onFocus={() => setActiveIndex(index)}
           onBlur={() => setActiveIndex(-1)}
           className={cn(
-            "h-12 w-11 rounded-lg border bg-white text-center text-lg font-bold text-text-primary outline-none transition-colors",
+            "h-12 w-11 rounded-lg border bg-surface text-center text-lg font-bold text-text-primary outline-none transition-colors",
             "focus:border-primary focus:ring-1 focus:ring-primary/20",
             error && "border-error",
             !error && digit && "border-primary",

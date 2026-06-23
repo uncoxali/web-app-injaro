@@ -15,6 +15,7 @@ export interface LandingLocation {
   latitude: number;
   longitude: number;
   is_live: boolean;
+  category?: number;
 }
 
 async function publicFetch<T>(path: string): Promise<T> {
@@ -52,7 +53,7 @@ export function landingLocationToMarker(
     slug: loc.slug,
     latitude: loc.latitude,
     longitude: loc.longitude,
-    category: 0,
+    category: loc.category ?? 0,
     logo: loc.logo,
     is_open: loc.is_live,
   };

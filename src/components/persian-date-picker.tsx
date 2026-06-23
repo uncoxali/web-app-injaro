@@ -76,7 +76,7 @@ export function PersianDatePicker({
   };
 
   const selectClass = cn(
-    "h-11 rounded-lg border border-border bg-white px-3 text-base text-text-primary outline-none transition-colors appearance-none",
+    "h-11 rounded-lg border border-border bg-surface px-3 text-base text-text-primary outline-none transition-colors appearance-none",
     "focus:border-primary focus:ring-1 focus:ring-primary/20",
     error && "border-error"
   );

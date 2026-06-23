@@ -25,7 +25,7 @@ function LocationLogo({
       <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-lg scale-110" />
       <div
         className={cn(
-          "relative flex items-center justify-center overflow-hidden bg-white ring-2 ring-white shadow-md",
+          "relative flex items-center justify-center overflow-hidden bg-background ring-2 ring-background shadow-md",
           dim
         )}
       >
@@ -134,7 +134,7 @@ export function LocationBottomSheet() {
             className="absolute bottom-0 left-1/2 w-full max-w-[480px] -translate-x-1/2"
             style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
           >
-            <div className="overflow-hidden rounded-t-[28px] border border-white/70 bg-white/95 shadow-[0_-12px_40px_rgba(17,24,39,0.18)] backdrop-blur-xl">
+            <div className="overflow-hidden rounded-t-[28px] border border-border/70 bg-background/95 shadow-lg backdrop-blur-xl">
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
 
               <div
@@ -251,7 +251,7 @@ export function LocationBottomSheet() {
                     <button
                       type="button"
                       onClick={handleNavigate}
-                      className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-border/70 bg-white text-sm font-medium text-text-primary transition-colors hover:border-primary/30 hover:bg-primary/5"
+                      className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-border/70 bg-background text-sm font-medium text-text-primary transition-colors hover:border-primary/30 hover:bg-primary/5"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"

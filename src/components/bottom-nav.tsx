@@ -48,7 +48,6 @@ export function BottomNav() {
   const activeIndex = navItems.findIndex((item) =>
     isNavActive(item.href, pathname, item.exact)
   );
-  const navRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setGuest(!isAuthenticated());
@@ -56,11 +55,10 @@ export function BottomNav() {
 
   return (
     <nav
-      ref={navRef}
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-40 px-4"
-      style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 8px)" }}
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-40 px-3 pb-1"
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4px)" }}
     >
-      <div className="relative flex items-center justify-around h-16 rounded-[40px] bg-white/80 backdrop-blur-xl border border-border/60 shadow-lg shadow-black/5">
+      <div className="relative flex items-center justify-around h-16 rounded-[40px] bg-background/85 backdrop-blur-xl border border-border/50 shadow-lg shadow-border/30">
         <motion.div
           className="absolute top-1 bottom-1 rounded-[32px] bg-primary/10"
           layout
@@ -77,20 +75,20 @@ export function BottomNav() {
           const href =
             guest && item.requiresAuth ? loginUrl(item.href) : item.href;
           return (
-              <Link
-                  key={item.href}
-                  href={href}
-                  prefetch={true}
-                  aria-label={item.label}
-                  className={cn(
-                    "relative z-10 flex flex-col items-center justify-center gap-0.5 w-full h-full rounded-[32px] transition-colors",
-                    isActive ? "text-primary" : "text-text-secondary"
-                  )}
-                >
+            <Link
+              key={item.href}
+              href={href}
+              prefetch={true}
+              aria-label={item.label}
+              className={cn(
+                "relative z-10 flex flex-col items-center justify-center gap-0.5 w-full h-full rounded-[32px] transition-colors duration-200",
+                isActive ? "text-primary" : "text-text-secondary"
+              )}
+            >
               <div className="relative">
                 <item.icon active={isActive} />
                 {item.badge && (
-                  <span className="absolute -top-1 -end-1 w-2 h-2 rounded-full bg-error" />
+                  <span className="absolute -top-1 -end-1 w-2 h-2 rounded-full bg-error ring-2 ring-background" />
                 )}
               </div>
               <motion.span
@@ -99,6 +97,7 @@ export function BottomNav() {
                   scale: isActive ? 1 : 0.9,
                   fontWeight: isActive ? 600 : 400,
                 }}
+                transition={{ duration: 0.2 }}
               >
                 {item.label}
               </motion.span>

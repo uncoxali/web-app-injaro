@@ -16,7 +16,7 @@ export function HomeLayout({ children }: HomeLayoutProps) {
   const isMapPage = pathname === "/home/Injaro";
 
   return (
-    <MobileShell hideNav={hideNav} noBottomPadding={isMapPage}>
+    <MobileShell hideNav={hideNav} noBottomPadding={isMapPage} noTopPadding={isMapPage}>
       <PageTransition>{children}</PageTransition>
       {!hideNav && <BottomNav />}
     </MobileShell>

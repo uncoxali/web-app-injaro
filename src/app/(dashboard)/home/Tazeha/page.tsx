@@ -2,90 +2,62 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { getTazeha, type TazehaResponse, type TazehaItem } from "@/lib/api/tazeha";
 import { getLandingEvents, type LandingEvent } from "@/lib/api/landing";
-import {
-  DateSlider,
-  generateDays,
-} from "@/components/tazeha/date-slider";
 import { ErrorState } from "@/components/ui/error-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { isAuthenticated, loginUrl } from "@/lib/auth-utils";
+import { ThemeToggle } from "@/components/theme-toggle";
+import type { ReactNode } from "react";
 import { imgUrl, toPersianDigits, cn } from "@/lib/utils";
 
-const SECTION_META: Record<
+const SECTION_CONFIG: Record<
   string,
-  { label: string; description: string; accent: string; bg: string }
+  { label: string; gradient: string; icon: ReactNode }
 > = {
   live_events: {
-    label: "رویدادهای زنده",
-    description: "الان در حال برگزاری",
-    accent: "text-success",
-    bg: "bg-success/10",
+    label: "زنده",
+    gradient: "from-rose-500 to-red-600",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+      </svg>
+    ),
   },
   future_events: {
-    label: "رویدادهای آینده",
-    description: "برنامه‌ریزی‌شده برای روزهای پیش‌رو",
-    accent: "text-primary",
-    bg: "bg-primary/10",
+    label: "آینده",
+    gradient: "from-sky-500 to-blue-600",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+    ),
   },
   popular_events: {
-    label: "رویدادهای محبوب",
-    description: "پرطرفدارترین‌ها",
-    accent: "text-amber-600",
-    bg: "bg-amber-500/10",
+    label: "محبوب",
+    gradient: "from-amber-400 to-orange-500",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+      </svg>
+    ),
   },
   all_events: {
-    label: "همه رویدادها",
-    description: "آخرین به‌روزرسانی‌ها",
-    accent: "text-primary",
-    bg: "bg-primary/10",
+    label: "همه",
+    gradient: "from-slate-600 to-slate-800",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+    ),
   },
 };
-
-const KNOWN_SECTION_KEYS = [
-  "live_events",
-  "future_events",
-  "popular_events",
-  "all_events",
-] as const;
-
-function buildSections(data: TazehaResponse) {
-  const seen = new Set<string>();
-  const sections: {
-    key: string;
-    label: string;
-    description: string;
-    meta: (typeof SECTION_META)[string] | undefined;
-    items: TazehaItem[];
-  }[] = [];
-
-  for (const key of KNOWN_SECTION_KEYS) {
-    const items = data[key];
-    if (!items?.length) continue;
-    seen.add(key);
-    sections.push({
-      key,
-      label: SECTION_META[key]?.label ?? key,
-      description: SECTION_META[key]?.description ?? "",
-      meta: SECTION_META[key],
-      items,
-    });
-  }
-
-  for (const [key, items] of Object.entries(data)) {
-    if (seen.has(key) || !Array.isArray(items) || items.length === 0) continue;
-    sections.push({
-      key,
-      label: key,
-      description: "",
-      meta: undefined,
-      items,
-    });
-  }
-
-  return sections;
-}
 
 function getSlug(item: TazehaItem): string {
   return item.event_slug || item.topic || String(item.id || "");
@@ -108,36 +80,63 @@ function landingToItem(event: LandingEvent): TazehaItem {
   };
 }
 
-function SectionIcon({ sectionKey }: { sectionKey: string }) {
-  const meta = SECTION_META[sectionKey];
-  const className = cn("w-4 h-4", meta?.accent ?? "text-primary");
-
-  if (sectionKey === "live_events") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <circle cx="12" cy="12" r="3" />
-        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-      </svg>
-    );
-  }
-  if (sectionKey === "popular_events") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-      </svg>
-    );
-  }
+function LiveDot() {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
+    <span className="relative flex h-1.5 w-1.5">
+      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white/70" />
+      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+    </span>
   );
 }
 
-function EventListCard({
+function FilterPill({
+  config,
+  isActive,
+  count,
+  onClick,
+}: {
+  config: (typeof SECTION_CONFIG)[string];
+  isActive: boolean;
+  count: number;
+  onClick: () => void;
+}) {
+  return (
+    <motion.button
+      whileTap={{ scale: 0.92 }}
+      onClick={onClick}
+      className={cn(
+        "shrink-0 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border transition-all",
+        isActive
+          ? `border-transparent text-white shadow-lg bg-gradient-to-br ${config.gradient}`
+          : "bg-surface border-border/30 text-text-secondary hover:border-border/60"
+      )}
+    >
+      {isActive && (
+        <span className={cn("bg-gradient-to-br rounded-full p-1", config.gradient)}>
+          {config.icon}
+        </span>
+      )}
+      {!isActive && (
+        <span className="text-text-secondary/60">{config.icon}</span>
+      )}
+      <span className="text-sm font-semibold whitespace-nowrap">
+        {config.label}
+      </span>
+      <span
+        className={cn(
+          "text-[10px] font-bold px-2 py-0.5 rounded-full leading-none transition-all",
+          isActive
+            ? "bg-white/20 text-white"
+            : "bg-surface/80 text-text-secondary/70"
+        )}
+      >
+        {toPersianDigits(count)}
+      </span>
+    </motion.button>
+  );
+}
+
+function EventCard({
   item,
   index,
   sectionKey,
@@ -153,215 +152,76 @@ function EventListCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04, duration: 0.3 }}
+      transition={{ delay: index * 0.04, duration: 0.35, ease: "easeOut" }}
+      layout
     >
       <Link
         href={`/events/${slug}`}
-        className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-border/70 shadow-sm shadow-black/[0.03] active:scale-[0.99] transition-transform"
+        className="block relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-surface border border-border/30 shadow-sm group active:scale-[0.97] transition-all"
       >
-        <div className="relative shrink-0 w-[72px] h-[72px] rounded-xl overflow-hidden bg-surface">
-          {image ? (
-            <img src={image} alt={title} loading="lazy" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-text-secondary/25">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <path d="M21 15l-5-5L5 21" />
-              </svg>
-            </div>
-          )}
-          {isLive && (
-            <span className="absolute top-1.5 end-1.5 flex items-center gap-0.5 rounded-full bg-success px-1.5 py-0.5 text-[9px] font-bold text-white">
-              <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
-              زنده
-            </span>
-          )}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-text-primary leading-snug line-clamp-2">
+        {image ? (
+          <img
+            src={image}
+            alt={title}
+            loading="lazy"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-text-secondary/15">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+        {isLive && (
+          <div className="absolute top-2.5 start-2.5 flex items-center gap-1.5 rounded-full bg-success px-2.5 py-1 text-[9px] font-bold text-white shadow-sm backdrop-blur-[2px]">
+            <LiveDot />
+            زنده
+          </div>
+        )}
+        <div className="absolute bottom-0 inset-x-0 p-3">
+          <p className="text-xs font-semibold text-white leading-snug line-clamp-2 drop-shadow-sm">
             {title}
           </p>
-          <p className="text-[11px] text-text-secondary mt-1">
-            {isLive ? "در حال برگزاری" : "مشاهده جزئیات"}
-          </p>
         </div>
-
-        <svg
-          className="shrink-0 text-text-secondary/40 -scale-x-100"
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
       </Link>
     </motion.div>
   );
 }
 
-function EventSlideCard({
-  item,
-  index,
-  sectionKey,
-}: {
-  item: TazehaItem;
-  index: number;
-  sectionKey: string;
-}) {
-  const slug = getSlug(item);
-  const title = getTitle(item);
-  const image = imgUrl(getImage(item));
-  const isLive = sectionKey === "live_events";
-
+function GuestPrompt() {
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay: index * 0.05, duration: 0.35 }}
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl bg-gradient-to-br from-primary/[0.07] to-background border border-primary/15 p-4 mb-4"
     >
-      <Link
-        href={`/events/${slug}`}
-        className="block w-[140px] shrink-0 snap-start"
-      >
-        <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-surface border border-border">
-          {image ? (
-            <img src={image} alt={title} loading="lazy" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-text-secondary/25">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <path d="M21 15l-5-5L5 21" />
-              </svg>
-            </div>
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-          {isLive && (
-            <span className="absolute top-2 end-2 flex items-center gap-0.5 rounded-full bg-success px-1.5 py-0.5 text-[9px] font-bold text-white">
-              <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
-              زنده
-            </span>
-          )}
-          <div className="absolute bottom-0 inset-x-0 p-2.5">
-            <p className="text-[11px] font-medium text-white leading-tight line-clamp-2">
-              {title}
-            </p>
-          </div>
-        </div>
-      </Link>
-    </motion.div>
-  );
-}
-
-function SectionSlider({
-  items,
-  sectionKey,
-  sectionIndex,
-}: {
-  items: TazehaItem[];
-  sectionKey: string;
-  sectionIndex: number;
-}) {
-  return (
-    <div className="overflow-hidden">
-      <div
-        className="flex gap-3 overflow-x-auto scrollbar-none ps-5 pe-4 pb-1"
-        style={{ scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}
-      >
-        {items.map((item, index) => (
-          <EventSlideCard
-            key={item.event_slug || item.id || index}
-            item={item}
-            index={sectionIndex * 10 + index}
-            sectionKey={sectionKey}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function GuestBanner() {
-  return (
-    <div className="mx-4 mb-2 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/8 via-white to-primary/5 p-4">
-      <div className="flex items-start gap-3">
-        <div className="shrink-0 w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center text-primary">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <div className="flex items-center gap-3">
+        <div className="shrink-0 w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center text-primary shadow-sm">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
           </svg>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-text-primary">ورود برای تجربه کامل</p>
-          <p className="text-xs text-text-secondary mt-1 leading-relaxed">
-            با ورود، رویدادهای شخصی‌سازی‌شده را ببینید.
+          <p className="text-sm font-bold text-text-primary">ورود به حساب</p>
+          <p className="text-xs text-text-secondary mt-0.5 leading-relaxed">
+            برای دیدن همه رویدادها و ذخیره کردن، وارد شوید.
           </p>
-          <Link
-            href={loginUrl("/home/Tazeha")}
-            className="inline-flex mt-3 text-xs font-semibold text-white bg-primary px-4 py-2 rounded-full"
-          >
-            ورود / ثبت‌نام
-          </Link>
         </div>
+        <Link
+          href={loginUrl("/home/Tazeha")}
+          className="shrink-0 text-xs font-semibold text-white bg-primary px-4 py-2.5 rounded-full shadow-sm shadow-primary/20"
+        >
+          ورود
+        </Link>
       </div>
-    </div>
-  );
-}
-
-function SliderSkeleton({ cards = 4 }: { cards?: number }) {
-  return (
-    <div className="overflow-hidden ps-5 pe-4">
-      <div className="flex gap-3 overflow-hidden">
-        {Array.from({ length: cards }).map((_, i) => (
-          <div
-            key={i}
-            className="w-[140px] aspect-[3/4] rounded-xl bg-border/50 animate-pulse shrink-0"
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ListSkeleton({ rows = 4 }: { rows?: number }) {
-  return (
-    <div className="flex flex-col gap-2.5 px-4">
-      {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-surface animate-pulse">
-          <div className="w-[72px] h-[72px] rounded-xl bg-border/60" />
-          <div className="flex-1 space-y-2">
-            <div className="h-3.5 w-4/5 rounded-md bg-border/60" />
-            <div className="h-3 w-1/3 rounded-md bg-border/40" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-surface flex items-center justify-center text-text-secondary/30 mb-4">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <rect x="3" y="4" width="18" height="18" rx="2" />
-          <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-      </div>
-      <p className="text-sm font-medium text-text-primary">رویدادی یافت نشد</p>
-      <p className="text-xs text-text-secondary mt-1.5 max-w-[240px] leading-relaxed">
-        فعلاً رویدادی برای نمایش وجود ندارد. بعداً سر بزنید.
-      </p>
-    </div>
+    </motion.div>
   );
 }
 
@@ -369,10 +229,8 @@ export default function TazehaPage() {
   const [data, setData] = useState<TazehaResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(generateDays(1)[0].date);
   const [guest, setGuest] = useState(true);
-
-  const days = useMemo(() => generateDays(30), []);
+  const [activeSection, setActiveSection] = useState("all_events");
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -391,7 +249,6 @@ export default function TazehaPage() {
       return;
     }
 
-    // Date filter UI only for now — fetch all events without date param
     getTazeha()
       .then(setData)
       .catch(() => setError(true))
@@ -402,128 +259,161 @@ export default function TazehaPage() {
     fetchData();
   }, [fetchData]);
 
-  const handleDateSelect = useCallback((date: string) => {
-    setSelectedDate(date);
-  }, []);
+  const sections = useMemo(() => {
+    if (!data) return [];
 
-  const sections = useMemo(() => (data ? buildSections(data) : []), [data]);
+    const result: {
+      key: string;
+      label: string;
+      gradient: string;
+      icon: ReactNode;
+      items: TazehaItem[];
+    }[] = [];
 
-  const totalCount = useMemo(
-    () => sections.reduce((sum, s) => sum + s.items.length, 0),
-    [sections]
-  );
+    for (const [key, items] of Object.entries(data)) {
+      const arr = items as TazehaItem[] | undefined;
+      if (key === "all_events" || !arr?.length) continue;
 
-  const selectedDay = days.find((d) => d.date === selectedDate);
+      const meta = SECTION_CONFIG[key];
+      if (meta) {
+        result.push({ key, items: arr, ...meta });
+      } else {
+        result.push({
+          key,
+          label: key,
+          gradient: "from-primary/80 to-primary/60",
+          icon: (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+          ),
+          items: arr,
+        });
+      }
+    }
+
+    if (guest) {
+      const guestItems = data.all_events as TazehaItem[] | undefined;
+      if (guestItems?.length) {
+        result.push({ key: "all_events", ...SECTION_CONFIG["all_events"], items: guestItems });
+      }
+    } else if (result.length > 0) {
+      const seen = new Set<string>();
+      const combined = result.flatMap((s) => s.items).filter((item) => {
+        const slug = item.event_slug || item.topic || String(item.id || "");
+        if (seen.has(slug)) return false;
+        seen.add(slug);
+        return true;
+      });
+      result.push({ key: "all_events", ...SECTION_CONFIG["all_events"], items: combined });
+    }
+
+    return result;
+  }, [data, guest]);
+
+  useEffect(() => {
+    if (sections.length > 0) {
+      const exists = sections.find((s) => s.key === activeSection);
+      if (!exists) {
+        setActiveSection(sections[0].key);
+      }
+    }
+  }, [sections, activeSection]);
+
+  const activeItems = useMemo(() => {
+    const section = sections.find((s) => s.key === activeSection);
+    return section?.items || [];
+  }, [sections, activeSection]);
 
   return (
-    <div className="flex flex-col min-h-dvh bg-surface/40 overflow-x-hidden">
-      <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-md border-b border-border/50">
-        <div className="px-4 pt-6 pb-3">
-          <div className="flex items-start justify-between gap-3">
+    <div className="flex flex-col min-h-dvh bg-background overflow-x-hidden">
+      <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-xl border-b border-border/10">
+        <div className="px-4 pt-3 pb-3">
+          <div className="flex items-center justify-between mb-3">
             <div>
-              <h1 className="text-xl font-bold text-text-primary">تازه‌ها</h1>
-              <p className="text-sm text-text-secondary mt-0.5">
-                {loading
-                  ? "در حال بارگذاری..."
-                  : totalCount > 0
-                    ? `${toPersianDigits(totalCount)} رویداد`
-                    : "آخرین رویدادها و گالری‌ها"}
+              <h1 className="text-lg font-bold text-text-primary leading-tight">تازه‌ها</h1>
+              <p className="text-[10px] text-text-secondary/60 leading-tight -mt-0.5">
+                رویدادهای روز
               </p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {selectedDay && (
-                <div className="text-left">
-                  <p className="text-[10px] text-text-secondary">{selectedDay.dayName}</p>
-                  <p className="text-sm font-bold text-text-primary">
-                    {toPersianDigits(selectedDay.label)} {selectedDay.monthName}
-                  </p>
-                </div>
-              )}
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
               {guest && (
                 <Link
                   href={loginUrl("/home/Tazeha")}
-                  className="text-xs font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-full"
+                  className="text-xs font-semibold text-white bg-gradient-to-br from-primary to-primary/80 px-4 py-2 rounded-full shadow-sm shadow-primary/20"
                 >
                   ورود
                 </Link>
               )}
             </div>
           </div>
-        </div>
 
-        <div className="pb-2">
-          <DateSlider days={days} selected={selectedDate} onSelect={handleDateSelect} />
+          {!loading && sections.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto scrollbar-none">
+              {sections.map((section) => (
+                <FilterPill
+                  key={section.key}
+                  config={section}
+                  isActive={activeSection === section.key}
+                  count={section.items.length}
+                  onClick={() => setActiveSection(section.key)}
+                />
+              ))}
+            </div>
+          )}
         </div>
-        {guest && <GuestBanner />}
       </div>
 
-      {loading ? (
-        <div className="flex flex-col gap-8 pt-4 pb-6">
-          {Array.from({ length: guest ? 1 : 3 }).map((_, i) => (
-            <div key={i}>
-              <div className="h-4 w-36 rounded-md bg-border/50 animate-pulse mb-3 mx-4" />
-              {guest ? <ListSkeleton rows={5} /> : <SliderSkeleton cards={4} />}
-            </div>
-          ))}
-        </div>
-      ) : error ? (
-        <div className="flex-1 flex items-center justify-center py-12">
-          <ErrorState onRetry={() => fetchData()} />
-        </div>
-      ) : sections.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex flex-col gap-7 pt-4 pb-8"
-        >
-          {sections.map((section, sectionIndex) => (
-            <section key={section.key}>
-              <div className="flex items-center gap-2.5 px-4 mb-3">
-                <div
-                  className={cn(
-                    "w-8 h-8 rounded-xl flex items-center justify-center",
-                    section.meta?.bg ?? "bg-primary/10"
-                  )}
-                >
-                  <SectionIcon sectionKey={section.key} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-sm font-bold text-text-primary">
-                    {section.label}
-                  </h2>
-                  <p className="text-[11px] text-text-secondary truncate">
-                    {section.description}
-                  </p>
-                </div>
-                <span className="shrink-0 text-[11px] font-medium text-text-secondary bg-white border border-border/60 px-2 py-0.5 rounded-full">
-                  {toPersianDigits(section.items.length)}
-                </span>
+      <div className="flex-1 px-4 pt-4 pb-6">
+        {loading ? (
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="aspect-[3/4] rounded-2xl bg-gradient-to-r from-border/30 via-border/50 to-border/30 bg-[length:200%_100%] animate-shimmer"
+              />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="flex-1 flex items-center justify-center py-16">
+            <ErrorState onRetry={fetchData} />
+          </div>
+        ) : activeItems.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center py-16">
+            <EmptyState
+              title="رویدادی یافت نشد"
+              description="در حال حاضر رویدادی برای نمایش وجود ندارد."
+            />
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeSection}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.25 }}
+              className="flex flex-col gap-4"
+            >
+              {guest && <GuestPrompt />}
+              <div className="grid grid-cols-2 gap-3">
+                {activeItems.map((item, index) => (
+                  <EventCard
+                    key={item.event_slug || item.id || index}
+                    item={item}
+                    index={index}
+                    sectionKey={activeSection}
+                  />
+                ))}
               </div>
-
-              {guest ? (
-                <div className="flex flex-col gap-2.5 px-4">
-                  {section.items.map((item, index) => (
-                    <EventListCard
-                      key={item.event_slug || item.id || index}
-                      item={item}
-                      index={sectionIndex * 10 + index}
-                      sectionKey={section.key}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <SectionSlider
-                  items={section.items}
-                  sectionKey={section.key}
-                  sectionIndex={sectionIndex}
-                />
-              )}
-            </section>
-          ))}
-        </motion.div>
-      )}
+            </motion.div>
+          </AnimatePresence>
+        )}
+      </div>
     </div>
   );
 }

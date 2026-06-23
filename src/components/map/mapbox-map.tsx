@@ -3,13 +3,15 @@
 import { useCallback, useRef, useEffect, useState } from "react";
 import Map, { type MapRef, type ViewStateChangeEvent } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { useTheme } from "next-themes";
 import { useMapStore } from "@/store/map";
 import { MarkersLayer } from "./markers-layer";
 import { MAP_CAMERA_PADDING } from "@/lib/map-utils";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
-const DEFAULT_STYLE = "mapbox://styles/mapbox/light-v11";
+const LIGHT_STYLE = "mapbox://styles/mapbox/light-v11";
+const DARK_STYLE = "mapbox://styles/mapbox/dark-v11";
 
 interface MapboxMapProps {
   onLoad?: () => void;
@@ -20,6 +22,16 @@ export function MapboxMap({ onLoad }: MapboxMapProps) {
   const viewState = useMapStore((s) => s.viewState);
   const setViewState = useMapStore((s) => s.setViewState);
   const setUserLocation = useMapStore((s) => s.setUserLocation);
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  const mapStyle = !mounted
+    ? LIGHT_STYLE
+    : resolvedTheme === "dark"
+      ? DARK_STYLE
+      : LIGHT_STYLE;
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -100,7 +112,7 @@ export function MapboxMap({ onLoad }: MapboxMapProps) {
       {...viewState}
       onMove={handleMove}
       onLoad={handleLoad}
-      mapStyle={DEFAULT_STYLE}
+      mapStyle={mapStyle}
       style={{ width: "100%", height: "100%" }}
       attributionControl={false}
       reuseMaps

@@ -14,11 +14,14 @@ const WEEKDAYS = [
   "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه", "شنبه",
 ];
 
-interface DayOption {
+const SHORT_WEEKDAYS = ["ی", "د", "س", "چ", "پ", "ج", "ش"];
+
+export interface DayOption {
   label: string;
   date: string;
   monthName: string;
   dayName: string;
+  shortDayName: string;
   isToday: boolean;
   gy: number;
   gm: number;
@@ -35,9 +38,8 @@ function toGDateString(gy: number, gm: number, gd: number): string {
   return `${gy}-${String(gm).padStart(2, "0")}-${String(gd).padStart(2, "0")}`;
 }
 
-export function generateDays(count = 30): DayOption[] {
+export function generateDays(count = 14): DayOption[] {
   const today = new Date();
-  const todayJ = toJalaali(today);
 
   return Array.from({ length: count }, (_, i) => {
     const d = new Date(today);
@@ -51,6 +53,7 @@ export function generateDays(count = 30): DayOption[] {
       date: `${j.jy}-${String(j.jm).padStart(2, "0")}-${String(j.jd).padStart(2, "0")}`,
       monthName: PERSIAN_MONTHS[j.jm - 1],
       dayName: i === 0 ? "امروز" : WEEKDAYS[weekdayIdx],
+      shortDayName: i === 0 ? "ام" : SHORT_WEEKDAYS[weekdayIdx],
       isToday: i === 0,
       gy: d.getFullYear(),
       gm: d.getMonth() + 1,
@@ -81,11 +84,18 @@ export function DateSlider({ days, selected, onSelect }: DateSliderProps) {
   }, [selected]);
 
   return (
-    <div className="pt-3 pb-1">
+    <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1 px-0.5">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-text-secondary/60 shrink-0">
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      </div>
       <div
         ref={scrollRef}
-        className="flex gap-2 overflow-x-auto scrollbar-none px-4"
-        style={{ scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}
+        className="flex gap-1 overflow-x-auto scrollbar-none flex-1"
       >
         {days.map((day) => {
           const isActive = selected === day.date;
@@ -96,22 +106,32 @@ export function DateSlider({ days, selected, onSelect }: DateSliderProps) {
               onClick={() => onSelect(day.date)}
               ref={isActive ? activeRef : undefined}
               className={cn(
-                "shrink-0 snap-start flex flex-col items-center gap-0.5 px-4 py-2 rounded-2xl border transition-all min-w-[68px]",
+                "shrink-0 flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl border transition-all min-w-[44px]",
                 isActive
-                  ? "bg-primary border-primary text-white shadow-md shadow-primary/20"
-                  : "bg-white/80 border-border/50 text-text-secondary hover:border-primary/30"
+                  ? "bg-primary border-primary text-white shadow-sm shadow-primary/20"
+                  : "bg-transparent border-transparent text-text-secondary/70 hover:bg-surface hover:border-border/40"
               )}
-              style={{ scrollSnapAlign: "start" }}
             >
-              <span className={cn("text-[11px] font-medium whitespace-nowrap", isActive ? "text-white/80" : "")}>
-                {day.dayName}
+              <span className={cn(
+                "text-[10px] font-medium leading-none",
+                isActive ? "text-white/80" : "text-text-secondary/60"
+              )}>
+                {day.shortDayName}
               </span>
-              <span className={cn("text-base font-bold leading-tight", isActive ? "text-white" : "text-text-primary")}>
+              <span className={cn(
+                "text-sm font-bold leading-tight",
+                isActive ? "text-white" : "text-text-primary"
+              )}>
                 {day.label}
               </span>
-              <span className={cn("text-[10px]", isActive ? "text-white/70" : "text-text-secondary/70")}>
-                {day.monthName}
-              </span>
+              {day.monthName && (
+                <span className={cn(
+                  "text-[8px] leading-none",
+                  isActive ? "text-white/70" : "text-text-secondary/50"
+                )}>
+                  {day.monthName.slice(0, 2)}
+                </span>
+              )}
             </motion.button>
           );
         })}

@@ -46,7 +46,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           dir={dir}
           onChange={handleChange}
           className={cn(
-            "h-11 w-full rounded-lg border border-border bg-white px-3 text-sm text-text-primary placeholder:text-text-secondary/60 outline-none transition-colors",
+            "h-11 w-full rounded-lg border border-border bg-surface px-3 text-sm text-text-primary placeholder:text-text-secondary/60 outline-none transition-colors",
             "focus:border-primary focus:ring-1 focus:ring-primary/20",
             "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-surface",
             error && "border-error focus:border-error focus:ring-error/20",

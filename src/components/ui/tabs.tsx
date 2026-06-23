@@ -80,7 +80,7 @@ export function TabsTrigger({ value, children, className }: TabsTriggerProps) {
       className={cn(
         "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all",
         isActive
-          ? "bg-white text-text-primary shadow-sm"
+          ? "bg-surface text-text-primary shadow-sm"
           : "text-text-secondary hover:text-text-primary",
         className
       )}

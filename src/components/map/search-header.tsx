@@ -39,7 +39,7 @@ export function SearchHeader({ onSearch, className }: SearchHeaderProps) {
     <div className={cn("px-4", className)}>
       <div
         className={cn(
-          "flex items-center gap-2 h-11 rounded-2xl bg-white/90 backdrop-blur-md border shadow-sm transition-all",
+          "flex items-center gap-2 h-11 rounded-2xl bg-background/90 backdrop-blur-md border shadow-sm transition-all",
           focused
             ? "border-primary ring-2 ring-primary/10 shadow-md"
             : "border-border/60"

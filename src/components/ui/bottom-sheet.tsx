@@ -52,7 +52,7 @@ export function BottomSheet({
       <div
         ref={sheetRef}
         className={cn(
-          "relative z-50 w-full max-w-[480px] mx-auto rounded-t-2xl bg-white p-4 animate-slide-up",
+          "relative z-50 w-full max-w-[480px] mx-auto rounded-t-2xl bg-surface p-4 animate-slide-up",
           "pb-[calc(1rem+var(--safe-area-bottom))]",
           className
         )}

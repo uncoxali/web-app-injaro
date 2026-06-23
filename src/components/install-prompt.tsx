@@ -92,7 +92,7 @@ export function InstallPrompt() {
         "w-[calc(100%-32px)] max-w-[416px]"
       )}
     >
-      <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-white p-4 shadow-xl shadow-black/10">
+      <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-surface p-4 shadow-xl shadow-border/20">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
           <svg
             xmlns="http://www.w3.org/2000/svg"

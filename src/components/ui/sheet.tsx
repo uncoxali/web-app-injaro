@@ -48,7 +48,7 @@ export function Sheet({
       <div className="fixed inset-0 bg-black/40" onClick={onClose} />
       <div
         className={cn(
-          "fixed inset-y-0 z-50 w-full max-w-sm bg-white shadow-lg flex flex-col",
+          "fixed inset-y-0 z-50 w-full max-w-sm bg-surface shadow-lg flex flex-col",
           side === "right" ? "right-0 animate-slide-down" : "left-0",
           className
         )}

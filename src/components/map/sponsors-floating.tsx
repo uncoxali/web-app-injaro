@@ -10,7 +10,7 @@ const ROTATE_MS = 5000;
 
 function SponsorSkeleton() {
   return (
-    <div className="pointer-events-none overflow-hidden rounded-2xl border border-white/50 bg-white/70 backdrop-blur-xl shadow-lg">
+    <div className="pointer-events-none overflow-hidden rounded-2xl border border-border/50 bg-background/70 backdrop-blur-xl shadow-lg">
       <div className="flex items-center gap-3 p-3">
         <div className="h-5 w-14 rounded-full bg-border/60 animate-pulse" />
         <div className="h-10 w-10 rounded-xl bg-border/60 animate-pulse shrink-0" />
@@ -27,7 +27,7 @@ function SponsorLogo({ name, logo }: { name: string; logo?: string }) {
   return (
     <div className="relative shrink-0">
       <div className="absolute inset-0 rounded-xl bg-primary/25 blur-md scale-125" />
-      <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-white ring-2 ring-white shadow-sm">
+      <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-background ring-2 ring-background shadow-sm">
         {logo ? (
           <img src={logo} alt={name} className="h-full w-full object-cover" />
         ) : (
@@ -87,7 +87,7 @@ export function SponsorsFloating() {
       className="absolute inset-x-0 z-30 px-4 pointer-events-none"
       style={{ bottom: "calc(env(safe-area-inset-bottom) + 5.25rem)" }}
     >
-      <div className="pointer-events-auto relative overflow-hidden rounded-2xl border border-white/70 bg-white/85 backdrop-blur-xl shadow-[0_8px_32px_rgba(17,24,39,0.12)]">
+      <div className="pointer-events-auto relative overflow-hidden rounded-2xl border border-border/70 bg-background/85 backdrop-blur-xl shadow-lg">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent" />
 
         <div

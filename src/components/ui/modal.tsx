@@ -49,7 +49,7 @@ export function Modal({
       />
       <div
         className={cn(
-          "relative z-50 w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg animate-fade-in",
+          "relative z-50 w-full max-w-sm rounded-2xl bg-surface p-6 shadow-lg animate-fade-in",
           className
         )}
       >

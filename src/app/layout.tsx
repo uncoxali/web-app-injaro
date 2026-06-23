@@ -37,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fa" dir="rtl" className="h-full antialiased">
+    <html lang="fa" dir="rtl" className="h-full antialiased" suppressHydrationWarning>
       <body className="min-h-dvh flex flex-col bg-background text-text-primary">
         <GoogleAnalytics />
         <Providers>

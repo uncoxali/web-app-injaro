@@ -3,13 +3,15 @@ import type { ReactNode, HTMLAttributes } from "react";
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
+  hover?: boolean;
 }
 
-export function Card({ className, children, ...props }: CardProps) {
+export function Card({ className, children, hover, ...props }: CardProps) {
   return (
     <div
       className={cn(
-        "rounded-xl bg-white border border-border p-4",
+        "rounded-xl bg-surface border border-border/60 p-4",
+        hover && "hover:border-primary/30 transition-colors duration-200",
         className
       )}
       {...props}

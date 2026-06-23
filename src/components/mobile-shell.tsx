@@ -8,6 +8,7 @@ interface MobileShellProps {
   className?: string;
   hideNav?: boolean;
   noBottomPadding?: boolean;
+  noTopPadding?: boolean;
 }
 
 export function MobileShell({
@@ -15,6 +16,7 @@ export function MobileShell({
   className,
   hideNav,
   noBottomPadding,
+  noTopPadding,
 }: MobileShellProps) {
   return (
     <div
@@ -23,6 +25,7 @@ export function MobileShell({
         !hideNav && !noBottomPadding && "pb-24",
         className
       )}
+      style={{ paddingTop: noTopPadding ? undefined : "var(--safe-area-top)" }}
     >
       {children}
     </div>

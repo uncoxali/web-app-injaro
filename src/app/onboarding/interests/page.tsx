@@ -120,7 +120,7 @@ export default function OnboardingInterestsPage() {
                   "hover:scale-[1.02] active:scale-95",
                   isSelected
                     ? "border-primary bg-primary/8 text-primary shadow-sm shadow-primary/10"
-                    : "border-border bg-white text-text-secondary hover:border-primary/30 hover:text-text-primary"
+                    : "border-border bg-surface text-text-secondary hover:border-primary/30 hover:text-text-primary"
                 )}
               >
                 {cat.icon && (

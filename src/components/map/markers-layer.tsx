@@ -127,10 +127,10 @@ export function MarkersLayer() {
             <div
               className={cn(
                 "flex items-center justify-center w-9 h-9 rounded-full shadow-md cursor-pointer transition-transform",
-                "bg-white border-2",
+                "bg-background border-2",
                 isSelected
                   ? "border-primary scale-110 shadow-lg shadow-primary/20"
-                  : "border-white hover:scale-105"
+                  : "border-border hover:scale-105"
               )}
             >
               {location.logo ? (

@@ -72,7 +72,7 @@ export default function SupportPage() {
               onChange={(e) => { setSubject(e.target.value); setErrors((p) => ({ ...p, subject: "" })); }}
               placeholder=" "
               className={cn(
-                "peer h-14 w-full rounded-xl border bg-white px-4 pt-5 pb-1 text-sm text-text-primary outline-none transition-colors",
+                "peer h-14 w-full rounded-xl border bg-surface px-4 pt-5 pb-1 text-sm text-text-primary outline-none transition-colors",
                 "focus:border-primary focus:ring-1 focus:ring-primary/20",
                 errors.subject ? "border-error" : "border-border"
               )}
@@ -102,7 +102,7 @@ export default function SupportPage() {
               placeholder=" "
               rows={4}
               className={cn(
-                "peer w-full rounded-xl border bg-white px-4 pt-6 pb-3 text-sm text-text-primary outline-none transition-colors resize-none min-h-[120px]",
+                "peer w-full rounded-xl border bg-surface px-4 pt-6 pb-3 text-sm text-text-primary outline-none transition-colors resize-none min-h-[120px]",
                 "focus:border-primary focus:ring-1 focus:ring-primary/20",
                 errors.message ? "border-error" : "border-border"
               )}
