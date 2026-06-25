@@ -11,7 +11,7 @@ import {
 } from "@/lib/api/landing";
 import { ErrorState } from "@/components/ui/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { imgUrl, toPersianDigits, cn } from "@/lib/utils";
 import { isAuthenticated, loginUrl } from "@/lib/auth-utils";
 
@@ -23,25 +23,12 @@ function getGreeting(): string {
   return "شب بخیر";
 }
 
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08 },
-  },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-};
-
 function EventImage({ src, alt, className }: { src?: string; alt: string; className?: string }) {
   const url = imgUrl(src);
   if (!url) {
     return (
-      <div className={cn("w-full h-full flex items-center justify-center bg-surface text-text-secondary/30", className)}>
-        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+      <div className={cn("w-full h-full flex items-center justify-center bg-surface", className)}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-secondary/25">
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <circle cx="8.5" cy="8.5" r="1.5" />
           <path d="M21 15l-5-5L5 21" />
@@ -52,245 +39,305 @@ function EventImage({ src, alt, className }: { src?: string; alt: string; classN
   return <img src={url} alt={alt} loading="lazy" className={cn("w-full h-full object-cover", className)} />;
 }
 
-function QuickActions() {
-  const actions = [
-    {
-      label: "تازه‌ها",
-      href: "/home/Tazeha",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <rect x="3" y="3" width="7" height="7" rx="1" />
-          <rect x="14" y="3" width="7" height="7" rx="1" />
-          <rect x="3" y="14" width="7" height="7" rx="1" />
-          <rect x="14" y="14" width="7" height="7" rx="1" />
-        </svg>
-      ),
-      gradient: "from-orange-500 to-rose-500",
-    },
-    {
-      label: "نقشه",
-      href: "/home/Injaro",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-          <circle cx="12" cy="10" r="3" />
-        </svg>
-      ),
-      gradient: "from-blue-500 to-cyan-500",
-    },
-    {
-      label: "پروفایل",
-      href: "/home/profile",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-          <circle cx="12" cy="7" r="4" />
-        </svg>
-      ),
-      gradient: "from-violet-500 to-purple-500",
-    },
-  ];
+const fadeUp = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
+};
 
+const CATEGORIES = ["موزیک", "تئاتر", "هنر", "ورزش", "آموزش", "غذا"] as const;
+
+function SectionHeader({
+  title,
+  count,
+  href,
+}: {
+  title: string;
+  count?: number;
+  href?: string;
+}) {
   return (
-    <motion.div variants={item} className="flex gap-3">
-      {actions.map((action) => (
-        <Link
-          key={action.href}
-          href={action.href}
-          className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-2xl bg-surface border border-border/50 shadow-sm shadow-border/20 hover:border-primary/20 hover:shadow-md transition-all active:scale-95"
-        >
-          <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center text-white shadow-sm", action.gradient)}>
-            {action.icon}
-          </div>
-          <span className="text-[11px] font-medium text-text-secondary">{action.label}</span>
+    <div className="flex items-end justify-between mb-4">
+      <div>
+        <h2 className="text-[15px] font-semibold text-text-primary tracking-tight">{title}</h2>
+        {count !== undefined && (
+          <p className="text-[11px] text-text-secondary mt-0.5">
+            {toPersianDigits(count)} مورد
+          </p>
+        )}
+      </div>
+      {href && (
+        <Link href={href} className="text-[11px] font-medium text-text-secondary hover:text-text-primary transition-colors pb-0.5 border-b border-border/60">
+          مشاهده همه
         </Link>
-      ))}
+      )}
+    </div>
+  );
+}
+
+function TopBar({ guest }: { guest: boolean }) {
+  return (
+    <header className="sticky top-0 z-20 bg-background/90 backdrop-blur-md border-b border-border/40">
+      <div className="px-5 pt-4 pb-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[11px] text-text-secondary font-medium">{getGreeting()}</p>
+            <h1 className="text-2xl font-bold text-text-primary tracking-tight mt-0.5">اینجارو</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            {guest ? (
+              <Link
+                href={loginUrl("/home")}
+                className="text-xs font-medium text-text-primary border border-border px-4 py-2 rounded-full hover:bg-surface transition-colors"
+              >
+                ورود
+              </Link>
+            ) : (
+              <Link
+                href="/home/profile"
+                className="w-9 h-9 rounded-full flex items-center justify-center border border-border text-text-secondary hover:text-text-primary hover:bg-surface transition-all"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </Link>
+            )}
+          </div>
+        </div>
+
+        <Link
+          href="/home/Tazeha"
+          className="mt-4 flex items-center gap-3 w-full px-4 py-3 rounded-xl border border-border/60 text-text-secondary hover:border-border hover:bg-surface/50 transition-all"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 opacity-40">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+          <span className="text-sm">جستجوی رویدادها</span>
+        </Link>
+      </div>
+    </header>
+  );
+}
+
+function GuestBanner() {
+  return (
+    <motion.div variants={fadeUp} className="mx-5">
+      <div className="flex items-center justify-between gap-4 py-3.5 px-4 rounded-xl border border-border/60">
+        <p className="text-xs text-text-secondary leading-relaxed">
+          برای ذخیره رویدادها وارد حساب شوید
+        </p>
+        <Link
+          href={loginUrl("/home")}
+          className="shrink-0 text-xs font-medium text-primary"
+        >
+          ورود
+        </Link>
+      </div>
     </motion.div>
   );
 }
 
-function FeaturedCard({ event }: { event: LandingEvent }) {
+function HeroSection({ event }: { event: LandingEvent }) {
   return (
-    <motion.div variants={item}>
+    <motion.section variants={fadeUp} className="px-5">
       <Link href={`/events/${event.event_slug}`} className="block group">
-        <div className="relative aspect-[16/9] rounded-2xl overflow-hidden bg-surface shadow-sm">
-          <EventImage src={event.thumbnail} alt={event.topic} className="group-hover:scale-105 transition-transform duration-500" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-l from-primary/20 via-transparent to-transparent" />
-          <div className="absolute bottom-0 inset-x-0 p-4">
-            <div className="flex items-center gap-2 mb-2.5">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full">
-                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                </svg>
-                ویژه
-              </span>
-            </div>
-            <h2 className="text-lg font-bold text-white leading-snug line-clamp-2">
+        <div className="relative aspect-[5/4] rounded-2xl overflow-hidden bg-surface">
+          <EventImage
+            src={event.thumbnail}
+            alt={event.topic}
+            className="group-hover:scale-[1.02] transition-transform duration-500 ease-out"
+          />
+          <div className="absolute inset-0 bg-black/30 group-hover:bg-black/25 transition-colors" />
+          <div className="absolute inset-0 flex flex-col justify-end p-5">
+            <span className="text-[10px] font-medium tracking-widest uppercase text-white/60 mb-2">
+              رویداد ویژه
+            </span>
+            <h2 className="text-xl font-bold text-white leading-snug line-clamp-2">
               {event.topic}
             </h2>
           </div>
         </div>
       </Link>
+    </motion.section>
+  );
+}
+
+function NavRow({ liveCount }: { liveCount: number }) {
+  const items = [
+    { href: "/home/Tazeha", label: "تازه‌ها", sub: "رویدادها" },
+    { href: "/home/Injaro", label: "نقشه", sub: liveCount > 0 ? `${toPersianDigits(liveCount)} زنده` : "مکان‌ها" },
+    { href: "/home/savedEvents", label: "ذخیره‌شده", sub: "علاقه‌مندی" },
+  ];
+
+  return (
+    <motion.nav variants={fadeUp} className="px-5">
+      <div className="grid grid-cols-3 divide-x divide-border/40 border border-border/60 rounded-xl overflow-hidden">
+        {items.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="flex flex-col items-center py-4 hover:bg-surface/60 transition-colors active:bg-surface"
+          >
+            <span className="text-sm font-semibold text-text-primary">{item.label}</span>
+            <span className="text-[10px] text-text-secondary mt-1">{item.sub}</span>
+          </Link>
+        ))}
+      </div>
+    </motion.nav>
+  );
+}
+
+function CategoriesStrip() {
+  return (
+    <motion.section variants={fadeUp} className="px-5">
+      <SectionHeader title="دسته‌بندی" />
+      <div className="flex flex-wrap gap-2">
+        {CATEGORIES.map((label) => (
+          <button
+            key={label}
+            className="text-xs font-medium text-text-secondary border border-border/50 px-3.5 py-2 rounded-full hover:text-text-primary hover:border-border transition-colors"
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </motion.section>
+  );
+}
+
+function LiveRow({ liveCount }: { liveCount: number }) {
+  if (liveCount === 0) return null;
+
+  return (
+    <motion.div variants={fadeUp} className="px-5">
+      <Link
+        href="/home/Injaro"
+        className="flex items-center gap-3 py-3 border-y border-border/40"
+      >
+        <span className="relative flex h-2 w-2 shrink-0">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-50" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+        </span>
+        <span className="text-sm text-text-primary">
+          {toPersianDigits(liveCount)} مکان در حال پخش
+        </span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mr-auto text-text-secondary">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+      </Link>
     </motion.div>
   );
 }
 
-function EventCard({ event, index }: { event: LandingEvent; index: number }) {
+function EventsSection({ events }: { events: LandingEvent[] }) {
+  if (events.length === 0) return null;
+
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 16 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.35 }}
-    >
-      <Link
-        href={`/events/${event.event_slug}`}
-        className="block w-[150px] shrink-0 snap-start group"
-      >
-        <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-surface border border-border/50 shadow-sm shadow-border/20 group-hover:border-primary/25 group-hover:shadow-md transition-all">
-          <EventImage src={event.thumbnail} alt={event.topic} className="group-hover:scale-105 transition-transform duration-500" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent" />
-          <div className="absolute bottom-0 inset-x-0 p-3">
-            <p className="text-xs font-semibold text-white leading-tight line-clamp-2 drop-shadow-sm">
+    <motion.section variants={fadeUp} className="px-5">
+      <SectionHeader title="رویدادهای جدید" count={events.length} href="/home/Tazeha" />
+      <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-5 px-5">
+        {events.map((event) => (
+          <Link
+            key={event.event_slug}
+            href={`/events/${event.event_slug}`}
+            className="block w-[130px] shrink-0 group"
+          >
+            <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-surface mb-2">
+              <EventImage
+                src={event.thumbnail}
+                alt={event.topic}
+                className="group-hover:scale-[1.03] transition-transform duration-400"
+              />
+            </div>
+            <p className="text-xs font-medium text-text-primary leading-snug line-clamp-2 group-hover:text-primary transition-colors">
               {event.topic}
             </p>
-          </div>
-        </div>
-      </Link>
-    </motion.div>
+          </Link>
+        ))}
+      </div>
+    </motion.section>
   );
 }
 
-function MapPreview({
-  locations,
-  liveCount,
-}: {
-  locations: LandingLocation[];
-  liveCount: number;
-}) {
-  const preview = locations.slice(0, 8);
+function MapSection({ locations, liveCount }: { locations: LandingLocation[]; liveCount: number }) {
+  const preview = locations.slice(0, 6);
 
   return (
-    <motion.div variants={item}>
+    <motion.section variants={fadeUp} className="px-5 pb-6">
+      <SectionHeader title="نقشه هنری" count={locations.length} href="/home/Injaro" />
       <Link href="/home/Injaro" className="block group">
-        <div className="rounded-2xl border border-border/50 bg-surface overflow-hidden shadow-sm shadow-border/20 group-hover:shadow-md group-hover:border-primary/20 transition-all">
-          <div className="p-4 pb-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-text-primary">روی نقشه</h2>
-                  <p className="text-[11px] text-text-secondary mt-0.5">
-                    {toPersianDigits(locations.length)} مکان هنری
-                    {liveCount > 0 && (
-                      <span className="text-success me-1">
-                        · {toPersianDigits(liveCount)} زنده
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </div>
-              <span className="shrink-0 text-xs font-medium text-primary bg-primary/8 px-3 py-1 rounded-full">
-                مشاهده
+        <div className="rounded-xl border border-border/60 overflow-hidden">
+          <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
+            <span className="text-xs text-text-secondary">مکان‌های نزدیک شما</span>
+            {liveCount > 0 && (
+              <span className="text-[10px] font-medium text-primary flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                {toPersianDigits(liveCount)} زنده
               </span>
-            </div>
+            )}
           </div>
-
-          <div className="px-4 pb-4 overflow-hidden">
-            <div className="flex gap-2.5 overflow-x-auto scrollbar-none -mx-4 px-4">
-              {preview.map((loc, i) => (
-                <div
-                  key={loc.slug}
-                  className="shrink-0 flex flex-col items-center gap-1.5"
-                >
-                  <div className="relative w-14 h-14 rounded-xl overflow-hidden border-2 border-border/40 bg-surface shadow-sm">
-                    {loc.logo ? (
-                      <img src={imgUrl(loc.logo)} alt={loc.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs font-bold text-text-secondary">
-                        {loc.name.slice(0, 2)}
-                      </div>
-                    )}
-                    {loc.is_live && (
-                      <span className="absolute top-0.5 end-0.5 w-2.5 h-2.5 rounded-full bg-success ring-2 ring-background" />
-                    )}
-                  </div>
-                  <span className="text-[9px] text-text-secondary font-medium text-center line-clamp-1 max-w-[56px]">
-                    {loc.name}
-                  </span>
+          <div className="p-4 flex gap-4 overflow-x-auto scrollbar-none">
+            {preview.map((loc) => (
+              <div key={loc.slug} className="shrink-0 flex items-center gap-2.5">
+                <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-surface border border-border/40">
+                  {loc.logo ? (
+                    <img src={imgUrl(loc.logo)} alt={loc.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[10px] font-semibold text-text-secondary/50">
+                      {loc.name.slice(0, 2)}
+                    </div>
+                  )}
+                  {loc.is_live && (
+                    <span className="absolute top-0.5 end-0.5 w-1.5 h-1.5 rounded-full bg-primary ring-1 ring-background" />
+                  )}
                 </div>
-              ))}
-              {locations.length > 8 && (
-                <div className="shrink-0 flex flex-col items-center justify-center gap-1.5">
-                  <div className="w-14 h-14 rounded-xl border-2 border-dashed border-border/60 flex items-center justify-center text-xs font-bold text-text-secondary bg-surface/50">
-                    +{toPersianDigits(locations.length - 8)}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </Link>
-    </motion.div>
-  );
-}
-
-function LiveMarquee({ locations }: { locations: LandingLocation[] }) {
-  const liveLocations = locations.filter((l) => l.is_live);
-  if (liveLocations.length === 0) return null;
-
-  return (
-    <motion.div variants={item}>
-      <Link href="/home/Injaro" className="block">
-        <div className="rounded-2xl bg-gradient-to-l from-success/10 via-success/5 to-transparent border border-success/15 p-3.5 overflow-hidden">
-          <div className="flex items-center gap-2.5">
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-success" />
-              </span>
-              <span className="text-xs font-bold text-success">زنده</span>
-            </div>
-            <div className="flex gap-2 overflow-hidden flex-1">
-              {liveLocations.slice(0, 5).map((loc) => (
-                <span key={loc.slug} className="text-xs text-text-secondary whitespace-nowrap">
+                <span className="text-xs text-text-primary font-medium line-clamp-1 max-w-[80px]">
                   {loc.name}
                 </span>
-              ))}
-              {liveLocations.length > 5 && (
-                <span className="text-xs font-medium text-success whitespace-nowrap">
-                  +{toPersianDigits(liveLocations.length - 5)} مکان دیگر
-                </span>
-              )}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       </Link>
-    </motion.div>
+    </motion.section>
   );
 }
 
-function HomeSkeleton() {
+function Skeleton() {
   return (
-    <div className="flex flex-col gap-6 px-4 pt-6 pb-6">
-      <div className="flex gap-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="flex-1 h-20 rounded-2xl bg-gradient-to-r from-border/40 via-border/60 to-border/40 bg-[length:200%_100%] animate-shimmer" />
-        ))}
+    <div className="flex flex-col min-h-dvh bg-background">
+      <div className="px-5 pt-4 pb-4 border-b border-border/40">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-3 w-16 rounded bg-surface animate-pulse" />
+            <div className="h-7 w-24 rounded bg-surface animate-pulse" />
+          </div>
+          <div className="flex gap-2">
+            <div className="w-9 h-9 rounded-full bg-surface animate-pulse" />
+            <div className="w-14 h-9 rounded-full bg-surface animate-pulse" />
+          </div>
+        </div>
+        <div className="mt-4 h-11 rounded-xl bg-surface animate-pulse" />
       </div>
-      <div className="aspect-[16/9] rounded-2xl bg-gradient-to-r from-border/40 via-border/60 to-border/40 bg-[length:200%_100%] animate-shimmer" />
-      <div className="h-5 w-28 rounded-md bg-gradient-to-r from-border/40 via-border/60 to-border/40 bg-[length:200%_100%] animate-shimmer" />
-      <div className="flex gap-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="w-[150px] aspect-[3/4] rounded-xl bg-gradient-to-r from-border/40 via-border/60 to-border/40 bg-[length:200%_100%] animate-shimmer shrink-0" />
-        ))}
+      <div className="flex flex-col gap-8 p-5">
+        <div className="aspect-[5/4] rounded-2xl bg-surface animate-pulse" />
+        <div className="h-20 rounded-xl bg-surface animate-pulse" />
+        <div className="flex flex-wrap gap-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-8 w-16 rounded-full bg-surface animate-pulse" />
+          ))}
+        </div>
+        <div className="flex gap-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="w-[130px] shrink-0">
+              <div className="aspect-[3/4] rounded-xl bg-surface animate-pulse mb-2" />
+              <div className="h-3 w-full rounded bg-surface animate-pulse" />
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="h-40 rounded-2xl bg-gradient-to-r from-border/40 via-border/60 to-border/40 bg-[length:200%_100%] animate-shimmer" />
     </div>
   );
 }
@@ -325,100 +372,50 @@ export default function HomePage() {
     [locations]
   );
 
-  return (
-    <div className="flex flex-col min-h-dvh bg-background">
-      <div className="sticky top-0 z-10 bg-gradient-to-b from-background to-background/95 backdrop-blur-md border-b border-border/20 px-4 pt-3 pb-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm shadow-primary/20">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                <circle cx="12" cy="10" r="3" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-[11px] text-text-secondary font-medium">{getGreeting()}</p>
-              <h1 className="text-base font-bold text-text-primary -mt-0.5">
-                اینجارو
-              </h1>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {guest ? (
-              <Link
-                href={loginUrl("/home")}
-                className="text-xs font-semibold text-white bg-primary px-4 py-1.5 rounded-full shadow-sm shadow-primary/20 hover:shadow-md hover:shadow-primary/30 transition-all"
-              >
-                ورود / ثبت‌نام
-              </Link>
-            ) : (
-              <Link
-                href="/home/profile"
-                className="w-8 h-8 rounded-full bg-surface border border-border/50 flex items-center justify-center text-xs font-bold text-primary hover:border-primary/30 transition-colors"
-              >
-                {String.fromCodePoint(0x1F464)}
-              </Link>
-            )}
-          </div>
-        </div>
+  const hasContent = events.length > 0 || locations.length > 0;
+
+  if (loading) return <Skeleton />;
+
+  if (error) {
+    return (
+      <div className="flex-1 flex items-center justify-center px-5 min-h-dvh">
+        <ErrorState onRetry={fetchData} />
       </div>
+    );
+  }
 
-      {loading ? (
-        <HomeSkeleton />
-      ) : error ? (
-        <div className="flex-1 flex items-center justify-center px-4">
-          <ErrorState onRetry={fetchData} />
-        </div>
-      ) : (
-        <motion.div
-          variants={container}
-          initial="hidden"
-          animate="show"
-          className="flex flex-col gap-5 px-4 pt-5 pb-6"
-        >
-          <QuickActions />
+  if (!hasContent) {
+    return (
+      <div className="flex-1 flex items-center justify-center px-5 min-h-dvh">
+        <EmptyState title="خوش آمدید" description="به زودی رویدادها اضافه می‌شوند" />
+      </div>
+    );
+  }
 
-          {liveCount > 0 && <LiveMarquee locations={locations} />}
+  return (
+    <div className="flex flex-col min-h-dvh bg-background overflow-x-hidden">
+      <TopBar guest={guest} />
 
-          {featured && <FeaturedCard event={featured} />}
+      <motion.main
+        variants={{ hidden: {}, show: { transition: { staggerChildren: 0.05 } } }}
+        initial="hidden"
+        animate="show"
+        className="flex flex-col gap-8 pt-6"
+      >
+        {featured && <HeroSection event={featured} />}
 
-          {rest.length > 0 && (
-            <motion.section variants={item}>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-1 h-5 rounded-full bg-primary" />
-                  <h2 className="text-sm font-bold text-text-primary">رویدادهای جدید</h2>
-                </div>
-                <Link
-                  href="/home/Tazeha"
-                  className="text-xs font-semibold text-primary"
-                >
-                  مشاهده همه
-                </Link>
-              </div>
-              <div
-                className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1"
-                style={{ scrollSnapType: "x mandatory" }}
-              >
-                {rest.map((event, i) => (
-                  <EventCard key={event.event_slug} event={event} index={i} />
-                ))}
-              </div>
-            </motion.section>
-          )}
+        <NavRow liveCount={liveCount} />
 
-          {locations.length > 0 && <MapPreview locations={locations} liveCount={liveCount} />}
+        {guest && <GuestBanner />}
 
-          {events.length === 0 && locations.length === 0 && (
-            <motion.div variants={item}>
-              <EmptyState
-                title="محتوایی یافت نشد"
-                description="در حال حاضر محتوایی برای نمایش وجود ندارد"
-              />
-            </motion.div>
-          )}
-        </motion.div>
-      )}
+        <LiveRow liveCount={liveCount} />
+
+        <EventsSection events={rest} />
+
+        <CategoriesStrip />
+
+        {locations.length > 0 && <MapSection locations={locations} liveCount={liveCount} />}
+      </motion.main>
     </div>
   );
 }
