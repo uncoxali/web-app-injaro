@@ -41,7 +41,7 @@ function EventImage({ src, alt, className }: { src?: string; alt: string; classN
 
 const fadeUp = {
   hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] as const } },
 };
 
 const CATEGORIES = ["موزیک", "تئاتر", "هنر", "ورزش", "آموزش", "غذا"] as const;
