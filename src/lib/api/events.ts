@@ -1,4 +1,5 @@
 import { authFetch } from "@/lib/auth-fetch";
+import { API_BASE } from "@/lib/api-base";
 
 export interface EventImage {
   url: string;
@@ -61,6 +62,16 @@ export async function getEventDetail(slug: string): Promise<EventDetail> {
   const res = await authFetch(`/main/v2/event/${slug}/`);
   if (!res.ok) throw new Error("Failed to fetch event detail");
   return res.json();
+}
+
+export async function getPublicEventDetail(slug: string): Promise<EventDetail | null> {
+  try {
+    const res = await fetch(`${API_BASE}/main/v2/event/${slug}/`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
 }
 
 export async function toggleSaveEvent(): Promise<void> {

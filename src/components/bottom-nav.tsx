@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -27,8 +27,7 @@ const navItems = [
   {
     label: "پروفایل",
     href: "/home/profile",
-    icon: UserIcon,
-    badge: true,
+    icon: "profile",
     requiresAuth: true,
   },
 ];
@@ -58,7 +57,7 @@ export function BottomNav() {
       className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-40 px-3 pb-1"
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4px)" }}
     >
-      <div className="relative flex items-center justify-around h-16 rounded-[40px] bg-background/85 backdrop-blur-xl border border-border/50 shadow-lg shadow-border/30">
+      <div className="relative flex items-center justify-around h-16 rounded-[40px] bg-background/40 backdrop-blur-2xl border border-border/40 shadow-xl shadow-black/5">
         <motion.div
           className="absolute top-1 bottom-1 rounded-[32px] bg-primary/10"
           layout
@@ -86,9 +85,10 @@ export function BottomNav() {
               )}
             >
               <div className="relative">
-                <item.icon active={isActive} />
-                {item.badge && (
-                  <span className="absolute -top-1 -end-1 w-2 h-2 rounded-full bg-error ring-2 ring-background" />
+                {item.icon === "profile" ? (
+                  <UserIcon active={isActive} />
+                ) : (
+                  <item.icon active={isActive} />
                 )}
               </div>
               <motion.span
@@ -99,7 +99,7 @@ export function BottomNav() {
                 }}
                 transition={{ duration: 0.2 }}
               >
-                {item.label}
+                {item.icon === "profile" && guest ? "ورود" : item.label}
               </motion.span>
             </Link>
           );

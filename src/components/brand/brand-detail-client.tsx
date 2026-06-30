@@ -5,18 +5,19 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
+import { toJalaali } from "jalaali-js";
 import { getLocationDetail, type LocationDetail } from "@/lib/api/locations";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/ui/error-state";
-import { cn, imgUrl } from "@/lib/utils";
+import { cn, imgUrl, toPersianDigits } from "@/lib/utils";
 
 const tabs = [
   { key: "about", label: "درباره" },
   { key: "events", label: "رویدادها" },
-  { key: "kenar", label: "کنار" },
+  { key: "kenar", label: "نزدیک" },
 ] as const;
 
 type TabKey = (typeof tabs)[number]["key"];
@@ -104,18 +105,17 @@ export function BrandDetailClient({
   const kenar = data.kenar || [];
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
-      <button
-        onClick={() => router.back()}
-        aria-label="بازگشت"
-        className="fixed top-4 start-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-sm shadow-md flex items-center justify-center text-text-primary hover:bg-background transition-colors"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      </button>
-
+    <div className="flex min-h-dvh flex-col">
       <div ref={bannerRef} className="relative h-56 overflow-hidden bg-gradient-to-b from-primary/[0.04] to-surface">
+        <button
+          onClick={() => router.back()}
+          aria-label="بازگشت"
+          className="absolute top-4 start-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-sm shadow-md flex items-center justify-center text-text-primary hover:bg-background transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
         {data.banner ? (
           <div
             className="absolute inset-0 bg-cover bg-center"
@@ -197,7 +197,7 @@ export function BrandDetailClient({
       <div
         ref={tabBarRef}
         className={cn(
-          "sticky top-0 z-10 bg-background/90 backdrop-blur-md border-b border-border/40 mt-5 transition-shadow",
+          "sticky top-0 z-10 bg-background/60 backdrop-blur-2xl border-b border-border/40 mt-5 transition-shadow",
           tabBarSticky && "shadow-sm"
         )}
       >
@@ -380,6 +380,18 @@ function AboutTab({
   );
 }
 
+const PERSIAN_MONTHS = [
+  "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+  "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند",
+];
+
+function toShamsiDate(gregDateStr: string): string {
+  const d = new Date(gregDateStr);
+  if (isNaN(d.getTime())) return gregDateStr;
+  const j = toJalaali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+  return `${j.jd} ${PERSIAN_MONTHS[j.jm - 1]} ${toPersianDigits(j.jy)}`;
+}
+
 function EventsTab({ events }: { events: LocationDetail["events"] }) {
   const router = useRouter();
 
@@ -398,33 +410,40 @@ function EventsTab({ events }: { events: LocationDetail["events"] }) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="grid grid-cols-2 gap-3">
       {events.map((ev) => (
         <button
           key={ev.event_slug}
           onClick={() => router.push(`/events/${ev.event_slug}`)}
-          className="flex items-start gap-3 p-3 rounded-xl bg-surface border border-border/50 hover:border-primary/30 hover:shadow-sm transition-all text-right"
+          className="flex flex-col rounded-2xl bg-surface border border-border/30 overflow-hidden hover:border-primary/30 hover:shadow-md transition-all text-right active:scale-[0.97] group"
         >
-          {ev.thumbnail && (
-            <img
-              src={imgUrl(ev.thumbnail)}
-              alt=""
-              className="w-16 h-16 rounded-lg object-cover shrink-0"
-            />
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-text-primary line-clamp-2">
+          <div className="relative w-full aspect-[4/5] overflow-hidden bg-surface">
+            {ev.thumbnail ? (
+              <img
+                src={imgUrl(ev.thumbnail)}
+                alt=""
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-text-secondary/15">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+              </div>
+            )}
+          </div>
+          <div className="p-3">
+            <p className="text-xs font-semibold text-text-primary line-clamp-2 leading-snug">
               {ev.topic}
             </p>
             {ev.start_datetime && (
-              <p className="text-xs text-text-secondary mt-1">
-                {ev.start_datetime}
+              <p className="text-[10px] text-text-secondary mt-1.5">
+                {toShamsiDate(ev.start_datetime)}
               </p>
             )}
           </div>
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-secondary/40 shrink-0 mt-1">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
         </button>
       ))}
     </div>

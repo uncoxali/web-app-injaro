@@ -4,13 +4,13 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import { getProfile, updateProfile, type UserProfile } from "@/lib/api/profile";
+import { getProfile, updateProfile, updateAvatar, type UserProfile } from "@/lib/api/profile";
 import { PersianDatePicker } from "@/components/persian-date-picker";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/error-state";
 import { PROVINCES, JOBS } from "@/lib/constants/enums";
-import { cn } from "@/lib/utils";
+import { cn, imgUrl } from "@/lib/utils";
 
 const container = {
   hidden: { opacity: 0 },
@@ -31,6 +31,7 @@ export default function EditProfilePage() {
   const [job, setJob] = useState("");
   const [birthAt, setBirthAt] = useState("");
   const [gender, setGender] = useState<"male" | "female" | "">("");
+  const [avatar, setAvatar] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -48,6 +49,7 @@ export default function EditProfilePage() {
         setJob(p.job || "");
         setBirthAt(p.birth_at || "");
         setGender(p.gender || "");
+        setAvatar(p.avatar_url || "");
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
@@ -131,6 +133,19 @@ export default function EditProfilePage() {
           animate="show"
           className="flex flex-col gap-5"
         >
+          <motion.div variants={item} className="flex flex-col items-center">
+            <div className="relative">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/15 to-primary/[0.04] ring-2 ring-primary/[0.06] flex items-center justify-center shadow-sm overflow-hidden">
+                {avatar ? (
+                  <img src={imgUrl(avatar)} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-2xl font-bold text-primary/70">
+                    {fullName.slice(0, 2) || "?"}
+                  </span>
+                )}
+              </div>
+            </div>
+          </motion.div>
           <motion.div variants={item}>
             <FloatingLabelInput
               id="fullName"

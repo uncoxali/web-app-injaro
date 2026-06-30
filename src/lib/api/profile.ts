@@ -9,6 +9,8 @@ export interface UserProfile {
   living_city?: string;
   birth_at?: string;
   gender?: "male" | "female" | "";
+  avatar_url?: string;
+  permission?: string;
   interests?: number[];
   unread_notifications?: number;
 }
@@ -34,6 +36,18 @@ export async function updateProfile(data: Partial<UserProfile>): Promise<void> {
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Failed to update profile");
+}
+
+export async function updateAvatar(file: File): Promise<{ avatar_url: string }> {
+  const formData = new FormData();
+  formData.append("avatar", file);
+  const res = await authFetch("/accounts/get/me/", {
+    method: "PATCH",
+    body: formData,
+  });
+  if (!res.ok) throw new Error("Failed to update avatar");
+  const data = await res.json();
+  return { avatar_url: data.avatar_url || data.avatar || "" };
 }
 
 export async function getNotifications(): Promise<Notification[]> {

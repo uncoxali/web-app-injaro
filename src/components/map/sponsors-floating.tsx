@@ -1,12 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { getSponsors, type Sponsor } from "@/lib/api/locations";
 import { isAuthenticated } from "@/lib/auth-utils";
 import { cn } from "@/lib/utils";
-
-const ROTATE_MS = 5000;
 
 function SponsorSkeleton() {
   return (
@@ -59,14 +57,6 @@ export function SponsorsFloating() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    if (sponsors.length <= 1) return;
-    const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % sponsors.length);
-    }, ROTATE_MS);
-    return () => clearInterval(timer);
-  }, [sponsors.length]);
-
   if (loading) {
     return (
       <div
@@ -96,22 +86,14 @@ export function SponsorsFloating() {
         />
 
         <AnimatePresence mode="wait">
-          <motion.a
+          <a
             key={sponsor.id}
             href={sponsor.link || "#"}
             target={sponsor.link ? "_blank" : undefined}
             rel={sponsor.link ? "noopener noreferrer" : undefined}
             onClick={!sponsor.link ? (e) => e.preventDefault() : undefined}
-            initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -24 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
-            className="relative flex items-center gap-3 p-3 pe-4"
+            className="flex items-center gap-3 p-3 pe-4"
           >
-            <span className="shrink-0 rounded-full border border-primary/20 bg-gradient-to-br from-primary/15 to-primary/5 px-2.5 py-1 text-[9px] font-bold tracking-wide text-primary">
-              ✦ حامی
-            </span>
-
             <SponsorLogo name={sponsor.name} logo={sponsor.logo} />
 
             <div className="min-w-0 flex-1">
@@ -139,12 +121,11 @@ export function SponsorsFloating() {
                 </svg>
               </div>
             )}
-          </motion.a>
+          </a>
         </AnimatePresence>
 
         {sponsors.length > 1 && (
-          <>
-            <div className="flex justify-center gap-1.5 pb-2.5">
+          <div className="flex justify-center gap-1.5 pb-2.5">
               {sponsors.map((s, i) => (
                 <button
                   key={s.id}
@@ -157,18 +138,9 @@ export function SponsorsFloating() {
                       ? "w-5 bg-primary"
                       : "w-1.5 bg-border hover:bg-primary/40"
                   )}
-                />
+                  />
               ))}
             </div>
-
-            <motion.div
-              key={current}
-              className="absolute inset-x-0 bottom-0 h-0.5 origin-left bg-gradient-to-r from-primary/80 to-primary/30"
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: ROTATE_MS / 1000, ease: "linear" }}
-            />
-          </>
         )}
       </div>
     </div>

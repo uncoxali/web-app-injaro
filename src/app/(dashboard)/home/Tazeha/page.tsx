@@ -2,13 +2,17 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { getTazeha, type TazehaResponse, type TazehaItem } from "@/lib/api/tazeha";
-import { getLandingEvents, type LandingEvent } from "@/lib/api/landing";
+import { getLandingEvents, getLandingLocations, type LandingEvent, type LandingLocation } from "@/lib/api/landing";
 import { ErrorState } from "@/components/ui/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ExpandableSearchBar } from "@/components/search/expandable-search-bar";
+import { UnifiedSearchResults } from "@/components/search/unified-search-results";
 import { isAuthenticated, loginUrl } from "@/lib/auth-utils";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { DateSlider, generateDays, persianToGregorian, type DayOption } from "@/components/tazeha/date-slider";
+import { useMapStore } from "@/store/map";
 import type { ReactNode } from "react";
 import { imgUrl, toPersianDigits, cn } from "@/lib/utils";
 
@@ -159,33 +163,34 @@ function EventCard({
     >
       <Link
         href={`/events/${slug}`}
-        className="block relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-surface border border-border/30 shadow-sm group active:scale-[0.97] transition-all"
+        className="block rounded-2xl overflow-hidden bg-surface border border-border/30 shadow-sm group active:scale-[0.97] transition-all"
       >
-        {image ? (
-          <img
-            src={image}
-            alt={title}
-            loading="lazy"
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-text-secondary/15">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <polyline points="21 15 16 10 5 21" />
-            </svg>
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
-        {isLive && (
-          <div className="absolute top-2.5 start-2.5 flex items-center gap-1.5 rounded-full bg-success px-2.5 py-1 text-[9px] font-bold text-white shadow-sm backdrop-blur-[2px]">
-            <LiveDot />
-            زنده
-          </div>
-        )}
-        <div className="absolute bottom-0 inset-x-0 p-3">
-          <p className="text-xs font-semibold text-white leading-snug line-clamp-2 drop-shadow-sm">
+        <div className="relative w-full aspect-[4/5] overflow-hidden">
+          {image ? (
+            <img
+              src={image}
+              alt={title}
+              loading="lazy"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-text-secondary/15">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+            </div>
+          )}
+          {isLive && (
+            <div className="absolute top-2.5 start-2.5 flex items-center gap-1.5 rounded-full bg-success px-2.5 py-1 text-[9px] font-bold text-white shadow-sm backdrop-blur-[2px]">
+              <LiveDot />
+              زنده
+            </div>
+          )}
+        </div>
+        <div className="p-3">
+          <p className="text-xs font-semibold text-text-primary leading-snug line-clamp-2">
             {title}
           </p>
         </div>
@@ -226,13 +231,20 @@ function GuestPrompt() {
 }
 
 export default function TazehaPage() {
+  const router = useRouter();
+  const setMapSearchQuery = useMapStore((s) => s.setMapSearchQuery);
   const [data, setData] = useState<TazehaResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [guest, setGuest] = useState(true);
   const [activeSection, setActiveSection] = useState("all_events");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [days, setDays] = useState<DayOption[]>([]);
+  const [locations, setLocations] = useState<LandingLocation[]>([]);
 
-  const fetchData = useCallback(() => {
+  const fetchData = useCallback((date?: string) => {
     setLoading(true);
     setError(false);
 
@@ -249,7 +261,8 @@ export default function TazehaPage() {
       return;
     }
 
-    getTazeha()
+    const gregDate = date ? persianToGregorian(date) : undefined;
+    getTazeha(gregDate)
       .then(setData)
       .catch(() => setError(true))
       .finally(() => setLoading(false));
@@ -257,7 +270,26 @@ export default function TazehaPage() {
 
   useEffect(() => {
     fetchData();
+    const d = generateDays(14);
+    setDays(d);
+    setSelectedDate(d[0]?.date || "");
+    getLandingLocations()
+      .then(setLocations)
+      .catch(() => {});
   }, [fetchData]);
+
+  const handleDateChange = useCallback((date: string) => {
+    setSelectedDate(date);
+    fetchData(date);
+  }, [fetchData]);
+
+  const handleLocationSelect = useCallback(
+    (loc: { name: string }) => {
+      setMapSearchQuery(loc.name);
+      router.push("/home/Injaro");
+    },
+    [router, setMapSearchQuery]
+  );
 
   const sections = useMemo(() => {
     if (!data) return [];
@@ -328,48 +360,105 @@ export default function TazehaPage() {
     return section?.items || [];
   }, [sections, activeSection]);
 
+  const allEventsForSearch = useMemo(() => {
+    const seen = new Set<string>();
+    return sections.flatMap((s) => s.items).filter((item) => {
+      const slug = getSlug(item);
+      if (!slug || seen.has(slug)) return false;
+      seen.add(slug);
+      return true;
+    });
+  }, [sections]);
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return { events: [] as { slug: string; title: string; thumbnail?: string }[], locations: [] as LandingLocation[] };
+    }
+    const q = searchQuery.trim().toLowerCase();
+    return {
+      events: allEventsForSearch
+        .filter((item) => getTitle(item).toLowerCase().includes(q))
+        .map((item) => ({
+          slug: getSlug(item),
+          title: getTitle(item),
+          thumbnail: getImage(item),
+        })),
+      locations: locations.filter((loc) => loc.name.toLowerCase().includes(q)),
+    };
+  }, [searchQuery, allEventsForSearch, locations]);
+
   return (
-    <div className="flex flex-col min-h-dvh bg-background overflow-x-hidden">
-      <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-xl border-b border-border/10">
+    <div className="flex flex-col min-h-dvh overflow-x-hidden">
+      <div className="sticky top-0 z-10 bg-background/60 backdrop-blur-2xl border-b border-border/10">
         <div className="px-4 pt-3 pb-3">
           <div className="flex items-center justify-between mb-3">
-            <div>
-              <h1 className="text-lg font-bold text-text-primary leading-tight">تازه‌ها</h1>
-              <p className="text-[10px] text-text-secondary/60 leading-tight -mt-0.5">
-                رویدادهای روز
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              {guest && (
-                <Link
-                  href={loginUrl("/home/Tazeha")}
-                  className="text-xs font-semibold text-white bg-gradient-to-br from-primary to-primary/80 px-4 py-2 rounded-full shadow-sm shadow-primary/20"
-                >
-                  ورود
-                </Link>
+            <div className="flex items-center gap-3 flex-1">
+              {!searchOpen && (
+                <div>
+                  <h1 className="text-lg font-bold text-text-primary leading-tight">تازه‌ها</h1>
+                  <p className="text-[10px] text-text-secondary/60 leading-tight -mt-0.5">
+                    رویدادهای روز
+                  </p>
+                </div>
               )}
+              <div className={cn("flex items-center gap-2", searchOpen ? "flex-1" : "mr-auto")}>
+                <ExpandableSearchBar
+                  open={searchOpen}
+                  onOpenChange={setSearchOpen}
+                  query={searchQuery}
+                  onQueryChange={setSearchQuery}
+                />
+                {!searchOpen && guest && (
+                  <Link
+                    href={loginUrl("/home/Tazeha")}
+                    className="text-xs font-semibold text-white bg-primary px-4 py-2 rounded-full shadow-sm shadow-primary/20"
+                  >
+                    ورود
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
 
-          {!loading && sections.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto scrollbar-none">
-              {sections.map((section) => (
-                <FilterPill
-                  key={section.key}
-                  config={section}
-                  isActive={activeSection === section.key}
-                  count={section.items.length}
-                  onClick={() => setActiveSection(section.key)}
-                />
-              ))}
-            </div>
+              {!searchOpen && (
+                <>
+                  {!loading && days.length > 0 && (
+                    <div className="mb-4">
+                      <DateSlider
+                        days={days}
+                        selected={selectedDate}
+                        onSelect={handleDateChange}
+                      />
+                    </div>
+                  )}
+
+              {!loading && sections.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto scrollbar-none">
+                  {sections.map((section) => (
+                    <FilterPill
+                      key={section.key}
+                      config={section}
+                      isActive={activeSection === section.key}
+                      count={section.items.length}
+                      onClick={() => setActiveSection(section.key)}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
 
       <div className="flex-1 px-4 pt-4 pb-6">
-        {loading ? (
+        {searchOpen && searchQuery.trim() ? (
+          <UnifiedSearchResults
+            query={searchQuery}
+            events={searchResults.events}
+            locations={searchResults.locations}
+            onLocationClick={handleLocationSelect}
+          />
+        ) : loading ? (
           <div className="grid grid-cols-2 gap-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
@@ -380,7 +469,7 @@ export default function TazehaPage() {
           </div>
         ) : error ? (
           <div className="flex-1 flex items-center justify-center py-16">
-            <ErrorState onRetry={fetchData} />
+            <ErrorState onRetry={() => fetchData()} />
           </div>
         ) : activeItems.length === 0 ? (
           <div className="flex-1 flex items-center justify-center py-16">

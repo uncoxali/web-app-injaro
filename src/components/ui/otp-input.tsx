@@ -100,6 +100,28 @@ export function OTPInput({
     inputRefs.current = inputRefs.current.slice(0, length);
   }, [length]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!("OTPCredential" in window)) return;
+
+    const abort = new AbortController();
+
+    navigator.credentials
+      .get({
+        otp: { transport: ["sms"] },
+        signal: abort.signal,
+      } as CredentialRequestOptions)
+      .then((cred) => {
+        const otpCred = cred as { code?: string } | null;
+        if (otpCred?.code) {
+          onChange(otpCred.code.slice(0, length));
+        }
+      })
+      .catch(() => {});
+
+    return () => abort.abort();
+  }, [length, onChange]);
+
   return (
     <div className={cn("flex items-center gap-2 justify-center", className)} dir="ltr">
       {digits.map((digit, index) => (
@@ -114,6 +136,7 @@ export function OTPInput({
           value={digit}
           onChange={(e) => handleChange(index, e.target.value)}
           onKeyDown={(e) => handleKeyDown(index, e)}
+          autoComplete={index === 0 ? "one-time-code" : "off"}
           onPaste={handlePaste}
           onFocus={() => setActiveIndex(index)}
           onBlur={() => setActiveIndex(-1)}

@@ -53,7 +53,7 @@ export default function SavedEventsPage() {
 
   return (
     <div className="flex flex-col min-h-dvh">
-      <div className="sticky top-0 z-10 bg-background/85 backdrop-blur-md border-b border-border/40">
+      <div className="sticky top-0 z-10 bg-background/60 backdrop-blur-2xl border-b border-border/40">
         <div className="flex items-center gap-3 px-4 h-14">
           <button
             onClick={() => router.back()}
@@ -135,14 +135,14 @@ export default function SavedEventsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.03, duration: 0.3 }}
                 onClick={() => router.push(`/events/${ev.event_slug}`)}
-                className="flex flex-col rounded-xl bg-surface border border-border/50 overflow-hidden hover:border-primary/30 hover:shadow-sm transition-all text-right active:scale-[0.98]"
+                className="flex flex-col rounded-2xl bg-surface border border-border/50 overflow-hidden hover:border-primary/30 hover:shadow-md transition-all text-right active:scale-[0.97] group"
               >
-                <div className="aspect-[4/3] bg-surface overflow-hidden">
+                <div className="relative w-full aspect-[4/5] overflow-hidden bg-surface">
                   {ev.thumbnail ? (
                     <img
                       src={imgUrl(ev.thumbnail) ?? ""}
                       alt={ev.topic}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">

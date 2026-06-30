@@ -10,8 +10,8 @@ import { MAP_CAMERA_PADDING } from "@/lib/map-utils";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
-const LIGHT_STYLE = "mapbox://styles/mapbox/light-v11";
-const DARK_STYLE = "mapbox://styles/mapbox/dark-v11";
+const LIGHT_STYLE = "mapbox://styles/mapbox/streets-v12";
+const DARK_STYLE = "mapbox://styles/mapbox/navigation-night-v1";
 
 interface MapboxMapProps {
   onLoad?: () => void;
@@ -26,12 +26,6 @@ export function MapboxMap({ onLoad }: MapboxMapProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
-
-  const mapStyle = !mounted
-    ? LIGHT_STYLE
-    : resolvedTheme === "dark"
-      ? DARK_STYLE
-      : LIGHT_STYLE;
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -67,29 +61,25 @@ export function MapboxMap({ onLoad }: MapboxMapProps) {
 
   useEffect(() => {
     if (!flyToTarget) return;
-    if (!mapRef.current && !mapLoaded) return;
+    if (!mapRef.current || !mapLoaded) return;
 
-    if (mapRef.current) {
-      mapRef.current.flyTo({
-        center: [flyToTarget.longitude, flyToTarget.latitude],
-        zoom: flyToTarget.zoom ?? 14,
-        duration: 800,
-      });
-      setFlyToTarget(null);
-    }
+    mapRef.current.flyTo({
+      center: [flyToTarget.longitude, flyToTarget.latitude],
+      zoom: flyToTarget.zoom ?? 14,
+      duration: 800,
+    });
+    setFlyToTarget(null);
   }, [flyToTarget, setFlyToTarget, mapLoaded]);
 
   useEffect(() => {
     if (!fitBoundsTarget) return;
-    if (!mapRef.current && !mapLoaded) return;
+    if (!mapRef.current || !mapLoaded) return;
 
-    if (mapRef.current) {
-      mapRef.current.fitBounds(fitBoundsTarget, {
-        padding: MAP_CAMERA_PADDING,
-        duration: 800,
-      });
-      setFitBoundsTarget(null);
-    }
+    mapRef.current.fitBounds(fitBoundsTarget, {
+      padding: MAP_CAMERA_PADDING,
+      duration: 800,
+    });
+    setFitBoundsTarget(null);
   }, [fitBoundsTarget, setFitBoundsTarget, mapLoaded]);
 
   const handleLoad = useCallback(() => {
@@ -105,9 +95,16 @@ export function MapboxMap({ onLoad }: MapboxMapProps) {
     );
   }
 
+  if (!mounted) {
+    return <div className="h-full w-full bg-surface" />;
+  }
+
+  const mapStyle = resolvedTheme === "dark" ? DARK_STYLE : LIGHT_STYLE;
+
   return (
     <Map
       ref={mapRef}
+      key={resolvedTheme}
       mapboxAccessToken={TOKEN}
       {...viewState}
       onMove={handleMove}

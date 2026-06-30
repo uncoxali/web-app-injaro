@@ -101,13 +101,24 @@ export function MarkersLayer() {
                 handleClusterClick(props.cluster_id, coords[0], coords[1])
               }
             >
-              <div
-                className={cn(
-                  "flex items-center justify-center w-11 h-11 rounded-full bg-primary text-white text-sm font-bold shadow-lg cursor-pointer",
-                  "bg-gradient-to-br from-primary to-primary/70"
-                )}
-              >
-                {pointCount}
+              <div className="flex items-start justify-center cursor-pointer transition-transform drop-shadow-md">
+                <div className="relative">
+                  <svg
+                    width="36"
+                    height="44"
+                    viewBox="0 0 42 50"
+                    fill="none"
+                  >
+                    <path
+                      d="M21 1C12.72 1 6 7.72 6 16c0 10.5 15 33 15 33s15-22.5 15-33c0-8.28-6.72-15-15-15z"
+                      fill="#ff5a5f"
+                    />
+                    <circle cx="21" cy="15" r="10" fill="white" />
+                  </svg>
+                  <span className="absolute start-0 end-0 top-[5px] h-5 flex items-center justify-center text-sm font-bold text-primary leading-none">
+                    {pointCount}
+                  </span>
+                </div>
               </div>
             </Marker>
           );
@@ -126,32 +137,51 @@ export function MarkersLayer() {
           >
             <div
               className={cn(
-                "flex items-center justify-center w-9 h-9 rounded-full shadow-md cursor-pointer transition-transform",
-                "bg-background border-2",
-                isSelected
-                  ? "border-primary scale-110 shadow-lg shadow-primary/20"
-                  : "border-border hover:scale-105"
+                "relative flex items-start justify-center cursor-pointer transition-transform drop-shadow-md",
+                isSelected && "scale-110 z-10 drop-shadow-lg"
               )}
             >
-              {location.logo ? (
-                <img
-                  src={location.logo}
-                  alt=""
-                  className="w-6 h-6 rounded-full object-cover"
-                />
-              ) : (
+              <div className="relative">
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="#FF5A5F"
-                  stroke="none"
+                  width="36"
+                  height="44"
+                  viewBox="0 0 42 50"
+                  fill="none"
                 >
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" fill="white" />
+                  <defs>
+                    <clipPath id={`mc-${markerId}`}>
+                      <circle cx="21" cy="15" r="9" />
+                    </clipPath>
+                  </defs>
+                  <path
+                    d="M21 1C12.72 1 6 7.72 6 16c0 10.5 15 33 15 33s15-22.5 15-33c0-8.28-6.72-15-15-15z"
+                    fill={isSelected ? "#ff5a5f" : "#ffffff"}
+                    stroke={isSelected ? "#ff5a5f" : "#d1d5db"}
+                    strokeWidth="1.5"
+                  />
+                  <circle
+                    cx="21"
+                    cy="15"
+                    r="9"
+                    fill={isSelected ? "#ffffff" : "#f3f4f6"}
+                    stroke={isSelected ? "#ff5a5f" : "#d1d5db"}
+                    strokeWidth="1.5"
+                  />
+                  {location.logo ? (
+                    <image
+                      href={location.logo}
+                      x="12"
+                      y="6"
+                      width="18"
+                      height="18"
+                      clipPath={`url(#mc-${markerId})`}
+                      preserveAspectRatio="xMidYMid slice"
+                    />
+                  ) : (
+                    <circle cx="21" cy="15" r="5" fill={isSelected ? "#ffffff" : "#FF5A5F"} />
+                  )}
                 </svg>
-              )}
+              </div>
             </div>
           </Marker>
         );

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import {
   getEventDetail,
+  getPublicEventDetail,
   toggleSaveEvent,
   type EventDetail,
 } from "@/lib/api/events";
@@ -60,23 +61,30 @@ export function EventDetailClient({
     if (initialData || serverError) return;
 
     const authed = isAuthenticated();
-    setIsGuest(!authed);
 
-    if (authed) {
-      getEventDetail(slug)
-        .then(setData)
-        .catch(() => setError(true))
-        .finally(() => setLoading(false));
-      return;
+    async function load() {
+      if (authed) {
+        try {
+          const detail = await getEventDetail(slug);
+          setData(detail);
+        } catch {
+          setError(true);
+        }
+      } else {
+        setIsGuest(true);
+        const detail = await getPublicEventDetail(slug);
+        if (detail) {
+          setData(detail);
+        } else {
+          const landing = await getLandingEventBySlug(slug);
+          if (landing) setGuestEvent(landing);
+          else setError(true);
+        }
+      }
+      setLoading(false);
     }
 
-    getLandingEventBySlug(slug)
-      .then((event) => {
-        if (event) setGuestEvent(event);
-        else setError(true);
-      })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
+    load();
   }, [slug, initialData, serverError]);
 
   const handleParticipate = useCallback(() => {
@@ -175,59 +183,68 @@ export function EventDetailClient({
   const saloons = data.saloons || [];
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
-      <button
-        onClick={() => router.back()}
-        aria-label="بازگشت"
-        className="fixed top-4 start-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-sm shadow-md flex items-center justify-center text-text-primary hover:bg-background transition-colors"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      </button>
-
-      <GallerySection images={images} onOpenImage={handleOpenImage} />
-
-      <div className="px-4 pt-4 pb-3">
-        <div className="flex items-start gap-2">
-          <h1 className="text-xl font-bold text-text-primary flex-1 leading-snug">
-            {data.topic}
-          </h1>
-          {data.is_vip && (
-            <Badge variant="warning" size="sm" className="shrink-0">
-              VIP
-            </Badge>
-          )}
-        </div>
-
-        {data.start_datetime && (
-          <p className="text-sm text-text-secondary mt-2 flex items-center gap-1.5">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0">
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-            {formatPersianDateTime(data.start_datetime)}
-            {data.finish_datetime && ` — ${formatPersianDateTime(data.finish_datetime)}`}
-          </p>
-        )}
-
-        {data.location && (
-          <button
-            onClick={handleNavigate}
-            className="mt-2 flex items-center gap-1.5 text-sm text-primary font-medium hover:opacity-80 transition-opacity"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-            {data.location.name}
-          </button>
-        )}
+    <div className="flex min-h-dvh flex-col">
+      <div className="relative">
+        <GallerySection images={images} onOpenImage={handleOpenImage} />
+        <button
+          onClick={() => router.back()}
+          aria-label="بازگشت"
+          className="absolute top-4 start-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-sm shadow-md flex items-center justify-center text-text-primary hover:bg-background transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
       </div>
 
-      <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b border-border/40">
+      <div className="px-4 pt-4 pb-3">
+        <div className="bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl border border-border/15 shadow-sm rounded-2xl p-4 space-y-3">
+          <div className="flex items-start gap-2">
+            <h1 className="text-xl font-bold text-text-primary flex-1 leading-snug">
+              {data.topic}
+            </h1>
+            {data.is_vip && (
+              <Badge variant="warning" size="sm" className="shrink-0">
+                VIP
+              </Badge>
+            )}
+          </div>
+
+          {data.start_datetime && (
+            <div className="flex items-center gap-2 text-sm text-text-secondary">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+              </div>
+              <span className="font-medium">
+                {formatPersianDateTime(data.start_datetime)}
+                {data.finish_datetime && ` — ${formatPersianDateTime(data.finish_datetime)}`}
+              </span>
+            </div>
+          )}
+
+          {data.location && (
+            <button
+              onClick={handleNavigate}
+              className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary transition-colors w-full text-right"
+            >
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+              </div>
+              <span className="font-medium">{data.location.name}</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="sticky top-0 z-10 bg-background/60 backdrop-blur-2xl border-b border-border/40">
         <div className="flex gap-1.5 px-4 py-2.5">
           <ActionIcon active={saved} onClick={handleSave} tooltip={saved ? "حذف از ذخیره" : "ذخیره"}>
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill={saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth={saved ? 0 : 1.5}>
@@ -271,46 +288,52 @@ export function EventDetailClient({
         </div>
       </div>
 
-      <div className="flex-1 px-4 pt-5 pb-8 space-y-6">
+      <div className="flex-1 px-4 pt-5 pb-8 space-y-5">
         {data.statement && (
           <section>
             <SectionTitle>درباره رویداد</SectionTitle>
-            <StatementBlock text={data.statement} />
+            <div className="bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl border border-border/15 shadow-sm rounded-2xl p-4">
+              <StatementBlock text={data.statement} />
+            </div>
           </section>
         )}
 
         {data.main_organizers && (
           <section>
             <SectionTitle>برگزارکنندگان</SectionTitle>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              {data.main_organizers}
-            </p>
+            <div className="bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl border border-border/15 shadow-sm rounded-2xl p-4">
+              <p className="text-sm text-text-secondary leading-relaxed">
+                {data.main_organizers}
+              </p>
+            </div>
           </section>
         )}
 
         {sideOrgs.length > 0 && (
           <section>
             <SectionTitle>برگزارکنندگان فرعی</SectionTitle>
-            <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4 snap-x snap-mandatory scrollbar-none">
-              {sideOrgs.map((org) => (
-                <div
-                  key={org.id}
-                  className="snap-start shrink-0 flex flex-col items-center gap-2 w-20"
-                >
-                  <div className="w-14 h-14 rounded-xl bg-surface border border-border/60 flex items-center justify-center overflow-hidden">
-                    {org.logo ? (
-                      <img src={imgUrl(org.logo)} alt={org.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-lg font-bold text-text-secondary/40">
-                        {org.name.slice(0, 1)}
-                      </span>
-                    )}
+            <div className="bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl border border-border/15 shadow-sm rounded-2xl p-4">
+              <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory scrollbar-none">
+                {sideOrgs.map((org) => (
+                  <div
+                    key={org.id}
+                    className="snap-start shrink-0 flex flex-col items-center gap-2 w-20"
+                  >
+                    <div className="w-14 h-14 rounded-xl bg-white/50 border border-border/40 flex items-center justify-center overflow-hidden shadow-sm">
+                      {org.logo ? (
+                        <img src={imgUrl(org.logo)} alt={org.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-lg font-bold text-text-secondary/40">
+                          {org.name.slice(0, 1)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-text-secondary text-center line-clamp-2 leading-snug">
+                      {org.name}
+                    </p>
                   </div>
-                  <p className="text-[10px] text-text-secondary text-center line-clamp-2 leading-snug">
-                    {org.name}
-                  </p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </section>
         )}
@@ -318,36 +341,38 @@ export function EventDetailClient({
         {talks.length > 0 && (
           <section>
             <SectionTitle>سخنرانان / پنل گفتگو</SectionTitle>
-            <div className="flex flex-col gap-2">
-              {talks.map((talk, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-surface border border-border/50"
-                >
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <span className="text-sm font-bold text-primary">
-                      {talk.name?.slice(0, 1) || "?"}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    {talk.name && (
-                      <p className="text-sm font-medium text-text-primary">
-                        {talk.name}
-                      </p>
+            <div className="bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl border border-border/15 shadow-sm rounded-2xl p-4">
+              <div className="flex flex-col gap-2">
+                {talks.map((talk, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-white/50 border border-border/30"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <span className="text-sm font-bold text-primary">
+                        {talk.name?.slice(0, 1) || "?"}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {talk.name && (
+                        <p className="text-sm font-medium text-text-primary">
+                          {talk.name}
+                        </p>
+                      )}
+                      {talk.title && (
+                        <p className="text-xs text-text-secondary mt-0.5">
+                          {talk.title}
+                        </p>
+                      )}
+                    </div>
+                    {talk.time && (
+                      <span className="text-[10px] px-2 py-1 rounded-full bg-white/50 text-text-secondary border border-border/30 shrink-0 font-medium">
+                        {talk.time}
+                      </span>
                     )}
-                    {talk.title && (
-                      <p className="text-xs text-text-secondary mt-0.5">
-                        {talk.title}
-                      </p>
-                    )}
                   </div>
-                  {talk.time && (
-                    <span className="text-[10px] px-2 py-1 rounded-md bg-surface text-text-secondary border border-border/50 shrink-0">
-                      {talk.time}
-                    </span>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </section>
         )}
@@ -355,7 +380,9 @@ export function EventDetailClient({
         {saloons.length > 0 && (
           <section>
             <SectionTitle>سالن‌ها و غرفه‌ها</SectionTitle>
-            <SaloonsAccordion saloons={saloons} />
+            <div className="bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl border border-border/15 shadow-sm rounded-2xl p-4">
+              <SaloonsAccordion saloons={saloons} />
+            </div>
           </section>
         )}
       </div>
@@ -437,18 +464,17 @@ function GuestEventView({
   const imageUrl = imgUrl(event.thumbnail);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background pb-32">
-      <button
-        onClick={onBack}
-        aria-label="بازگشت"
-        className="fixed top-4 start-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-sm shadow-md flex items-center justify-center text-text-primary"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      </button>
-
+    <div className="flex min-h-dvh flex-col pb-32">
       <div className="relative aspect-[4/3] bg-surface">
+        <button
+          onClick={onBack}
+          aria-label="بازگشت"
+          className="absolute top-4 start-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-sm shadow-md flex items-center justify-center text-text-primary"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
         {imageUrl ? (
           <img src={imageUrl} alt={event.topic} className="w-full h-full object-cover" />
         ) : (
@@ -575,9 +601,12 @@ function GallerySection({
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-sm font-bold text-text-primary mb-3">
-      {children}
-    </h2>
+    <div className="flex items-center gap-2 mb-3">
+      <div className="w-1 h-4 rounded-full bg-primary/60" />
+      <h2 className="text-sm font-bold text-text-primary">
+        {children}
+      </h2>
+    </div>
   );
 }
 
@@ -620,11 +649,11 @@ function SaloonsAccordion({ saloons }: { saloons: EventDetail["saloons"] }) {
         return (
           <div
             key={i}
-            className="rounded-xl bg-surface border border-border/50 overflow-hidden"
+            className="rounded-xl bg-white/50 border border-border/30 overflow-hidden"
           >
             <button
               onClick={() => setOpenIndex(isOpen ? null : i)}
-              className="flex items-center justify-between w-full h-12 px-4 text-sm font-medium text-text-primary hover:bg-surface/50 transition-colors"
+              className="flex items-center justify-between w-full h-12 px-4 text-sm font-medium text-text-primary hover:bg-white/30 transition-colors"
             >
               <span>{saloon.name}</span>
               <motion.svg
@@ -651,7 +680,7 @@ function SaloonsAccordion({ saloons }: { saloons: EventDetail["saloons"] }) {
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <div className="px-4 pb-3 border-t border-border/30 pt-3">
+                  <div className="px-4 pb-3 border-t border-border/20 pt-3">
                     {companies.length === 0 ? (
                       <p className="text-xs text-text-secondary">غرفه‌ای ثبت نشده</p>
                     ) : (
@@ -688,9 +717,9 @@ function CompanyBoothCard({
   return (
     <button
       onClick={handleClick}
-      className="flex items-center gap-3 p-2.5 rounded-lg bg-surface hover:bg-surface/80 transition-colors"
+      className="flex items-center gap-3 p-2.5 rounded-lg bg-white/40 hover:bg-white/60 transition-colors"
     >
-      <div className="w-9 h-9 rounded-lg bg-surface border border-border/60 flex items-center justify-center overflow-hidden shrink-0">
+      <div className="w-9 h-9 rounded-lg bg-white/40 border border-border/40 flex items-center justify-center overflow-hidden shrink-0">
         {company.logo ? (
           <img src={imgUrl(company.logo)} alt="" className="w-full h-full object-cover" />
         ) : (

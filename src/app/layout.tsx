@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "@/styles/icons.css";
 import { Providers } from "@/components/providers";
 import { SWRegister } from "@/components/sw-register";
 import { InstallPrompt } from "@/components/install-prompt";
@@ -38,13 +39,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fa" dir="rtl" className="h-full antialiased" suppressHydrationWarning>
-      <body className="min-h-dvh flex flex-col bg-background text-text-primary">
+      <body className="min-h-dvh flex flex-col bg-fixed bg-gradient-to-b from-primary/5 via-background to-background text-text-primary">
         <GoogleAnalytics />
         <Providers>
           <SWRegister />
           <OfflineHandler />
           <PageviewTracker />
-          {children}
+          <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-1 flex-col">
+            {children}
+          </div>
           <InstallPrompt />
         </Providers>
       </body>

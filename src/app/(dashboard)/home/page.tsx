@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   getLandingEvents,
@@ -11,24 +12,17 @@ import {
 } from "@/lib/api/landing";
 import { ErrorState } from "@/components/ui/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { imgUrl, toPersianDigits, cn } from "@/lib/utils";
-import { isAuthenticated, loginUrl } from "@/lib/auth-utils";
+import { UnifiedSearchResults } from "@/components/search/unified-search-results";
+import { useMapStore } from "@/store/map";
+import { imgUrl, toPersianDigits } from "@/lib/utils";
+import { isAuthenticated } from "@/lib/auth-utils";
 
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "صبح بخیر";
-  if (hour < 17) return "ظهر بخیر";
-  if (hour < 21) return "عصر بخیر";
-  return "شب بخیر";
-}
-
-function EventImage({ src, alt, className }: { src?: string; alt: string; className?: string }) {
+function EventImage({ src, alt }: { src?: string; alt: string }) {
   const url = imgUrl(src);
   if (!url) {
     return (
-      <div className={cn("w-full h-full flex items-center justify-center bg-surface", className)}>
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-secondary/25">
+      <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-gray-300 dark:text-gray-600">
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <circle cx="8.5" cy="8.5" r="1.5" />
           <path d="M21 15l-5-5L5 21" />
@@ -36,318 +30,401 @@ function EventImage({ src, alt, className }: { src?: string; alt: string; classN
       </div>
     );
   }
-  return <img src={url} alt={alt} loading="lazy" className={cn("w-full h-full object-cover", className)} />;
+  return <img src={url} alt={alt} loading="lazy" className="w-full h-full object-cover" />;
 }
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 14 },
+  hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] as const } },
 };
 
-const CATEGORIES = ["موزیک", "تئاتر", "هنر", "ورزش", "آموزش", "غذا"] as const;
-
-function SectionHeader({
-  title,
-  count,
-  href,
+function TopBar({
+  searchOpen,
+  searchQuery,
+  onSearchQueryChange,
+  onSearchClose,
+  onSearchClick,
+  searchInputRef,
 }: {
-  title: string;
-  count?: number;
-  href?: string;
+  searchOpen: boolean;
+  searchQuery: string;
+  onSearchQueryChange: (v: string) => void;
+  onSearchClose: () => void;
+  onSearchClick: () => void;
+  searchInputRef: React.RefObject<HTMLInputElement | null>;
 }) {
   return (
-    <div className="flex items-end justify-between mb-4">
-      <div>
-        <h2 className="text-[15px] font-semibold text-text-primary tracking-tight">{title}</h2>
-        {count !== undefined && (
-          <p className="text-[11px] text-text-secondary mt-0.5">
-            {toPersianDigits(count)} مورد
-          </p>
-        )}
-      </div>
-      {href && (
-        <Link href={href} className="text-[11px] font-medium text-text-secondary hover:text-text-primary transition-colors pb-0.5 border-b border-border/60">
-          مشاهده همه
-        </Link>
-      )}
-    </div>
-  );
-}
-
-function TopBar({ guest }: { guest: boolean }) {
-  return (
-    <header className="sticky top-0 z-20 bg-background/90 backdrop-blur-md border-b border-border/40">
-      <div className="px-5 pt-4 pb-4">
-        <div className="flex items-center justify-between">
+    <div className="bg-background/60 backdrop-blur-2xl border-b border-border/40 shadow-sm">
+      <div className="flex items-center justify-between gap-3 px-5 pt-5 pb-2">
+        <div className="flex items-center gap-2.5">
+          <img src="/icons/icon.png" alt="" className="w-9 h-9" />
           <div>
-            <p className="text-[11px] text-text-secondary font-medium">{getGreeting()}</p>
-            <h1 className="text-2xl font-bold text-text-primary tracking-tight mt-0.5">اینجارو</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            {guest ? (
-              <Link
-                href={loginUrl("/home")}
-                className="text-xs font-medium text-text-primary border border-border px-4 py-2 rounded-full hover:bg-surface transition-colors"
-              >
-                ورود
-              </Link>
-            ) : (
-              <Link
-                href="/home/profile"
-                className="w-9 h-9 rounded-full flex items-center justify-center border border-border text-text-secondary hover:text-text-primary hover:bg-surface transition-all"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-              </Link>
-            )}
+            <span className="text-[10px] text-text-secondary">خوش آمدید</span>
+            <h1 className="text-lg font-bold tracking-tight text-text-primary leading-none">اینجارو</h1>
           </div>
         </div>
-
-        <Link
-          href="/home/Tazeha"
-          className="mt-4 flex items-center gap-3 w-full px-4 py-3 rounded-xl border border-border/60 text-text-secondary hover:border-border hover:bg-surface/50 transition-all"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 opacity-40">
-            <circle cx="11" cy="11" r="8" />
-            <path d="M21 21l-4.35-4.35" />
-          </svg>
-          <span className="text-sm">جستجوی رویدادها</span>
-        </Link>
+        {searchOpen && (
+          <div className="flex items-center gap-2 flex-1 max-w-[400px]">
+            <input
+              ref={searchInputRef}
+              value={searchQuery}
+              onChange={(e) => onSearchQueryChange(e.target.value)}
+              placeholder="جستجو..."
+              className="flex-1 h-9 rounded-xl bg-surface border border-border/50 px-3 text-sm text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-primary/50 transition-colors min-w-0"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => onSearchQueryChange("")}
+                aria-label="پاک کردن"
+                className="text-text-secondary hover:text-text-primary transition-colors shrink-0"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
+        {searchOpen ? (
+          <button
+            onClick={onSearchClose}
+            aria-label="بستن"
+            className="text-text-secondary hover:text-text-primary transition-colors shrink-0"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+        ) : (
+          <button
+            onClick={onSearchClick}
+            aria-label="جستجو"
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-surface border border-border/50 hover:border-primary/30 transition-colors shrink-0"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-text-secondary">
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.3-4.3" />
+            </svg>
+          </button>
+        )}
       </div>
-    </header>
-  );
-}
-
-function GuestBanner() {
-  return (
-    <motion.div variants={fadeUp} className="mx-5">
-      <div className="flex items-center justify-between gap-4 py-3.5 px-4 rounded-xl border border-border/60">
-        <p className="text-xs text-text-secondary leading-relaxed">
-          برای ذخیره رویدادها وارد حساب شوید
-        </p>
-        <Link
-          href={loginUrl("/home")}
-          className="shrink-0 text-xs font-medium text-primary"
-        >
-          ورود
-        </Link>
-      </div>
-    </motion.div>
+    </div>
   );
 }
 
 function HeroSection({ event }: { event: LandingEvent }) {
   return (
-    <motion.section variants={fadeUp} className="px-5">
+    <motion.div variants={fadeUp} className="px-5 pt-2">
       <Link href={`/events/${event.event_slug}`} className="block group">
-        <div className="relative aspect-[5/4] rounded-2xl overflow-hidden bg-surface">
-          <EventImage
-            src={event.thumbnail}
-            alt={event.topic}
-            className="group-hover:scale-[1.02] transition-transform duration-500 ease-out"
-          />
-          <div className="absolute inset-0 bg-black/30 group-hover:bg-black/25 transition-colors" />
-          <div className="absolute inset-0 flex flex-col justify-end p-5">
-            <span className="text-[10px] font-medium tracking-widest uppercase text-white/60 mb-2">
-              رویداد ویژه
+        <div className="relative aspect-[4/3] rounded-3xl overflow-hidden bg-gray-100 dark:bg-gray-800 shadow-lg shadow-black/5">
+          <EventImage src={event.thumbnail} alt={event.topic} />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-5">
+            <span className="inline-block text-[11px] font-semibold text-white/80 bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full mb-2.5">
+              ویژه
             </span>
-            <h2 className="text-xl font-bold text-white leading-snug line-clamp-2">
+            <h2 className="text-2xl font-bold text-white leading-tight drop-shadow-sm">
               {event.topic}
             </h2>
           </div>
         </div>
       </Link>
-    </motion.section>
+    </motion.div>
   );
 }
 
-function NavRow({ liveCount }: { liveCount: number }) {
-  const items = [
-    { href: "/home/Tazeha", label: "تازه‌ها", sub: "رویدادها" },
-    { href: "/home/Injaro", label: "نقشه", sub: liveCount > 0 ? `${toPersianDigits(liveCount)} زنده` : "مکان‌ها" },
-    { href: "/home/savedEvents", label: "ذخیره‌شده", sub: "علاقه‌مندی" },
-  ];
 
-  return (
-    <motion.nav variants={fadeUp} className="px-5">
-      <div className="grid grid-cols-3 divide-x divide-border/40 border border-border/60 rounded-xl overflow-hidden">
-        {items.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="flex flex-col items-center py-4 hover:bg-surface/60 transition-colors active:bg-surface"
-          >
-            <span className="text-sm font-semibold text-text-primary">{item.label}</span>
-            <span className="text-[10px] text-text-secondary mt-1">{item.sub}</span>
-          </Link>
-        ))}
-      </div>
-    </motion.nav>
-  );
-}
 
-function CategoriesStrip() {
-  return (
-    <motion.section variants={fadeUp} className="px-5">
-      <SectionHeader title="دسته‌بندی" />
-      <div className="flex flex-wrap gap-2">
-        {CATEGORIES.map((label) => (
-          <button
-            key={label}
-            className="text-xs font-medium text-text-secondary border border-border/50 px-3.5 py-2 rounded-full hover:text-text-primary hover:border-border transition-colors"
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-    </motion.section>
-  );
-}
-
-function LiveRow({ liveCount }: { liveCount: number }) {
+function LiveBadge({ liveCount }: { liveCount: number }) {
   if (liveCount === 0) return null;
 
   return (
     <motion.div variants={fadeUp} className="px-5">
-      <Link
-        href="/home/Injaro"
-        className="flex items-center gap-3 py-3 border-y border-border/40"
-      >
-        <span className="relative flex h-2 w-2 shrink-0">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-50" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-        </span>
-        <span className="text-sm text-text-primary">
-          {toPersianDigits(liveCount)} مکان در حال پخش
-        </span>
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mr-auto text-text-secondary">
-          <path d="M9 18l6-6-6-6" />
-        </svg>
+      <Link href="/home/Injaro">
+        <div className="flex items-center gap-2.5 py-3 px-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-60" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+          </span>
+          <span className="text-sm font-medium text-red-600 dark:text-red-400">
+            {toPersianDigits(liveCount)} مکان در حال پخش
+          </span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mr-auto text-red-400">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </div>
       </Link>
     </motion.div>
   );
 }
 
 function EventsSection({ events }: { events: LandingEvent[] }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const center = el.scrollLeft + el.clientWidth / 2;
+    let closest = 0;
+    let minDist = Infinity;
+    itemRefs.current.forEach((item, i) => {
+      if (!item) return;
+      const itemCenter = item.offsetLeft + item.offsetWidth / 2;
+      const dist = Math.abs(center - itemCenter);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = i;
+      }
+    });
+    setActiveIdx(closest);
+  }, []);
+
   if (events.length === 0) return null;
 
   return (
     <motion.section variants={fadeUp} className="px-5">
-      <SectionHeader title="رویدادهای جدید" count={events.length} href="/home/Tazeha" />
-      <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-5 px-5">
-        {events.map((event) => (
-          <Link
-            key={event.event_slug}
-            href={`/events/${event.event_slug}`}
-            className="block w-[130px] shrink-0 group"
-          >
-            <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-surface mb-2">
-              <EventImage
-                src={event.thumbnail}
-                alt={event.topic}
-                className="group-hover:scale-[1.03] transition-transform duration-400"
-              />
-            </div>
-            <p className="text-xs font-medium text-text-primary leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-              {event.topic}
-            </p>
-          </Link>
-        ))}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold">رویدادهای در حال برگزاری</h2>
+        <Link href="/home/Tazeha" className="text-sm font-medium text-primary">
+          مشاهده همه
+        </Link>
+      </div>
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex gap-3 overflow-x-auto scrollbar-none -mx-5 px-5 pb-2"
+      >
+        {events.map((event, i) => {
+          const isActive = i === activeIdx;
+          return (
+            <Link
+              key={event.event_slug}
+              ref={(el) => { itemRefs.current[i] = el; }}
+              href={`/events/${event.event_slug}`}
+              className={`shrink-0 transition-all duration-300 ${
+                isActive ? "w-[180px]" : "w-[130px]"
+              }`}
+            >
+              <div className={`relative rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 transition-all duration-300 ${
+                isActive ? "aspect-[3/4] shadow-lg shadow-black/10" : "aspect-[2/3]"
+              }`}>
+                <EventImage src={event.thumbnail} alt={event.topic} />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-3">
+                  <p className="text-xs font-semibold text-white leading-snug line-clamp-2 drop-shadow-sm">
+                    {event.topic}
+                  </p>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </motion.section>
   );
 }
 
+function LocationPin({ location, isActive }: { location: LandingLocation; isActive: boolean }) {
+  const id = `pin-${location.slug}`;
+  const w = isActive ? 72 : 52;
+  const h = isActive ? 88 : 64;
+  const cr = isActive ? 11 : 9;
+  const imgSize = isActive ? 22 : 18;
+  const imgOffset = (42 - imgSize) / 2;
+  return (
+    <svg width={w} height={h} viewBox="0 0 42 50" fill="none" className="transition-all duration-300">
+      <defs>
+        <clipPath id={`pc-${id}`}>
+          <circle cx="21" cy="15" r={cr} />
+        </clipPath>
+      </defs>
+      <path
+        d="M21 1C12.72 1 6 7.72 6 16c0 10.5 15 33 15 33s15-22.5 15-33c0-8.28-6.72-15-15-15z"
+        fill={isActive ? "#ff5a5f" : "#ffffff"}
+        stroke={isActive ? "#ff5a5f" : "#d1d5db"}
+        strokeWidth="1.5"
+      />
+      <circle
+        cx="21"
+        cy="15"
+        r={cr}
+        fill={isActive ? "#ffffff" : "#f3f4f6"}
+        stroke={isActive ? "#ff5a5f" : "#d1d5db"}
+        strokeWidth="1.5"
+      />
+      {location.logo ? (
+        <image
+          href={imgUrl(location.logo)}
+          x={imgOffset}
+          y={15 - imgSize / 2}
+          width={imgSize}
+          height={imgSize}
+          clipPath={`url(#pc-${id})`}
+          preserveAspectRatio="xMidYMid slice"
+        />
+      ) : null}
+    </svg>
+  );
+}
+
 function MapSection({ locations, liveCount }: { locations: LandingLocation[]; liveCount: number }) {
-  const preview = locations.slice(0, 6);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const center = el.scrollLeft + el.clientWidth / 2;
+    let closest = 0;
+    let minDist = Infinity;
+    itemRefs.current.forEach((item, i) => {
+      if (!item) return;
+      const itemCenter = item.offsetLeft + item.offsetWidth / 2;
+      const dist = Math.abs(center - itemCenter);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = i;
+      }
+    });
+    setActiveIdx(closest);
+  }, []);
+
+  const preview = locations.slice(0, 8);
 
   return (
-    <motion.section variants={fadeUp} className="px-5 pb-6">
-      <SectionHeader title="نقشه هنری" count={locations.length} href="/home/Injaro" />
-      <Link href="/home/Injaro" className="block group">
-        <div className="rounded-xl border border-border/60 overflow-hidden">
-          <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
-            <span className="text-xs text-text-secondary">مکان‌های نزدیک شما</span>
-            {liveCount > 0 && (
-              <span className="text-[10px] font-medium text-primary flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                {toPersianDigits(liveCount)} زنده
-              </span>
-            )}
-          </div>
-          <div className="p-4 flex gap-4 overflow-x-auto scrollbar-none">
-            {preview.map((loc) => (
-              <div key={loc.slug} className="shrink-0 flex items-center gap-2.5">
-                <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-surface border border-border/40">
-                  {loc.logo ? (
-                    <img src={imgUrl(loc.logo)} alt={loc.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[10px] font-semibold text-text-secondary/50">
-                      {loc.name.slice(0, 2)}
-                    </div>
-                  )}
-                  {loc.is_live && (
-                    <span className="absolute top-0.5 end-0.5 w-1.5 h-1.5 rounded-full bg-primary ring-1 ring-background" />
-                  )}
+    <motion.div variants={fadeUp} className="px-5 pb-28">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold">مکان‌های نزدیک شما</h2>
+        <Link href="/home/Injaro" className="text-sm font-medium text-primary">
+          مشاهده همه
+        </Link>
+      </div>
+      <Link href="/home/Injaro" className="block">
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden bg-surface/50">
+          <div className="p-4 pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
                 </div>
-                <span className="text-xs text-text-primary font-medium line-clamp-1 max-w-[80px]">
-                  {loc.name}
-                </span>
+                <span className="text-sm font-medium text-text-primary">{toPersianDigits(locations.length)} مکان</span>
               </div>
-            ))}
+              {liveCount > 0 && (
+                <span className="text-xs font-medium text-white bg-primary px-2 py-1 rounded-full shadow-sm shadow-primary/20">
+                  {toPersianDigits(liveCount)} زنده
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="px-4 pb-4">
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="flex items-end gap-4 overflow-x-auto scrollbar-none -mx-4 px-4"
+          >
+            {preview.map((loc, i) => {
+              const isActive = i === activeIdx;
+              return (
+                <div
+                  key={loc.slug}
+                  ref={(el) => { itemRefs.current[i] = el; }}
+                  className="shrink-0 flex flex-col items-center gap-1.5"
+                >
+                  <LocationPin location={loc} isActive={isActive} />
+                  <span className={`font-medium text-center line-clamp-1 max-w-[72px] ${
+                    isActive ? "text-xs text-text-primary" : "text-[10px] text-text-secondary"
+                  }`}>
+                    {loc.name}
+                  </span>
+                </div>
+              );
+            })}
+            </div>
           </div>
         </div>
       </Link>
-    </motion.section>
+    </motion.div>
   );
 }
 
 function Skeleton() {
   return (
-    <div className="flex flex-col min-h-dvh bg-background">
-      <div className="px-5 pt-4 pb-4 border-b border-border/40">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <div className="h-3 w-16 rounded bg-surface animate-pulse" />
-            <div className="h-7 w-24 rounded bg-surface animate-pulse" />
-          </div>
-          <div className="flex gap-2">
-            <div className="w-9 h-9 rounded-full bg-surface animate-pulse" />
-            <div className="w-14 h-9 rounded-full bg-surface animate-pulse" />
-          </div>
+    <div className="flex flex-col gap-5 px-5 pt-5">
+      <div className="flex items-center justify-between">
+        <div className="h-7 w-24 rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse" />
+        <div className="flex gap-2">
+          <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse" />
+          <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse" />
         </div>
-        <div className="mt-4 h-11 rounded-xl bg-surface animate-pulse" />
       </div>
-      <div className="flex flex-col gap-8 p-5">
-        <div className="aspect-[5/4] rounded-2xl bg-surface animate-pulse" />
-        <div className="h-20 rounded-xl bg-surface animate-pulse" />
-        <div className="flex flex-wrap gap-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-8 w-16 rounded-full bg-surface animate-pulse" />
-          ))}
-        </div>
-        <div className="flex gap-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="w-[130px] shrink-0">
-              <div className="aspect-[3/4] rounded-xl bg-surface animate-pulse mb-2" />
-              <div className="h-3 w-full rounded bg-surface animate-pulse" />
-            </div>
-          ))}
-        </div>
+      <div className="aspect-[4/3] rounded-3xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
+      <div className="flex gap-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-10 w-20 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse" />
+        ))}
+      </div>
+      <div className="h-5 w-32 rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse" />
+      <div className="flex gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="w-[140px] aspect-[2/3] rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse shrink-0" />
+        ))}
       </div>
     </div>
   );
 }
 
 export default function HomePage() {
+  const router = useRouter();
+  const setMapSearchQuery = useMapStore((s) => s.setMapSearchQuery);
   const [events, setEvents] = useState<LandingEvent[]>([]);
   const [locations, setLocations] = useState<LandingLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [guest, setGuest] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return {
+        events: [] as { slug: string; title: string; thumbnail?: string }[],
+        locations: [] as LandingLocation[],
+      };
+    }
+    const q = searchQuery.trim().toLowerCase();
+    return {
+      events: events
+        .filter((ev) => ev.topic.toLowerCase().includes(q))
+        .map((ev) => ({ slug: ev.event_slug, title: ev.topic, thumbnail: ev.thumbnail })),
+      locations: locations.filter((loc) => loc.name.toLowerCase().includes(q)),
+    };
+  }, [searchQuery, events, locations]);
+
+  const handleLocationSelect = useCallback(
+    (loc: { name: string }) => {
+      setMapSearchQuery(loc.name);
+      router.push("/home/Injaro");
+    },
+    [router, setMapSearchQuery]
+  );
+
+  const handleSearchOpen = useCallback(() => {
+    setSearchOpen(true);
+    setTimeout(() => searchInputRef.current?.focus(), 100);
+  }, []);
+
+  const handleSearchClose = useCallback(() => {
+    setSearchOpen(false);
+    setSearchQuery("");
+  }, []);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -378,7 +455,7 @@ export default function HomePage() {
 
   if (error) {
     return (
-      <div className="flex-1 flex items-center justify-center px-5 min-h-dvh">
+      <div className="flex-1 flex items-center justify-center px-5">
         <ErrorState onRetry={fetchData} />
       </div>
     );
@@ -386,36 +463,47 @@ export default function HomePage() {
 
   if (!hasContent) {
     return (
-      <div className="flex-1 flex items-center justify-center px-5 min-h-dvh">
+      <div className="flex-1 flex items-center justify-center px-5">
         <EmptyState title="خوش آمدید" description="به زودی رویدادها اضافه می‌شوند" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-dvh bg-background overflow-x-hidden">
-      <TopBar guest={guest} />
+    <div className="flex flex-col min-h-dvh">
+      <TopBar
+        searchOpen={searchOpen}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        onSearchClose={handleSearchClose}
+        onSearchClick={handleSearchOpen}
+        searchInputRef={searchInputRef}
+      />
+      {searchOpen && searchQuery.trim() && (
+        <div className="px-5 pb-4 mt-3">
+          <UnifiedSearchResults
+            query={searchQuery}
+            events={searchResults.events}
+            locations={searchResults.locations}
+            onLocationClick={handleLocationSelect}
+          />
+        </div>
+      )}
 
-      <motion.main
-        variants={{ hidden: {}, show: { transition: { staggerChildren: 0.05 } } }}
+      <motion.div
+        variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}
         initial="hidden"
         animate="show"
-        className="flex flex-col gap-8 pt-6"
+        className="flex flex-col gap-6 pt-3"
       >
         {featured && <HeroSection event={featured} />}
 
-        <NavRow liveCount={liveCount} />
-
-        {guest && <GuestBanner />}
-
-        <LiveRow liveCount={liveCount} />
+        <LiveBadge liveCount={liveCount} />
 
         <EventsSection events={rest} />
 
-        <CategoriesStrip />
-
         {locations.length > 0 && <MapSection locations={locations} liveCount={liveCount} />}
-      </motion.main>
+      </motion.div>
     </div>
   );
 }

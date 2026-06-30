@@ -1,24 +1,36 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useMapStore } from "@/store/map";
+import { ExpandableSearchBar } from "@/components/search/expandable-search-bar";
+import { UnifiedSearchResults } from "@/components/search/unified-search-results";
+import type { SearchEventResult } from "@/components/search/unified-search-results";
 
 interface SearchHeaderProps {
   onSearch?: (query: string) => void;
+  events?: SearchEventResult[];
   className?: string;
 }
 
-export function SearchHeader({ onSearch, className }: SearchHeaderProps) {
-  const [focused, setFocused] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+export function SearchHeader({ onSearch, events = [], className }: SearchHeaderProps) {
+  const [open, setOpen] = useState(false);
   const mapSearchQuery = useMapStore((s) => s.mapSearchQuery);
   const setMapSearchQuery = useMapStore((s) => s.setMapSearchQuery);
+  const markers = useMapStore((s) => s.markers);
+  const selectLocation = useMapStore((s) => s.selectLocation);
+  const setSelectedLocation = useMapStore((s) => s.setSelectedLocation);
+  const setSheetOpen = useMapStore((s) => s.setSheetOpen);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
+  useEffect(() => {
+    if (mapSearchQuery) {
+      setOpen(true);
+    }
+  }, [mapSearchQuery]);
+
+  const handleQueryChange = useCallback(
+    (value: string) => {
       setMapSearchQuery(value);
 
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -29,70 +41,81 @@ export function SearchHeader({ onSearch, className }: SearchHeaderProps) {
     [setMapSearchQuery, onSearch]
   );
 
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      setOpen(nextOpen);
+      if (!nextOpen) {
+        setMapSearchQuery("");
+        onSearch?.("");
+      }
+    },
+    [setMapSearchQuery, onSearch]
+  );
+
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
 
+  const query = mapSearchQuery.trim().toLowerCase();
+
+  const filteredEvents = query
+    ? events.filter((ev) => ev.title.toLowerCase().includes(query))
+    : [];
+
+  const locationResults = useMemo(
+    () =>
+      markers.map((m) => ({
+        slug: m.slug,
+        name: m.name,
+        logo: m.logo,
+      })),
+    [markers]
+  );
+
+  const handleLocationClick = useCallback(
+    (loc: { slug: string }) => {
+      const marker = markers.find((m) => m.slug === loc.slug);
+      if (!marker) return;
+      selectLocation(marker.id);
+      setSelectedLocation(marker);
+      setSheetOpen(true);
+      setOpen(false);
+    },
+    [markers, selectLocation, setSelectedLocation, setSheetOpen]
+  );
+
+  const hasResults = locationResults.length > 0 || filteredEvents.length > 0;
+
   return (
-    <div className={cn("px-4", className)}>
-      <div
-        className={cn(
-          "flex items-center gap-2 h-11 rounded-2xl bg-background/90 backdrop-blur-md border shadow-sm transition-all",
-          focused
-            ? "border-primary ring-2 ring-primary/10 shadow-md"
-            : "border-border/60"
-        )}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="text-text-secondary shrink-0 mr-3"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <path d="M21 21l-4.35-4.35" />
-        </svg>
-        <input
-          ref={inputRef}
-          type="text"
-          placeholder="جستجوی مکان‌ها..."
-          value={mapSearchQuery}
-          onChange={handleChange}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          className="flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-secondary/50 h-full"
+    <div className={cn("relative", className)}>
+      <div className={cn("flex", open ? "w-full" : "justify-end")}>
+        <ExpandableSearchBar
+          open={open}
+          onOpenChange={handleOpenChange}
+          query={mapSearchQuery}
+          onQueryChange={handleQueryChange}
+          className={open ? "flex-1 w-full" : undefined}
         />
-        {mapSearchQuery && (
-          <button
-            onClick={() => {
-              setMapSearchQuery("");
-              onSearch?.("");
-              inputRef.current?.focus();
-            }}
-            className="ml-2 p-1 rounded-full hover:bg-surface transition-colors"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="text-text-secondary"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        )}
       </div>
+
+      {open && query && hasResults && (
+        <div className="absolute top-full mt-2 left-0 right-0 z-30 rounded-2xl bg-background/95 backdrop-blur-xl border border-border/50 shadow-lg p-3 max-h-[55dvh] overflow-y-auto">
+          <UnifiedSearchResults
+            query={mapSearchQuery}
+            events={filteredEvents}
+            locations={locationResults}
+            onLocationClick={handleLocationClick}
+          />
+        </div>
+      )}
+
+      {open && query && !hasResults && (
+        <div className="absolute top-full mt-2 left-0 right-0 z-30 rounded-2xl bg-background/95 backdrop-blur-xl border border-border/50 shadow-lg p-3">
+          <p className="text-sm text-text-secondary text-center py-4">نتیجه‌ای یافت نشد</p>
+        </div>
+      )}
     </div>
   );
 }

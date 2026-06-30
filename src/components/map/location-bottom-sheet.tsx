@@ -90,11 +90,17 @@ export function LocationBottomSheet() {
   const handleNavigate = useCallback(() => {
     if (!selectedLocation) return;
 
+    if (!isAuthenticated()) {
+      const currentPath = window.location.pathname + window.location.search;
+      router.push(loginUrl(currentPath));
+      return;
+    }
+
     const { latitude, longitude, slug } = selectedLocation;
     const url = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
     window.open(url, "_blank");
-    if (isAuthenticated()) reportNavigationClick(slug);
-  }, [selectedLocation]);
+    reportNavigationClick(slug);
+  }, [selectedLocation, router]);
 
   const handleViewBrand = useCallback(() => {
     if (!selectedLocation) return;
@@ -232,7 +238,7 @@ export function LocationBottomSheet() {
 
                 <div className="flex flex-col gap-2.5">
                   <Button fullWidth size="lg" onClick={handleViewBrand}>
-                    مشاهده برند
+                    مشاهده پروفایل گالری
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="16"

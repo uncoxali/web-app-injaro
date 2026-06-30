@@ -21,7 +21,7 @@ export function MobileShell({
   return (
     <div
       className={cn(
-        "min-h-dvh w-full max-w-[480px] mx-auto bg-background relative",
+        "min-h-dvh w-full relative",
         !hideNav && !noBottomPadding && "pb-24",
         className
       )}

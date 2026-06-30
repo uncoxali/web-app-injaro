@@ -4,12 +4,14 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useMapStore } from "@/store/map";
 import { getLocations } from "@/lib/api/locations";
 import {
+  getLandingEvents,
   getLandingLocations,
   landingLocationToMarker,
   filterLandingLocations,
+  type LandingEvent,
+  type LandingLocation,
 } from "@/lib/api/landing";
 import type { Location } from "@/store/map";
-import type { LandingLocation } from "@/lib/api/landing";
 import { isTehranArea, TEHRAN_CENTER } from "@/lib/map-utils";
 import { isAuthenticated } from "@/lib/auth-utils";
 import { getCategories, type Category } from "@/lib/api/categories";
@@ -33,9 +35,9 @@ export default function InjaroHomePage() {
   const setFlyToTarget = useMapStore((s) => s.setFlyToTarget);
   const setFitBoundsTarget = useMapStore((s) => s.setFitBoundsTarget);
   const setClusteringEnabled = useMapStore((s) => s.setClusteringEnabled);
-  const sheetOpen = useMapStore((s) => s.sheetOpen);
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [events, setEvents] = useState<LandingEvent[]>([]);
   const [guest, setGuest] = useState(() => !isAuthenticated());
   const landingLocationsRef = useRef<LandingLocation[]>([]);
 
@@ -145,7 +147,15 @@ export default function InjaroHomePage() {
       .then(setCategories)
       .catch(() => {});
 
-    fetchLocations();
+    getLandingEvents()
+      .then(setEvents)
+      .catch(() => {});
+
+    const initialSearch = useMapStore.getState().mapSearchQuery.trim() || undefined;
+    fetchLocations(
+      authed ? useMapStore.getState().selectedMapCategory : undefined,
+      initialSearch
+    );
   }, [fetchLocations]);
 
   const handleCategorySelect = useCallback(
@@ -165,16 +175,22 @@ export default function InjaroHomePage() {
     [selectedMapCategory, fetchLocations]
   );
 
+  const searchEvents = events.map((ev) => ({
+    slug: ev.event_slug,
+    title: ev.topic,
+    thumbnail: ev.thumbnail,
+  }));
+
   const hasCategories = categories.length > 0;
 
   return (
-    <div className="relative w-full h-dvh overflow-hidden flex flex-col bg-black">
+    <div className="relative w-full min-h-dvh overflow-hidden flex flex-col bg-black">
       <div className="absolute inset-0 z-0">
         <MapboxMap onLoad={() => {}} />
       </div>
 
       <div className="relative z-20 flex flex-col gap-3 px-3 pt-3">
-        <SearchHeader onSearch={handleSearch} />
+        <SearchHeader onSearch={handleSearch} events={searchEvents} />
 
         {hasCategories && (
           <CategoriesBar
