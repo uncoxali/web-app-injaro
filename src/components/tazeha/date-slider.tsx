@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { motion } from "framer-motion";
 import { toJalaali, toGregorian } from "jalaali-js";
 import { cn, toPersianDigits } from "@/lib/utils";
 
@@ -70,6 +69,16 @@ export function persianToGregorian(dateStr: string): string {
   return toGDateString(g.gy, g.gm, g.gd);
 }
 
+function scrollChildToCenter(container: HTMLDivElement, child: HTMLElement) {
+  const containerRect = container.getBoundingClientRect();
+  const childRect = child.getBoundingClientRect();
+  const delta =
+    childRect.left -
+    containerRect.left -
+    (containerRect.width - childRect.width) / 2;
+  container.scrollBy({ left: delta, behavior: "smooth" });
+}
+
 export function DateSlider({ days, selected, onSelect }: DateSliderProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
@@ -77,16 +86,13 @@ export function DateSlider({ days, selected, onSelect }: DateSliderProps) {
 
   useEffect(() => {
     if (activeRef.current && scrollRef.current) {
-      const container = scrollRef.current;
-      const el = activeRef.current;
-      const offset = el.offsetLeft - container.offsetLeft - container.clientWidth / 2 + el.clientWidth / 2;
-      container.scrollTo({ left: offset, behavior: "smooth" });
+      scrollChildToCenter(scrollRef.current, activeRef.current);
     }
   }, [selected]);
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-white/60 dark:bg-white/3 border border-border/15 shadow-xs backdrop-blur-xl">
-      <div className="absolute top-0 left-1/3 w-40 h-40 rounded-full bg-primary/4 blur-3xl" />
+      <div className="absolute top-0 left-1/3 w-40 h-40 rounded-full bg-primary/4 blur-3xl pointer-events-none" />
 
       <div className="relative">
         <div className="flex items-center justify-between px-5 pt-4 pb-3">
@@ -113,48 +119,59 @@ export function DateSlider({ days, selected, onSelect }: DateSliderProps) {
 
         <div
           ref={scrollRef}
-          className="flex gap-0 overflow-x-auto scrollbar-none px-3 pb-4"
+          className="flex gap-1 overflow-x-auto scrollbar-none px-3 pb-4 snap-x snap-mandatory scroll-smooth"
+          style={{ WebkitOverflowScrolling: "touch" }}
         >
           {days.map((day) => {
             const isActive = selected === day.date;
             return (
-              <motion.button
+              <button
                 key={day.date}
-                whileTap={{ scale: 0.9 }}
+                type="button"
                 onClick={() => onSelect(day.date)}
                 ref={isActive ? activeRef : undefined}
-                className={cn(
-                  "shrink-0 flex flex-col items-center gap-1.5 px-2 py-1 transition-all relative"
-                )}
+                className="shrink-0 snap-center flex flex-col items-center gap-1.5 w-14 py-1 active:scale-95 transition-transform duration-200"
               >
-                <span className={cn(
-                  "text-[10px] font-semibold leading-none h-3",
-                  isActive ? "text-primary/70" : day.isToday && !isActive ? "text-primary/50" : "text-text-secondary/30"
-                )}>
+                <span
+                  className={cn(
+                    "text-[10px] font-semibold leading-none h-3",
+                    isActive
+                      ? "text-primary/70"
+                      : day.isToday && !isActive
+                        ? "text-primary/50"
+                        : "text-text-secondary/30"
+                  )}
+                >
                   {day.shortDayName === "ام" ? "" : day.shortDayName}
                 </span>
-                <div className={cn(
-                  "w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200",
-                  isActive
-                    ? "bg-primary text-white shadow-lg shadow-primary/30 scale-110"
-                    : day.isToday && !isActive
-                      ? "bg-primary/8 text-primary font-bold border border-primary/20"
-                      : "bg-white/60 dark:bg-white/4 text-text-secondary/60 hover:bg-white dark:hover:bg-white/8 hover:shadow-sm border border-transparent hover:border-border/20"
-                )}>
-                  <span className={cn(
-                    "text-base leading-none",
-                    isActive ? "font-extrabold" : day.isToday && !isActive ? "font-extrabold" : "font-semibold"
-                  )}>
+                <div
+                  className={cn(
+                    "w-11 h-11 rounded-2xl flex items-center justify-center transition-[background-color,box-shadow,color] duration-200 ease-out",
+                    isActive
+                      ? "bg-primary text-white shadow-md shadow-primary/25"
+                      : day.isToday && !isActive
+                        ? "bg-primary/8 text-primary font-bold border border-primary/20"
+                        : "bg-white/60 dark:bg-white/4 text-text-secondary/60 border border-transparent"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "text-base leading-none",
+                      isActive || day.isToday ? "font-extrabold" : "font-semibold"
+                    )}
+                  >
                     {day.label}
                   </span>
                 </div>
-                <span className={cn(
-                  "text-[8px] font-medium leading-none h-2.5 transition-all",
-                  isActive ? "text-primary/60" : day.isToday ? "text-primary/40" : "text-transparent"
-                )}>
+                <span
+                  className={cn(
+                    "text-[8px] font-medium leading-none h-2.5",
+                    isActive ? "text-primary/60" : day.isToday ? "text-primary/40" : "text-transparent"
+                  )}
+                >
                   {day.isToday ? "امروز" : ""}
                 </span>
-              </motion.button>
+              </button>
             );
           })}
         </div>

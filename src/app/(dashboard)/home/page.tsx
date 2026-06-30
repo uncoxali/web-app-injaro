@@ -14,7 +14,7 @@ import { ErrorState } from "@/components/ui/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { UnifiedSearchResults } from "@/components/search/unified-search-results";
 import { useMapStore } from "@/store/map";
-import { imgUrl, toPersianDigits } from "@/lib/utils";
+import { imgUrl, toPersianDigits, cn } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { isAuthenticated } from "@/lib/auth-utils";
 
@@ -170,28 +170,36 @@ function EventsSection({ events }: { events: LandingEvent[] }) {
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
   const scrollRaf = useRef<number | null>(null);
+  const activeIdxRef = useRef(0);
+
+  const updateActiveIdx = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const center = el.scrollLeft + el.clientWidth / 2;
+    let closest = 0;
+    let minDist = Infinity;
+    itemRefs.current.forEach((item, i) => {
+      if (!item) return;
+      const itemCenter = item.offsetLeft + item.offsetWidth / 2;
+      const dist = Math.abs(center - itemCenter);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = i;
+      }
+    });
+    if (closest !== activeIdxRef.current) {
+      activeIdxRef.current = closest;
+      setActiveIdx(closest);
+    }
+  }, []);
 
   const handleScroll = useCallback(() => {
     if (scrollRaf.current !== null) return;
     scrollRaf.current = requestAnimationFrame(() => {
       scrollRaf.current = null;
-      const el = scrollRef.current;
-      if (!el) return;
-      const center = el.scrollLeft + el.clientWidth / 2;
-      let closest = 0;
-      let minDist = Infinity;
-      itemRefs.current.forEach((item, i) => {
-        if (!item) return;
-        const itemCenter = item.offsetLeft + item.offsetWidth / 2;
-        const dist = Math.abs(center - itemCenter);
-        if (dist < minDist) {
-          minDist = dist;
-          closest = i;
-        }
-      });
-      setActiveIdx(closest);
+      updateActiveIdx();
     });
-  }, []);
+  }, [updateActiveIdx]);
 
   if (events.length === 0) return null;
 
@@ -206,7 +214,8 @@ function EventsSection({ events }: { events: LandingEvent[] }) {
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex gap-3 overflow-x-auto scrollbar-none -mx-5 px-5 pb-2"
+        className="flex gap-3 overflow-x-auto scrollbar-none -mx-5 px-5 pb-2 snap-x snap-mandatory scroll-smooth"
+        style={{ WebkitOverflowScrolling: "touch" }}
       >
         {events.map((event, i) => {
           const isActive = i === activeIdx;
@@ -215,13 +224,17 @@ function EventsSection({ events }: { events: LandingEvent[] }) {
               key={event.event_slug}
               ref={(el) => { itemRefs.current[i] = el; }}
               href={`/events/${event.event_slug}`}
-              className={`shrink-0 transition-all duration-300 ${
-                isActive ? "w-[180px]" : "w-[130px]"
-              }`}
+              className="shrink-0 w-[148px] snap-center"
             >
-              <div className={`relative rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 transition-all duration-300 ${
-                isActive ? "aspect-3/4 shadow-lg shadow-black/10" : "aspect-2/3"
-              }`}>
+              <div
+                className={cn(
+                  "relative rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 aspect-3/4",
+                  "transition-[transform,opacity,box-shadow] duration-300 ease-out will-change-transform",
+                  isActive
+                    ? "scale-100 opacity-100 shadow-lg shadow-black/10"
+                    : "scale-[0.94] opacity-80"
+                )}
+              >
                 <EventImage src={event.thumbnail} alt={event.topic} />
                 <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-3">
@@ -240,44 +253,46 @@ function EventsSection({ events }: { events: LandingEvent[] }) {
 
 function LocationPin({ location, isActive }: { location: LandingLocation; isActive: boolean }) {
   const id = `pin-${location.slug}`;
-  const w = isActive ? 72 : 52;
-  const h = isActive ? 88 : 64;
-  const cr = isActive ? 11 : 9;
-  const imgSize = isActive ? 22 : 18;
-  const imgOffset = (42 - imgSize) / 2;
   return (
-    <svg width={w} height={h} viewBox="0 0 42 50" fill="none" className="transition-all duration-300">
-      <defs>
-        <clipPath id={`pc-${id}`}>
-          <circle cx="21" cy="15" r={cr} />
-        </clipPath>
-      </defs>
-      <path
-        d="M21 1C12.72 1 6 7.72 6 16c0 10.5 15 33 15 33s15-22.5 15-33c0-8.28-6.72-15-15-15z"
-        fill={isActive ? "#ff5a5f" : "#ffffff"}
-        stroke={isActive ? "#ff5a5f" : "#d1d5db"}
-        strokeWidth="1.5"
-      />
-      <circle
-        cx="21"
-        cy="15"
-        r={cr}
-        fill={isActive ? "#ffffff" : "#f3f4f6"}
-        stroke={isActive ? "#ff5a5f" : "#d1d5db"}
-        strokeWidth="1.5"
-      />
-      {location.logo ? (
-        <image
-          href={imgUrl(location.logo)}
-          x={imgOffset}
-          y={15 - imgSize / 2}
-          width={imgSize}
-          height={imgSize}
-          clipPath={`url(#pc-${id})`}
-          preserveAspectRatio="xMidYMid slice"
+    <div
+      className={cn(
+        "flex items-end justify-center w-[72px] h-[88px] transition-[transform,opacity] duration-300 ease-out will-change-transform",
+        isActive ? "scale-100 opacity-100" : "scale-[0.88] opacity-65"
+      )}
+    >
+      <svg width={52} height={64} viewBox="0 0 42 50" fill="none">
+        <defs>
+          <clipPath id={`pc-${id}`}>
+            <circle cx="21" cy="15" r="9" />
+          </clipPath>
+        </defs>
+        <path
+          d="M21 1C12.72 1 6 7.72 6 16c0 10.5 15 33 15 33s15-22.5 15-33c0-8.28-6.72-15-15-15z"
+          fill={isActive ? "#ff5a5f" : "#ffffff"}
+          stroke={isActive ? "#ff5a5f" : "#d1d5db"}
+          strokeWidth="1.5"
         />
-      ) : null}
-    </svg>
+        <circle
+          cx="21"
+          cy="15"
+          r="9"
+          fill={isActive ? "#ffffff" : "#f3f4f6"}
+          stroke={isActive ? "#ff5a5f" : "#d1d5db"}
+          strokeWidth="1.5"
+        />
+        {location.logo ? (
+          <image
+            href={imgUrl(location.logo)}
+            x="12"
+            y="6"
+            width="18"
+            height="18"
+            clipPath={`url(#pc-${id})`}
+            preserveAspectRatio="xMidYMid slice"
+          />
+        ) : null}
+      </svg>
+    </div>
   );
 }
 
@@ -286,28 +301,36 @@ function MapSection({ locations, liveCount }: { locations: LandingLocation[]; li
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
   const scrollRaf = useRef<number | null>(null);
+  const activeIdxRef = useRef(0);
+
+  const updateActiveIdx = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const center = el.scrollLeft + el.clientWidth / 2;
+    let closest = 0;
+    let minDist = Infinity;
+    itemRefs.current.forEach((item, i) => {
+      if (!item) return;
+      const itemCenter = item.offsetLeft + item.offsetWidth / 2;
+      const dist = Math.abs(center - itemCenter);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = i;
+      }
+    });
+    if (closest !== activeIdxRef.current) {
+      activeIdxRef.current = closest;
+      setActiveIdx(closest);
+    }
+  }, []);
 
   const handleScroll = useCallback(() => {
     if (scrollRaf.current !== null) return;
     scrollRaf.current = requestAnimationFrame(() => {
       scrollRaf.current = null;
-      const el = scrollRef.current;
-      if (!el) return;
-      const center = el.scrollLeft + el.clientWidth / 2;
-      let closest = 0;
-      let minDist = Infinity;
-      itemRefs.current.forEach((item, i) => {
-        if (!item) return;
-        const itemCenter = item.offsetLeft + item.offsetWidth / 2;
-        const dist = Math.abs(center - itemCenter);
-        if (dist < minDist) {
-          minDist = dist;
-          closest = i;
-        }
-      });
-      setActiveIdx(closest);
+      updateActiveIdx();
     });
-  }, []);
+  }, [updateActiveIdx]);
 
   const preview = locations.slice(0, 8);
 
@@ -343,7 +366,8 @@ function MapSection({ locations, liveCount }: { locations: LandingLocation[]; li
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="flex items-end gap-4 overflow-x-auto scrollbar-none -mx-4 px-4"
+            className="flex items-end gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 snap-x snap-mandatory scroll-smooth"
+            style={{ WebkitOverflowScrolling: "touch" }}
           >
             {preview.map((loc, i) => {
               const isActive = i === activeIdx;
@@ -351,12 +375,15 @@ function MapSection({ locations, liveCount }: { locations: LandingLocation[]; li
                 <div
                   key={loc.slug}
                   ref={(el) => { itemRefs.current[i] = el; }}
-                  className="shrink-0 flex flex-col items-center gap-1.5"
+                  className="shrink-0 w-[72px] snap-center flex flex-col items-center gap-1.5"
                 >
                   <LocationPin location={loc} isActive={isActive} />
-                  <span className={`font-medium text-center line-clamp-1 max-w-[72px] ${
-                    isActive ? "text-xs text-text-primary" : "text-[10px] text-text-secondary"
-                  }`}>
+                  <span
+                    className={cn(
+                      "font-medium text-center line-clamp-1 max-w-[72px] transition-colors duration-300",
+                      isActive ? "text-xs text-text-primary" : "text-[10px] text-text-secondary"
+                    )}
+                  >
                     {loc.name}
                   </span>
                 </div>

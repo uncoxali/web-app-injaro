@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { SplashFallback } from "@/components/splash-lottie";
 
 const SplashLottie = dynamic(
   () => import("@/components/splash-lottie").then((m) => m.SplashLottie),
-  { ssr: false }
+  { ssr: false, loading: () => <SplashFallback /> }
 );
 
 const MIN_SPLASH_MS = 1500;
@@ -37,7 +38,13 @@ export default function SplashPage() {
   }, [redirect]);
 
   return (
-    <div className="flex h-dvh w-full max-w-[480px] mx-auto flex-col">
+    <div
+      className="flex h-dvh min-h-dvh w-full flex-1 flex-col overflow-hidden bg-background"
+      style={{
+        paddingTop: "var(--safe-area-top)",
+        paddingBottom: "var(--safe-area-bottom)",
+      }}
+    >
       <SplashLottie onComplete={handleComplete} />
     </div>
   );
