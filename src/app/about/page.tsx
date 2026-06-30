@@ -70,7 +70,7 @@ export default function AboutPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl bg-gradient-to-br from-primary/[0.04] to-surface border border-primary/15 p-5">
+          <div className="rounded-2xl bg-linear-to-br from-primary/4 to-surface border border-primary/15 p-5">
             <h3 className="text-sm font-bold text-text-primary mb-2">ما را دنبال کنید</h3>
             <p className="text-xs text-text-secondary mb-3">
               برای اطلاع از آخرین رویدادها و اخبار ما را در شبکه‌های اجتماعی دنبال کنید.

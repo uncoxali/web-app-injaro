@@ -4,6 +4,7 @@ import { useMemo, useCallback } from "react";
 import { Marker, type MapGeoJSONFeature } from "react-map-gl/mapbox";
 import Supercluster from "supercluster";
 import { useMapStore, type Location } from "@/store/map";
+import { bboxFromViewState } from "@/lib/map-utils";
 import { cn } from "@/lib/utils";
 
 const clusterRadius = 50;
@@ -17,7 +18,9 @@ interface GeoJSONFeature {
 
 export function MarkersLayer() {
   const markers = useMapStore((s) => s.markers);
-  const viewState = useMapStore((s) => s.viewState);
+  const latitude = useMapStore((s) => s.viewState.latitude);
+  const longitude = useMapStore((s) => s.viewState.longitude);
+  const zoom = useMapStore((s) => Math.floor(s.viewState.zoom));
   const selectedLocationId = useMapStore((s) => s.selectedLocationId);
   const selectLocation = useMapStore((s) => s.selectLocation);
   const setSelectedLocation = useMapStore((s) => s.setSelectedLocation);
@@ -48,15 +51,10 @@ export function MarkersLayer() {
   const clusters = useMemo(() => {
     if (!supercluster) return [];
 
-    const bbox: [number, number, number, number] = [
-      viewState.longitude - 1,
-      viewState.latitude - 1,
-      viewState.longitude + 1,
-      viewState.latitude + 1,
-    ];
+    const bbox = bboxFromViewState(longitude, latitude, zoom);
 
-    return supercluster.getClusters(bbox, Math.floor(viewState.zoom)) as any[];
-  }, [supercluster, viewState]);
+    return supercluster.getClusters(bbox, zoom) as any[];
+  }, [supercluster, latitude, longitude, zoom]);
 
   const handleMarkerClick = useCallback(
     (location: Location) => {
@@ -115,7 +113,7 @@ export function MarkersLayer() {
                     />
                     <circle cx="21" cy="15" r="10" fill="white" />
                   </svg>
-                  <span className="absolute start-0 end-0 top-[5px] h-5 flex items-center justify-center text-sm font-bold text-primary leading-none">
+                  <span className="absolute inset-s-0 inset-e-0 top-[5px] h-5 flex items-center justify-center text-sm font-bold text-primary leading-none">
                     {pointCount}
                   </span>
                 </div>

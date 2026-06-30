@@ -1,20 +1,23 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { getTazeha, type TazehaResponse, type TazehaItem } from "@/lib/api/tazeha";
-import { getLandingEvents, getLandingLocations, type LandingEvent, type LandingLocation } from "@/lib/api/landing";
+import { type TazehaResponse, type TazehaItem } from "@/lib/api/tazeha";
+import { type LandingEvent, type LandingLocation } from "@/lib/api/landing";
+import { useLandingEvents, useLandingLocations } from "@/lib/queries/landing";
+import { useTazeha } from "@/lib/queries/tazeha";
 import { ErrorState } from "@/components/ui/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExpandableSearchBar } from "@/components/search/expandable-search-bar";
 import { UnifiedSearchResults } from "@/components/search/unified-search-results";
 import { isAuthenticated, loginUrl } from "@/lib/auth-utils";
 import { DateSlider, generateDays, persianToGregorian, type DayOption } from "@/components/tazeha/date-slider";
+import { TazehaVirtualGrid } from "@/components/tazeha/tazeha-virtual-grid";
 import { useMapStore } from "@/store/map";
 import type { ReactNode } from "react";
-import { imgUrl, toPersianDigits, cn } from "@/lib/utils";
+import { toPersianDigits, cn } from "@/lib/utils";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 const SECTION_CONFIG: Record<
   string,
@@ -105,18 +108,18 @@ function FilterPill({
   onClick: () => void;
 }) {
   return (
-    <motion.button
-      whileTap={{ scale: 0.92 }}
+    <button
+      type="button"
       onClick={onClick}
       className={cn(
-        "shrink-0 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border transition-all",
+        "shrink-0 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border transition-all active:scale-[0.92]",
         isActive
-          ? `border-transparent text-white shadow-lg bg-gradient-to-br ${config.gradient}`
+          ? `border-transparent text-white shadow-lg bg-linear-to-br ${config.gradient}`
           : "bg-surface border-border/30 text-text-secondary hover:border-border/60"
       )}
     >
       {isActive && (
-        <span className={cn("bg-gradient-to-br rounded-full p-1", config.gradient)}>
+        <span className={cn("bg-linear-to-br rounded-full p-1", config.gradient)}>
           {config.icon}
         </span>
       )}
@@ -136,54 +139,36 @@ function FilterPill({
       >
         {toPersianDigits(count)}
       </span>
-    </motion.button>
+    </button>
   );
 }
 
 function EventCard({
   item,
-  index,
   sectionKey,
 }: {
   item: TazehaItem;
-  index: number;
   sectionKey: string;
 }) {
   const slug = getSlug(item);
   const title = getTitle(item);
-  const image = imgUrl(getImage(item));
   const isLive = sectionKey === "live_events";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04, duration: 0.35, ease: "easeOut" }}
-      layout
+    <Link
+      href={`/events/${slug}`}
+      className="block rounded-2xl overflow-hidden bg-surface border border-border/30 shadow-xs group active:scale-[0.97] transition-transform"
     >
-      <Link
-        href={`/events/${slug}`}
-        className="block rounded-2xl overflow-hidden bg-surface border border-border/30 shadow-sm group active:scale-[0.97] transition-all"
-      >
-        <div className="relative w-full aspect-[4/5] overflow-hidden">
-          {image ? (
-            <img
-              src={image}
-              alt={title}
-              loading="lazy"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-text-secondary/15">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-            </div>
-          )}
+      <div className="relative w-full aspect-4/5 overflow-hidden">
+        <OptimizedImage
+          src={getImage(item)}
+          alt={title}
+          fill
+          sizes="(max-width: 480px) 45vw, 200px"
+          className="group-hover:scale-105 transition-transform duration-500"
+        />
           {isLive && (
-            <div className="absolute top-2.5 start-2.5 flex items-center gap-1.5 rounded-full bg-success px-2.5 py-1 text-[9px] font-bold text-white shadow-sm backdrop-blur-[2px]">
+            <div className="absolute top-2.5 inset-s-2.5 flex items-center gap-1.5 rounded-full bg-success px-2.5 py-1 text-[9px] font-bold text-white shadow-xs backdrop-blur-[2px]">
               <LiveDot />
               زنده
             </div>
@@ -195,19 +180,14 @@ function EventCard({
           </p>
         </div>
       </Link>
-    </motion.div>
   );
 }
 
 function GuestPrompt() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl bg-gradient-to-br from-primary/[0.07] to-background border border-primary/15 p-4 mb-4"
-    >
+    <div className="rounded-2xl bg-linear-to-br from-primary/7 to-background border border-primary/15 p-4 mb-4">
       <div className="flex items-center gap-3">
-        <div className="shrink-0 w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center text-primary shadow-sm">
+        <div className="shrink-0 w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center text-primary shadow-xs">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
@@ -221,67 +201,54 @@ function GuestPrompt() {
         </div>
         <Link
           href={loginUrl("/home/Tazeha")}
-          className="shrink-0 text-xs font-semibold text-white bg-primary px-4 py-2.5 rounded-full shadow-sm shadow-primary/20"
+          className="shrink-0 text-xs font-semibold text-white bg-primary px-4 py-2.5 rounded-full shadow-xs shadow-primary/20"
         >
           ورود
         </Link>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
 export default function TazehaPage() {
   const router = useRouter();
   const setMapSearchQuery = useMapStore((s) => s.setMapSearchQuery);
-  const [data, setData] = useState<TazehaResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
   const [guest, setGuest] = useState(true);
+  const { data: landingEvents, isLoading: landingLoading } = useLandingEvents();
+  const { data: locations = [] } = useLandingLocations();
   const [activeSection, setActiveSection] = useState("all_events");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [days, setDays] = useState<DayOption[]>([]);
-  const [locations, setLocations] = useState<LandingLocation[]>([]);
 
-  const fetchData = useCallback((date?: string) => {
-    setLoading(true);
-    setError(false);
+  const gregDate = selectedDate ? persianToGregorian(selectedDate) : undefined;
+  const {
+    data: tazehaData,
+    isLoading: tazehaLoading,
+    isError: tazehaError,
+    refetch: refetchTazeha,
+  } = useTazeha(gregDate, !guest);
 
-    const authed = isAuthenticated();
-    setGuest(!authed);
+  const data: TazehaResponse | null = guest
+    ? landingEvents
+      ? { all_events: landingEvents.map(landingToItem) }
+      : null
+    : tazehaData ?? null;
 
-    if (!authed) {
-      getLandingEvents()
-        .then((events) => {
-          setData({ all_events: events.map(landingToItem) });
-        })
-        .catch(() => setError(true))
-        .finally(() => setLoading(false));
-      return;
-    }
-
-    const gregDate = date ? persianToGregorian(date) : undefined;
-    getTazeha(gregDate)
-      .then(setData)
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, []);
+  const loading = guest ? landingLoading : tazehaLoading;
+  const error = guest ? false : tazehaError;
 
   useEffect(() => {
-    fetchData();
     const d = generateDays(14);
     setDays(d);
     setSelectedDate(d[0]?.date || "");
-    getLandingLocations()
-      .then(setLocations)
-      .catch(() => {});
-  }, [fetchData]);
+    setGuest(!isAuthenticated());
+  }, []);
 
   const handleDateChange = useCallback((date: string) => {
     setSelectedDate(date);
-    fetchData(date);
-  }, [fetchData]);
+  }, []);
 
   const handleLocationSelect = useCallback(
     (loc: { name: string }) => {
@@ -411,7 +378,7 @@ export default function TazehaPage() {
                 {!searchOpen && guest && (
                   <Link
                     href={loginUrl("/home/Tazeha")}
-                    className="text-xs font-semibold text-white bg-primary px-4 py-2 rounded-full shadow-sm shadow-primary/20"
+                    className="text-xs font-semibold text-white bg-primary px-4 py-2 rounded-full shadow-xs shadow-primary/20"
                   >
                     ورود
                   </Link>
@@ -463,13 +430,13 @@ export default function TazehaPage() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="aspect-[3/4] rounded-2xl bg-gradient-to-r from-border/30 via-border/50 to-border/30 bg-[length:200%_100%] animate-shimmer"
+                className="aspect-3/4 rounded-2xl bg-linear-to-r from-border/30 via-border/50 to-border/30 bg-size-[200%_100%] animate-shimmer"
               />
             ))}
           </div>
         ) : error ? (
           <div className="flex-1 flex items-center justify-center py-16">
-            <ErrorState onRetry={() => fetchData()} />
+            <ErrorState onRetry={() => refetchTazeha()} />
           </div>
         ) : activeItems.length === 0 ? (
           <div className="flex-1 flex items-center justify-center py-16">
@@ -479,28 +446,19 @@ export default function TazehaPage() {
             />
           </div>
         ) : (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeSection}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.25 }}
-              className="flex flex-col gap-4"
-            >
-              {guest && <GuestPrompt />}
-              <div className="grid grid-cols-2 gap-3">
-                {activeItems.map((item, index) => (
-                  <EventCard
-                    key={item.event_slug || item.id || index}
-                    item={item}
-                    index={index}
-                    sectionKey={activeSection}
-                  />
-                ))}
-              </div>
-            </motion.div>
-          </AnimatePresence>
+          <div key={activeSection} className="flex flex-col gap-4">
+            {guest && <GuestPrompt />}
+            <TazehaVirtualGrid
+              items={activeItems}
+              renderCard={(item) => (
+                <EventCard
+                  key={item.event_slug || item.id || getSlug(item)}
+                  item={item}
+                  sectionKey={activeSection}
+                />
+              )}
+            />
+          </div>
         )}
       </div>
     </div>

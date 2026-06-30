@@ -1,4 +1,5 @@
 import { EventDetailClient } from "@/components/event/event-detail-client";
+import { fetchEventDetailServer } from "@/lib/server-fetch";
 
 export default async function EventPage({
   params,
@@ -7,5 +8,21 @@ export default async function EventPage({
 }) {
   const { slug } = await params;
 
-  return <EventDetailClient initialData={null} slug={slug} hasError={false} />;
+  let initialData = null;
+  let hasError = false;
+
+  try {
+    initialData = await fetchEventDetailServer(slug);
+    if (!initialData) hasError = true;
+  } catch {
+    hasError = true;
+  }
+
+  return (
+    <EventDetailClient
+      initialData={initialData}
+      slug={slug}
+      hasError={hasError}
+    />
+  );
 }

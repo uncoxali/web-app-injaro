@@ -4,8 +4,7 @@
 
 @font-face {
   font-family: "Vazirmatn";
-  src: url("https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Regular.woff2")
-    format("woff2");
+  src: url("/fonts/Vazirmatn-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -13,8 +12,7 @@
 
 @font-face {
   font-family: "Vazirmatn";
-  src: url("https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Medium.woff2")
-    format("woff2");
+  src: url("/fonts/Vazirmatn-Medium.woff2") format("woff2");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -22,8 +20,7 @@
 
 @font-face {
   font-family: "Vazirmatn";
-  src: url("https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Bold.woff2")
-    format("woff2");
+  src: url("/fonts/Vazirmatn-Bold.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -88,6 +85,8 @@
   --radius-full: var(--radius-full);
 
   --font-sans: "Vazirmatn", system-ui, sans-serif;
+
+  --spacing-13: 3.25rem;
 
   --animate-fade-in: fade-in 0.2s ease-in-out;
   --animate-slide-up: slide-up 0.3s ease-out;

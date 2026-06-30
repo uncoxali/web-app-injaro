@@ -39,8 +39,8 @@ export function CategorySelect({
           className={cn(
             "shrink-0 snap-start inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium border transition-all select-none cursor-pointer",
             selected === null
-              ? "bg-primary text-white border-primary shadow-sm"
-              : "bg-background/80 backdrop-blur-sm border-border/50 text-text-secondary hover:border-primary/30"
+              ? "bg-primary text-white border-primary shadow-xs"
+              : "bg-background/80 backdrop-blur-xs border-border/50 text-text-secondary hover:border-primary/30"
           )}
           style={{ scrollSnapAlign: "start" }}
         >
@@ -58,8 +58,8 @@ export function CategorySelect({
               className={cn(
                 "shrink-0 snap-start inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium border transition-all select-none cursor-pointer",
                 isActive
-                  ? "bg-primary text-white border-primary shadow-sm"
-                  : "bg-background/80 backdrop-blur-sm border-border/50 text-text-secondary hover:border-primary/30"
+                  ? "bg-primary text-white border-primary shadow-xs"
+                  : "bg-background/80 backdrop-blur-xs border-border/50 text-text-secondary hover:border-primary/30"
               )}
               style={{ scrollSnapAlign: "start" }}
             >

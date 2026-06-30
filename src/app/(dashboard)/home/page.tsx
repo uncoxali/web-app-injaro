@@ -3,34 +3,40 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import {
-  getLandingEvents,
-  getLandingLocations,
   type LandingEvent,
   type LandingLocation,
 } from "@/lib/api/landing";
+import { useLandingEvents, useLandingLocations } from "@/lib/queries/landing";
 import { ErrorState } from "@/components/ui/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { UnifiedSearchResults } from "@/components/search/unified-search-results";
 import { useMapStore } from "@/store/map";
 import { imgUrl, toPersianDigits } from "@/lib/utils";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 import { isAuthenticated } from "@/lib/auth-utils";
 
-function EventImage({ src, alt }: { src?: string; alt: string }) {
-  const url = imgUrl(src);
-  if (!url) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-gray-300 dark:text-gray-600">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <circle cx="8.5" cy="8.5" r="1.5" />
-          <path d="M21 15l-5-5L5 21" />
-        </svg>
-      </div>
-    );
-  }
-  return <img src={url} alt={alt} loading="lazy" className="w-full h-full object-cover" />;
+function EventImage({
+  src,
+  alt,
+  priority,
+}: {
+  src?: string;
+  alt: string;
+  priority?: boolean;
+}) {
+  return (
+    <OptimizedImage
+      src={src}
+      alt={alt}
+      fill
+      priority={priority}
+      sizes={priority ? "(max-width: 480px) 100vw, 480px" : "(max-width: 480px) 45vw, 200px"}
+      className="w-full h-full"
+    />
+  );
 }
 
 const fadeUp = {
@@ -54,10 +60,10 @@ function TopBar({
   searchInputRef: React.RefObject<HTMLInputElement | null>;
 }) {
   return (
-    <div className="bg-background/60 backdrop-blur-2xl border-b border-border/40 shadow-sm">
+    <div className="bg-background/60 backdrop-blur-2xl border-b border-border/40 shadow-xs">
       <div className="flex items-center justify-between gap-3 px-5 pt-5 pb-2">
         <div className="flex items-center gap-2.5">
-          <img src="/icons/icon.png" alt="" className="w-9 h-9" />
+          <Image src="/icons/icon.png" alt="" width={36} height={36} className="w-9 h-9" />
           <div>
             <span className="text-[10px] text-text-secondary">خوش آمدید</span>
             <h1 className="text-lg font-bold tracking-tight text-text-primary leading-none">اینجارو</h1>
@@ -70,7 +76,7 @@ function TopBar({
               value={searchQuery}
               onChange={(e) => onSearchQueryChange(e.target.value)}
               placeholder="جستجو..."
-              className="flex-1 h-9 rounded-xl bg-surface border border-border/50 px-3 text-sm text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-primary/50 transition-colors min-w-0"
+              className="flex-1 h-9 rounded-xl bg-surface border border-border/50 px-3 text-sm text-text-primary placeholder:text-text-secondary/50 outline-hidden focus:border-primary/50 transition-colors min-w-0"
             />
             {searchQuery && (
               <button
@@ -117,14 +123,14 @@ function HeroSection({ event }: { event: LandingEvent }) {
   return (
     <motion.div variants={fadeUp} className="px-5 pt-2">
       <Link href={`/events/${event.event_slug}`} className="block group">
-        <div className="relative aspect-[4/3] rounded-3xl overflow-hidden bg-gray-100 dark:bg-gray-800 shadow-lg shadow-black/5">
-          <EventImage src={event.thumbnail} alt={event.topic} />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+        <div className="relative aspect-4/3 rounded-3xl overflow-hidden bg-gray-100 dark:bg-gray-800 shadow-lg shadow-black/5">
+          <EventImage src={event.thumbnail} alt={event.topic} priority />
+          <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-5">
-            <span className="inline-block text-[11px] font-semibold text-white/80 bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full mb-2.5">
+            <span className="inline-block text-[11px] font-semibold text-white/80 bg-white/20 backdrop-blur-xs px-2.5 py-1 rounded-full mb-2.5">
               ویژه
             </span>
-            <h2 className="text-2xl font-bold text-white leading-tight drop-shadow-sm">
+            <h2 className="text-2xl font-bold text-white leading-tight drop-shadow-xs">
               {event.topic}
             </h2>
           </div>
@@ -163,23 +169,28 @@ function EventsSection({ events }: { events: LandingEvent[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
+  const scrollRaf = useRef<number | null>(null);
 
   const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const center = el.scrollLeft + el.clientWidth / 2;
-    let closest = 0;
-    let minDist = Infinity;
-    itemRefs.current.forEach((item, i) => {
-      if (!item) return;
-      const itemCenter = item.offsetLeft + item.offsetWidth / 2;
-      const dist = Math.abs(center - itemCenter);
-      if (dist < minDist) {
-        minDist = dist;
-        closest = i;
-      }
+    if (scrollRaf.current !== null) return;
+    scrollRaf.current = requestAnimationFrame(() => {
+      scrollRaf.current = null;
+      const el = scrollRef.current;
+      if (!el) return;
+      const center = el.scrollLeft + el.clientWidth / 2;
+      let closest = 0;
+      let minDist = Infinity;
+      itemRefs.current.forEach((item, i) => {
+        if (!item) return;
+        const itemCenter = item.offsetLeft + item.offsetWidth / 2;
+        const dist = Math.abs(center - itemCenter);
+        if (dist < minDist) {
+          minDist = dist;
+          closest = i;
+        }
+      });
+      setActiveIdx(closest);
     });
-    setActiveIdx(closest);
   }, []);
 
   if (events.length === 0) return null;
@@ -209,12 +220,12 @@ function EventsSection({ events }: { events: LandingEvent[] }) {
               }`}
             >
               <div className={`relative rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 transition-all duration-300 ${
-                isActive ? "aspect-[3/4] shadow-lg shadow-black/10" : "aspect-[2/3]"
+                isActive ? "aspect-3/4 shadow-lg shadow-black/10" : "aspect-2/3"
               }`}>
                 <EventImage src={event.thumbnail} alt={event.topic} />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-3">
-                  <p className="text-xs font-semibold text-white leading-snug line-clamp-2 drop-shadow-sm">
+                  <p className="text-xs font-semibold text-white leading-snug line-clamp-2 drop-shadow-xs">
                     {event.topic}
                   </p>
                 </div>
@@ -274,23 +285,28 @@ function MapSection({ locations, liveCount }: { locations: LandingLocation[]; li
   const scrollRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
+  const scrollRaf = useRef<number | null>(null);
 
   const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const center = el.scrollLeft + el.clientWidth / 2;
-    let closest = 0;
-    let minDist = Infinity;
-    itemRefs.current.forEach((item, i) => {
-      if (!item) return;
-      const itemCenter = item.offsetLeft + item.offsetWidth / 2;
-      const dist = Math.abs(center - itemCenter);
-      if (dist < minDist) {
-        minDist = dist;
-        closest = i;
-      }
+    if (scrollRaf.current !== null) return;
+    scrollRaf.current = requestAnimationFrame(() => {
+      scrollRaf.current = null;
+      const el = scrollRef.current;
+      if (!el) return;
+      const center = el.scrollLeft + el.clientWidth / 2;
+      let closest = 0;
+      let minDist = Infinity;
+      itemRefs.current.forEach((item, i) => {
+        if (!item) return;
+        const itemCenter = item.offsetLeft + item.offsetWidth / 2;
+        const dist = Math.abs(center - itemCenter);
+        if (dist < minDist) {
+          minDist = dist;
+          closest = i;
+        }
+      });
+      setActiveIdx(closest);
     });
-    setActiveIdx(closest);
   }, []);
 
   const preview = locations.slice(0, 8);
@@ -317,7 +333,7 @@ function MapSection({ locations, liveCount }: { locations: LandingLocation[]; li
                 <span className="text-sm font-medium text-text-primary">{toPersianDigits(locations.length)} مکان</span>
               </div>
               {liveCount > 0 && (
-                <span className="text-xs font-medium text-white bg-primary px-2 py-1 rounded-full shadow-sm shadow-primary/20">
+                <span className="text-xs font-medium text-white bg-primary px-2 py-1 rounded-full shadow-xs shadow-primary/20">
                   {toPersianDigits(liveCount)} زنده
                 </span>
               )}
@@ -364,7 +380,7 @@ function Skeleton() {
           <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse" />
         </div>
       </div>
-      <div className="aspect-[4/3] rounded-3xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
+      <div className="aspect-4/3 rounded-3xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
       <div className="flex gap-2">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="h-10 w-20 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse" />
@@ -373,7 +389,7 @@ function Skeleton() {
       <div className="h-5 w-32 rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse" />
       <div className="flex gap-3">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="w-[140px] aspect-[2/3] rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse shrink-0" />
+          <div key={i} className="w-[140px] aspect-2/3 rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse shrink-0" />
         ))}
       </div>
     </div>
@@ -383,10 +399,20 @@ function Skeleton() {
 export default function HomePage() {
   const router = useRouter();
   const setMapSearchQuery = useMapStore((s) => s.setMapSearchQuery);
-  const [events, setEvents] = useState<LandingEvent[]>([]);
-  const [locations, setLocations] = useState<LandingLocation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const {
+    data: events = [],
+    isLoading: eventsLoading,
+    isError: eventsError,
+    refetch: refetchEvents,
+  } = useLandingEvents();
+  const {
+    data: locations = [],
+    isLoading: locationsLoading,
+    isError: locationsError,
+    refetch: refetchLocations,
+  } = useLandingLocations();
+  const loading = eventsLoading || locationsLoading;
+  const error = eventsError || locationsError;
   const [guest, setGuest] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -427,21 +453,13 @@ export default function HomePage() {
   }, []);
 
   const fetchData = useCallback(() => {
-    setLoading(true);
-    setError(false);
-    Promise.all([getLandingEvents(), getLandingLocations()])
-      .then(([ev, loc]) => {
-        setEvents(ev);
-        setLocations(loc);
-      })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, []);
+    void refetchEvents();
+    void refetchLocations();
+  }, [refetchEvents, refetchLocations]);
 
   useEffect(() => {
-    fetchData();
     setGuest(!isAuthenticated());
-  }, [fetchData]);
+  }, []);
 
   const [featured, ...rest] = events;
   const liveCount = useMemo(

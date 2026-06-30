@@ -85,13 +85,13 @@ export function DateSlider({ days, selected, onSelect }: DateSliderProps) {
   }, [selected]);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-white/60 dark:bg-white/[0.03] border border-border/15 shadow-sm backdrop-blur-xl">
-      <div className="absolute top-0 left-1/3 w-40 h-40 rounded-full bg-primary/[0.04] blur-3xl" />
+    <div className="relative overflow-hidden rounded-2xl bg-white/60 dark:bg-white/3 border border-border/15 shadow-xs backdrop-blur-xl">
+      <div className="absolute top-0 left-1/3 w-40 h-40 rounded-full bg-primary/4 blur-3xl" />
 
       <div className="relative">
         <div className="flex items-center justify-between px-5 pt-4 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center shadow-sm">
+            <div className="w-8 h-8 rounded-xl bg-linear-to-br from-primary/10 to-primary/5 flex items-center justify-center shadow-xs">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF5A5F" strokeWidth="1.5">
                 <rect x="3" y="4" width="18" height="18" rx="2" />
                 <line x1="16" y1="2" x2="16" y2="6" />
@@ -139,7 +139,7 @@ export function DateSlider({ days, selected, onSelect }: DateSliderProps) {
                     ? "bg-primary text-white shadow-lg shadow-primary/30 scale-110"
                     : day.isToday && !isActive
                       ? "bg-primary/8 text-primary font-bold border border-primary/20"
-                      : "bg-white/60 dark:bg-white/[0.04] text-text-secondary/60 hover:bg-white dark:hover:bg-white/[0.08] hover:shadow-sm border border-transparent hover:border-border/20"
+                      : "bg-white/60 dark:bg-white/4 text-text-secondary/60 hover:bg-white dark:hover:bg-white/8 hover:shadow-sm border border-transparent hover:border-border/20"
                 )}>
                   <span className={cn(
                     "text-base leading-none",

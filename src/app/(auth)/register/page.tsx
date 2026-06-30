@@ -128,7 +128,7 @@ function RegisterPage() {
                 setErrors((prev) => ({ ...prev, livingCity: "" }));
               }}
               className={cn(
-                "h-11 w-full rounded-lg border bg-surface px-3 text-base text-text-primary outline-none transition-colors appearance-none",
+                "h-11 w-full rounded-lg border bg-surface px-3 text-base text-text-primary outline-hidden transition-colors appearance-none",
                 "focus:border-primary focus:ring-1 focus:ring-primary/20",
                 errors.livingCity ? "border-error" : "border-border",
                 !livingCity && "text-text-secondary/60"
@@ -159,7 +159,7 @@ function RegisterPage() {
                 setErrors((prev) => ({ ...prev, job: "" }));
               }}
               className={cn(
-                "h-11 w-full rounded-lg border bg-surface px-3 text-base text-text-primary outline-none transition-colors appearance-none",
+                "h-11 w-full rounded-lg border bg-surface px-3 text-base text-text-primary outline-hidden transition-colors appearance-none",
                 "focus:border-primary focus:ring-1 focus:ring-primary/20",
                 errors.job ? "border-error" : "border-border",
                 !job && "text-text-secondary/60"

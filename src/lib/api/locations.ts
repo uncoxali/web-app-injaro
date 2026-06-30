@@ -30,7 +30,7 @@ export interface LocationDetail extends Location {
   qr_code?: string;
 }
 
-function normalizeLocationDetail(raw: Record<string, unknown>): LocationDetail {
+export function normalizeLocationDetail(raw: Record<string, unknown>): LocationDetail {
   const events = Array.isArray(raw.events) ? raw.events : [];
   const banner =
     (raw.background_image as string | undefined) ||

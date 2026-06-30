@@ -2,12 +2,11 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Html5Qrcode } from "html5-qrcode";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/store/auth";
 import {
-  getProfile,
   updateProfile,
   updateAvatar,
   getNotifications,
@@ -15,7 +14,8 @@ import {
   type UserProfile,
   type Notification,
 } from "@/lib/api/profile";
-import { getCategories, type Category } from "@/lib/api/categories";
+import { useProfile, profileKeys } from "@/lib/queries/profile";
+import { useCategories } from "@/lib/queries/categories";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,15 +24,21 @@ import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ErrorState } from "@/components/ui/error-state";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { cn, imgUrl } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 export default function ProfilePage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const logout = useAuthStore((s) => s.logout);
 
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const {
+    data: profile = null,
+    isLoading: loading,
+    isError: error,
+    refetch: fetchProfile,
+  } = useProfile();
+  const { data: categories = [] } = useCategories();
 
   const [showQrModal, setShowQrModal] = useState(false);
   const [showScanModal, setShowScanModal] = useState(false);
@@ -44,31 +50,23 @@ export default function ProfilePage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notifLoading, setNotifLoading] = useState(false);
 
-  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedInterests, setSelectedInterests] = useState<Set<number>>(new Set());
   const [savingInterests, setSavingInterests] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
   const scannerContainerRef = useRef<HTMLDivElement>(null);
   const [scanResult, setScanResult] = useState("");
 
-  const fetchProfile = useCallback(() => {
-    setLoading(true);
-    setError(false);
-    getProfile()
-      .then(setProfile)
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    fetchProfile();
-    getCategories()
-      .then(setCategories)
-      .catch(() => {});
-  }, [fetchProfile]);
+  const updateProfileCache = useCallback(
+    (updater: (prev: UserProfile | undefined) => UserProfile | undefined) => {
+      queryClient.setQueryData<UserProfile>(profileKeys.me, (prev) =>
+        updater(prev)
+      );
+    },
+    [queryClient]
+  );
 
   const handleOpenNotif = useCallback(async () => {
     setShowNotifSheet(true);
@@ -77,12 +75,14 @@ export default function ProfilePage() {
       const list = await getNotifications();
       setNotifications(list);
       await markNotificationsSeen();
-      setProfile((prev) => prev ? { ...prev, unread_notifications: 0 } : prev);
+      updateProfileCache((prev) =>
+        prev ? { ...prev, unread_notifications: 0 } : prev
+      );
     } catch {
     } finally {
       setNotifLoading(false);
     }
-  }, []);
+  }, [updateProfileCache]);
 
   const handleOpenInterests = useCallback(() => {
     setSelectedInterests(new Set(profile?.interests || []));
@@ -93,7 +93,9 @@ export default function ProfilePage() {
     setSavingInterests(true);
     try {
       await updateProfile({ interests: Array.from(selectedInterests) });
-      setProfile((prev) => prev ? { ...prev, interests: Array.from(selectedInterests) } : prev);
+      updateProfileCache((prev) =>
+        prev ? { ...prev, interests: Array.from(selectedInterests) } : prev
+      );
       toast.success("علاقه‌مندی‌ها ذخیره شد");
       setShowInterestsModal(false);
     } catch {
@@ -101,7 +103,7 @@ export default function ProfilePage() {
     } finally {
       setSavingInterests(false);
     }
-  }, [selectedInterests]);
+  }, [selectedInterests, updateProfileCache]);
 
   const handleLogout = useCallback(() => {
     setLogoutLoading(true);
@@ -117,7 +119,9 @@ export default function ProfilePage() {
     setUploadingAvatar(true);
     try {
       const result = await updateAvatar(file);
-      setProfile((prev) => prev ? { ...prev, avatar_url: result.avatar_url } : prev);
+      updateProfileCache((prev) =>
+        prev ? { ...prev, avatar_url: result.avatar_url } : prev
+      );
       toast.success("عکس پروفایل بروزرسانی شد");
     } catch {
       toast.error("خطا در آپلود عکس");
@@ -125,11 +129,12 @@ export default function ProfilePage() {
       setUploadingAvatar(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  }, []);
+  }, [updateProfileCache]);
 
   const startScanner = useCallback(async () => {
     if (!scannerContainerRef.current) return;
     try {
+      const { Html5Qrcode } = await import("html5-qrcode");
       const scanner = new Html5Qrcode("qr-scanner-container");
       scannerRef.current = scanner;
       await scanner.start(
@@ -191,10 +196,10 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-col min-h-dvh">
       <div className="relative overflow-hidden pb-6">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.07] to-background" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200px] h-[200px] rounded-full bg-primary/[0.04] blur-3xl" />
+        <div className="absolute inset-0 bg-linear-to-b from-primary/7 to-background" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200px] h-[200px] rounded-full bg-primary/4 blur-3xl" />
 
-        <div className="absolute top-4 end-4 z-10">
+        <div className="absolute top-4 inset-e-4 z-10">
           <ThemeToggle />
         </div>
 
@@ -209,10 +214,10 @@ export default function ProfilePage() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingAvatar}
-              className="relative w-[88px] h-[88px] rounded-full bg-gradient-to-br from-primary/20 to-primary/[0.04] ring-[3px] ring-primary/[0.08] flex items-center justify-center shadow-xl shadow-primary/5 overflow-hidden"
+              className="relative w-[88px] h-[88px] rounded-full bg-linear-to-br from-primary/20 to-primary/4 ring-3 ring-primary/8 flex items-center justify-center shadow-xl shadow-primary/5 overflow-hidden"
             >
               {profile?.avatar_url ? (
-                <img src={imgUrl(profile.avatar_url)} alt="" className="w-full h-full object-cover" />
+                <OptimizedImage src={profile.avatar_url} alt="" width={88} height={88} className="w-full h-full" />
               ) : (
                 <span className="text-3xl font-bold text-primary/80">{initials}</span>
               )}
@@ -225,7 +230,7 @@ export default function ProfilePage() {
             </button>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="absolute -bottom-0.5 -end-0.5 w-7 h-7 rounded-full bg-primary border-[3px] border-background flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors"
+              className="absolute -bottom-0.5 -inset-e-0.5 w-7 h-7 rounded-full bg-primary border-3 border-background flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -253,7 +258,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-3 mt-4">
             <button
               onClick={() => setShowQrModal(true)}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-full bg-white/60 dark:bg-white/5 border border-border/30 text-xs font-medium text-text-secondary hover:text-text-primary hover:border-border/60 transition-all shadow-sm"
+              className="flex items-center gap-1.5 h-8 px-3 rounded-full bg-white/60 dark:bg-white/5 border border-border/30 text-xs font-medium text-text-secondary hover:text-text-primary hover:border-border/60 transition-all shadow-xs"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <rect x="3" y="3" width="7" height="7" />
@@ -265,7 +270,7 @@ export default function ProfilePage() {
             </button>
             <button
               onClick={handleOpenScanner}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-full bg-white/60 dark:bg-white/5 border border-border/30 text-xs font-medium text-text-secondary hover:text-text-primary hover:border-border/60 transition-all shadow-sm"
+              className="flex items-center gap-1.5 h-8 px-3 rounded-full bg-white/60 dark:bg-white/5 border border-border/30 text-xs font-medium text-text-secondary hover:text-text-primary hover:border-border/60 transition-all shadow-xs"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path d="M3 7V5a2 2 0 0 1 2-2h2" />
@@ -291,7 +296,7 @@ export default function ProfilePage() {
                 <circle cx="12" cy="7" r="4" />
               </svg>
             }
-            iconBg="bg-primary/[0.07]"
+            iconBg="bg-primary/7"
             label="داده‌های کاربری"
             description="مشاهده و ویرایش اطلاعات شخصی"
             href="/profile"
@@ -303,7 +308,7 @@ export default function ProfilePage() {
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
               </svg>
             }
-            iconBg="bg-amber-500/[0.08]"
+            iconBg="bg-amber-500/8"
             label="علاقه‌مندی‌ها"
             description="دسته‌بندی‌های مورد علاقه‌تان"
             onClick={handleOpenInterests}
@@ -317,16 +322,16 @@ export default function ProfilePage() {
 
           <button
             onClick={handleOpenNotif}
-            className="flex items-center justify-between w-full h-16 px-4 rounded-2xl bg-white/50 dark:bg-white/[0.02] border border-border/20 hover:bg-white/80 dark:hover:bg-white/[0.04] transition-all"
+            className="flex items-center justify-between w-full h-16 px-4 rounded-2xl bg-white/50 dark:bg-white/2 border border-border/20 hover:bg-white/80 dark:hover:bg-white/4 transition-all"
           >
             <div className="flex items-center gap-3.5">
-              <div className="relative w-10 h-10 rounded-xl bg-primary/[0.07] flex items-center justify-center shrink-0">
+              <div className="relative w-10 h-10 rounded-xl bg-primary/7 flex items-center justify-center shrink-0">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                   <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                 </svg>
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -end-1 min-w-[18px] h-[18px] px-1 rounded-full bg-error text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-background">
+                  <span className="absolute -top-1 -inset-e-1 min-w-[18px] h-[18px] px-1 rounded-full bg-error text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-background">
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
@@ -353,7 +358,7 @@ export default function ProfilePage() {
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             }
-            iconBg="bg-emerald-500/[0.08]"
+            iconBg="bg-emerald-500/8"
             label="پشتیبانی"
             description="ارتباط با تیم پشتیبانی"
             href="/home/profile/support"
@@ -368,7 +373,7 @@ export default function ProfilePage() {
                   <line x1="21" y1="12" x2="9" y2="12" />
                 </svg>
               }
-              iconBg="bg-error/[0.07]"
+              iconBg="bg-error/7"
               label="خروج از حساب"
               description="از اینجارو خارج شوید"
               labelClass="text-error"
@@ -380,7 +385,7 @@ export default function ProfilePage() {
 
       <Modal open={showQrModal} onClose={() => setShowQrModal(false)} title="QR من">
         <div className="flex flex-col items-center py-4">
-          <div className="w-48 h-48 rounded-xl bg-gradient-to-br from-primary/[0.04] to-surface border border-border flex items-center justify-center">
+          <div className="w-48 h-48 rounded-xl bg-linear-to-br from-primary/4 to-surface border border-border flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-text-secondary/20">
               <rect x="2" y="2" width="5" height="5" />
               <rect x="17" y="2" width="5" height="5" />
@@ -445,7 +450,7 @@ export default function ProfilePage() {
                   "p-3 rounded-xl border transition-all",
                   notif.is_seen
                     ? "border-border/30 bg-surface"
-                    : "border-primary/15 bg-primary/[0.03]"
+                    : "border-primary/15 bg-primary/3"
                 )}
               >
                 <p className="text-sm font-medium text-text-primary">{notif.title}</p>
@@ -485,8 +490,8 @@ export default function ProfilePage() {
                 className={cn(
                   "px-3 py-2 rounded-xl text-sm font-medium border transition-all",
                   isSelected
-                    ? "border-primary bg-primary/8 text-primary shadow-sm shadow-primary/10"
-                    : "border-border/60 text-text-secondary hover:border-primary/30 hover:bg-primary/[0.02]"
+                    ? "border-primary bg-primary/8 text-primary shadow-xs shadow-primary/10"
+                    : "border-border/60 text-text-secondary hover:border-primary/30 hover:bg-primary/2"
                 )}
               >
                 {cat.name}
@@ -525,7 +530,7 @@ interface MenuItemProps {
   iconBg?: string;
 }
 
-function MenuItem({ icon, label, description, href, onClick, labelClass, iconBg = "bg-primary/[0.07]" }: MenuItemProps) {
+function MenuItem({ icon, label, description, href, onClick, labelClass, iconBg = "bg-primary/7" }: MenuItemProps) {
   const router = useRouter();
 
   const handleClick = () => {
@@ -536,7 +541,7 @@ function MenuItem({ icon, label, description, href, onClick, labelClass, iconBg 
   return (
     <button
       onClick={handleClick}
-      className="flex items-center justify-between w-full h-16 px-4 rounded-2xl bg-white/50 dark:bg-white/[0.02] border border-border/20 hover:bg-white/80 dark:hover:bg-white/[0.04] transition-all"
+      className="flex items-center justify-between w-full h-16 px-4 rounded-2xl bg-white/50 dark:bg-white/2 border border-border/20 hover:bg-white/80 dark:hover:bg-white/4 transition-all"
     >
       <div className="flex items-center gap-3.5">
         <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center shrink-0`}>

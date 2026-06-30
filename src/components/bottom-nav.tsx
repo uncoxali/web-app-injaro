@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { isAuthenticated, loginUrl } from "@/lib/auth-utils";
 
@@ -44,13 +43,14 @@ function isNavActive(
 export function BottomNav() {
   const pathname = usePathname();
   const [guest, setGuest] = useState(true);
-  const activeIndex = navItems.findIndex((item) =>
-    isNavActive(item.href, pathname, item.exact)
-  );
 
   useEffect(() => {
     setGuest(!isAuthenticated());
-  }, [pathname]);
+  }, []);
+
+  const activeIndex = navItems.findIndex((item) =>
+    isNavActive(item.href, pathname, item.exact)
+  );
 
   return (
     <nav
@@ -58,11 +58,8 @@ export function BottomNav() {
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4px)" }}
     >
       <div className="relative flex items-center justify-around h-16 rounded-[40px] bg-background/40 backdrop-blur-2xl border border-border/40 shadow-xl shadow-black/5">
-        <motion.div
-          className="absolute top-1 bottom-1 rounded-[32px] bg-primary/10"
-          layout
-          layoutId="nav-indicator"
-          transition={{ type: "spring", stiffness: 500, damping: 35 }}
+        <div
+          className="absolute top-1 bottom-1 rounded-[32px] bg-primary/10 transition-[inset-inline-start] duration-300 ease-out"
           style={{
             width: `calc(${100 / navItems.length}% - 8px)`,
             insetInlineStart: `calc(${activeIndex * (100 / navItems.length)}% + 4px)`,
@@ -77,7 +74,7 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={href}
-              prefetch={true}
+              prefetch={item.href === "/home"}
               aria-label={item.label}
               className={cn(
                 "relative z-10 flex flex-col items-center justify-center gap-0.5 w-full h-full rounded-[32px] transition-colors duration-200",
@@ -91,16 +88,14 @@ export function BottomNav() {
                   <item.icon active={isActive} />
                 )}
               </div>
-              <motion.span
-                className="text-[10px] font-medium"
-                animate={{
-                  scale: isActive ? 1 : 0.9,
-                  fontWeight: isActive ? 600 : 400,
-                }}
-                transition={{ duration: 0.2 }}
+              <span
+                className={cn(
+                  "text-[10px] font-medium transition-transform duration-200",
+                  isActive ? "scale-100 font-semibold" : "scale-90"
+                )}
               >
                 {item.icon === "profile" && guest ? "ورود" : item.label}
-              </motion.span>
+              </span>
             </Link>
           );
         })}

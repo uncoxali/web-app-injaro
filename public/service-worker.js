@@ -1,8 +1,11 @@
-const CACHE_NAME = "injaro-v1";
+const CACHE_NAME = "injaro-v3";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
   "/icons/icon.svg",
+  "/fonts/Vazirmatn-Regular.woff2",
+  "/fonts/Vazirmatn-Medium.woff2",
+  "/fonts/Vazirmatn-Bold.woff2",
 ];
 
 self.addEventListener("install", (event) => {
@@ -32,7 +35,12 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
 
   // API requests: network-first with fallback
-  if (url.pathname.startsWith("/main/") || url.pathname.startsWith("/accounts/") || url.pathname.startsWith("/invite/")) {
+  if (
+    url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/main/") ||
+    url.pathname.startsWith("/accounts/") ||
+    url.pathname.startsWith("/invite/")
+  ) {
     event.respondWith(networkFirst(request));
     return;
   }

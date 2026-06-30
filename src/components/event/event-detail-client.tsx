@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
   getEventDetail,
@@ -11,6 +12,7 @@ import {
   type EventDetail,
 } from "@/lib/api/events";
 import { getLandingEventBySlug, type LandingEvent } from "@/lib/api/landing";
+import { landingKeys } from "@/lib/queries/landing";
 import { isAuthenticated, loginUrl } from "@/lib/auth-utils";
 import { reportNavigationClick } from "@/lib/api/locations";
 import { Modal } from "@/components/ui/modal";
@@ -19,7 +21,8 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { PERSIAN_MONTHS } from "@/lib/constants/enums";
-import { cn, toPersianDigits, imgUrl } from "@/lib/utils";
+import { cn, toPersianDigits } from "@/lib/utils";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 function formatPersianDateTime(iso?: string): string {
   if (!iso) return "";
@@ -46,6 +49,7 @@ export function EventDetailClient({
   hasError: serverError,
 }: EventDetailClientProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [data, setData] = useState<EventDetail | null>(initialData);
   const [guestEvent, setGuestEvent] = useState<LandingEvent | null>(null);
   const [isGuest, setIsGuest] = useState(false);
@@ -76,7 +80,10 @@ export function EventDetailClient({
         if (detail) {
           setData(detail);
         } else {
-          const landing = await getLandingEventBySlug(slug);
+          const cached = queryClient.getQueryData<LandingEvent[]>(
+            landingKeys.events
+          );
+          const landing = await getLandingEventBySlug(slug, cached);
           if (landing) setGuestEvent(landing);
           else setError(true);
         }
@@ -85,7 +92,7 @@ export function EventDetailClient({
     }
 
     load();
-  }, [slug, initialData, serverError]);
+  }, [slug, initialData, serverError, queryClient]);
 
   const handleParticipate = useCallback(() => {
     router.push(loginUrl(`/events/${slug}`));
@@ -189,7 +196,7 @@ export function EventDetailClient({
         <button
           onClick={() => router.back()}
           aria-label="بازگشت"
-          className="absolute top-4 start-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-sm shadow-md flex items-center justify-center text-text-primary hover:bg-background transition-colors"
+          className="absolute top-4 inset-s-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-xs shadow-md flex items-center justify-center text-text-primary hover:bg-background transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="9 18 15 12 9 6" />
@@ -198,7 +205,7 @@ export function EventDetailClient({
       </div>
 
       <div className="px-4 pt-4 pb-3">
-        <div className="bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl border border-border/15 shadow-sm rounded-2xl p-4 space-y-3">
+        <div className="bg-white/60 dark:bg-white/3 backdrop-blur-xl border border-border/15 shadow-xs rounded-2xl p-4 space-y-3">
           <div className="flex items-start gap-2">
             <h1 className="text-xl font-bold text-text-primary flex-1 leading-snug">
               {data.topic}
@@ -292,7 +299,7 @@ export function EventDetailClient({
         {data.statement && (
           <section>
             <SectionTitle>درباره رویداد</SectionTitle>
-            <div className="bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl border border-border/15 shadow-sm rounded-2xl p-4">
+            <div className="bg-white/60 dark:bg-white/3 backdrop-blur-xl border border-border/15 shadow-xs rounded-2xl p-4">
               <StatementBlock text={data.statement} />
             </div>
           </section>
@@ -301,7 +308,7 @@ export function EventDetailClient({
         {data.main_organizers && (
           <section>
             <SectionTitle>برگزارکنندگان</SectionTitle>
-            <div className="bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl border border-border/15 shadow-sm rounded-2xl p-4">
+            <div className="bg-white/60 dark:bg-white/3 backdrop-blur-xl border border-border/15 shadow-xs rounded-2xl p-4">
               <p className="text-sm text-text-secondary leading-relaxed">
                 {data.main_organizers}
               </p>
@@ -312,16 +319,16 @@ export function EventDetailClient({
         {sideOrgs.length > 0 && (
           <section>
             <SectionTitle>برگزارکنندگان فرعی</SectionTitle>
-            <div className="bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl border border-border/15 shadow-sm rounded-2xl p-4">
+            <div className="bg-white/60 dark:bg-white/3 backdrop-blur-xl border border-border/15 shadow-xs rounded-2xl p-4">
               <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory scrollbar-none">
                 {sideOrgs.map((org) => (
                   <div
                     key={org.id}
                     className="snap-start shrink-0 flex flex-col items-center gap-2 w-20"
                   >
-                    <div className="w-14 h-14 rounded-xl bg-white/50 border border-border/40 flex items-center justify-center overflow-hidden shadow-sm">
+                    <div className="w-14 h-14 rounded-xl bg-white/50 border border-border/40 flex items-center justify-center overflow-hidden shadow-xs">
                       {org.logo ? (
-                        <img src={imgUrl(org.logo)} alt={org.name} className="w-full h-full object-cover" />
+                        <OptimizedImage src={org.logo} alt={org.name} width={56} height={56} className="w-full h-full" />
                       ) : (
                         <span className="text-lg font-bold text-text-secondary/40">
                           {org.name.slice(0, 1)}
@@ -341,7 +348,7 @@ export function EventDetailClient({
         {talks.length > 0 && (
           <section>
             <SectionTitle>سخنرانان / پنل گفتگو</SectionTitle>
-            <div className="bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl border border-border/15 shadow-sm rounded-2xl p-4">
+            <div className="bg-white/60 dark:bg-white/3 backdrop-blur-xl border border-border/15 shadow-xs rounded-2xl p-4">
               <div className="flex flex-col gap-2">
                 {talks.map((talk, i) => (
                   <div
@@ -380,7 +387,7 @@ export function EventDetailClient({
         {saloons.length > 0 && (
           <section>
             <SectionTitle>سالن‌ها و غرفه‌ها</SectionTitle>
-            <div className="bg-white/60 dark:bg-white/[0.03] backdrop-blur-xl border border-border/15 shadow-sm rounded-2xl p-4">
+            <div className="bg-white/60 dark:bg-white/3 backdrop-blur-xl border border-border/15 shadow-xs rounded-2xl p-4">
               <SaloonsAccordion saloons={saloons} />
             </div>
           </section>
@@ -389,7 +396,7 @@ export function EventDetailClient({
 
       <Modal open={ticketQrOpen} onClose={() => setTicketQrOpen(false)} title="بلیت رویداد">
         <div className="flex flex-col items-center py-6">
-          <div className="w-52 h-52 rounded-xl bg-gradient-to-br from-primary/[0.04] to-surface border border-border flex items-center justify-center">
+          <div className="w-52 h-52 rounded-xl bg-linear-to-br from-primary/4 to-surface border border-border flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" width="110" height="110" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-text-secondary/20">
               <rect x="2" y="2" width="5" height="5" />
               <rect x="17" y="2" width="5" height="5" />
@@ -417,18 +424,22 @@ export function EventDetailClient({
           >
             <button
               onClick={() => setImagePopupOpen(false)}
-              className="absolute top-4 end-4 z-10 w-9 h-9 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/25 transition-colors"
+              className="absolute top-4 inset-e-4 z-10 w-9 h-9 rounded-full bg-white/15 backdrop-blur-xs flex items-center justify-center text-white hover:bg-white/25 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
-            <img
-              src={imgUrl(images[popupImageIndex]?.url)}
-              alt={images[popupImageIndex]?.alt || ""}
-              className="max-w-full max-h-full object-contain px-4"
-            />
+            <div className="relative w-full h-[70vh] max-h-[80dvh]">
+              <OptimizedImage
+                src={images[popupImageIndex]?.url}
+                alt={images[popupImageIndex]?.alt || ""}
+                fill
+                sizes="100vw"
+                className="object-contain px-4"
+              />
+            </div>
             {images.length > 1 && (
               <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
                 {images.map((_, i) => (
@@ -461,32 +472,29 @@ function GuestEventView({
   onParticipate: () => void;
   onShare: () => void;
 }) {
-  const imageUrl = imgUrl(event.thumbnail);
+  const imageUrl = event.thumbnail;
 
   return (
     <div className="flex min-h-dvh flex-col pb-32">
-      <div className="relative aspect-[4/3] bg-surface">
+      <div className="relative aspect-4/3 bg-surface">
         <button
           onClick={onBack}
           aria-label="بازگشت"
-          className="absolute top-4 start-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-sm shadow-md flex items-center justify-center text-text-primary"
+          className="absolute top-4 inset-s-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-xs shadow-md flex items-center justify-center text-text-primary"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
-        {imageUrl ? (
-          <img src={imageUrl} alt={event.topic} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-text-secondary/30">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <path d="M21 15l-5-5L5 21" />
-            </svg>
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+        <OptimizedImage
+          src={imageUrl}
+          alt={event.topic}
+          fill
+          priority
+          sizes="(max-width: 480px) 100vw, 480px"
+          className="w-full h-full"
+        />
+        <div className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent" />
       </div>
 
       <div className="px-4 pt-5 flex-1">
@@ -547,7 +555,7 @@ function GallerySection({
 
   if (!images || images.length === 0) {
     return (
-      <div className="relative h-64 bg-gradient-to-b from-primary/[0.04] to-surface flex items-center justify-center">
+      <div className="relative h-64 bg-linear-to-b from-primary/4 to-surface flex items-center justify-center">
         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-secondary/20">
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <circle cx="8.5" cy="8.5" r="1.5" />
@@ -571,12 +579,14 @@ function GallerySection({
             onClick={() => onOpenImage(i)}
             className="snap-start shrink-0 w-full h-64 overflow-hidden relative"
           >
-            <img
-              src={imgUrl(img.url)}
+            <OptimizedImage
+              src={img.url}
               alt={img.alt || ""}
-              className="w-full h-full object-cover"
+              fill
+              priority={i === 0}
+              sizes="(max-width: 480px) 100vw, 480px"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent pointer-events-none" />
           </button>
         ))}
       </div>
@@ -721,7 +731,7 @@ function CompanyBoothCard({
     >
       <div className="w-9 h-9 rounded-lg bg-white/40 border border-border/40 flex items-center justify-center overflow-hidden shrink-0">
         {company.logo ? (
-          <img src={imgUrl(company.logo)} alt="" className="w-full h-full object-cover" />
+          <OptimizedImage src={company.logo} alt="" width={36} height={36} className="w-full h-full" />
         ) : (
           <span className="text-xs font-bold text-text-secondary/40">{company.name.slice(0, 1)}</span>
         )}
@@ -763,7 +773,7 @@ function ActionIcon({
       aria-label={tooltip}
       title={tooltip}
       className={cn(
-        "flex items-center justify-center h-10 w-10 rounded-xl border border-border/50 bg-surface text-text-secondary hover:border-primary/30 hover:text-primary hover:bg-primary/[0.02] transition-all shadow-sm shadow-border/20",
+        "flex items-center justify-center h-10 w-10 rounded-xl border border-border/50 bg-surface text-text-secondary hover:border-primary/30 hover:text-primary hover:bg-primary/2 transition-all shadow-xs shadow-border/20",
         active && "border-primary/30 text-primary bg-primary/5",
         disabled && "opacity-40 cursor-not-allowed",
         className

@@ -1,20 +1,15 @@
 "use client";
 
 import { useCallback } from "react";
-import { motion } from "framer-motion";
-import { cn, imgUrl } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { Category } from "@/lib/api/categories";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 interface CategoriesBarProps {
   categories: Category[];
   selected: number | null;
   onSelect: (categoryId: number | null) => void;
 }
-
-const chipVariants = {
-  idle: { scale: 1 },
-  tap: { scale: 0.92 },
-};
 
 export function CategoriesBar({
   categories,
@@ -34,12 +29,11 @@ export function CategoriesBar({
         className="flex gap-2.5 overflow-x-auto scrollbar-none py-1"
         style={{ scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}
       >
-        <motion.button
-          whileTap="tap"
-          variants={chipVariants}
+        <button
+          type="button"
           onClick={() => handleSelect(null)}
           className={cn(
-            "shrink-0 snap-start inline-flex items-center justify-center px-4 py-2 rounded-full text-sm font-medium border transition-all whitespace-nowrap select-none",
+            "shrink-0 snap-start inline-flex items-center justify-center px-4 py-2 rounded-full text-sm font-medium border transition-all whitespace-nowrap select-none active:scale-[0.92]",
             selected === null
               ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
               : "bg-background/70 backdrop-blur-md border-border/50 text-text-secondary hover:border-primary/30"
@@ -47,20 +41,19 @@ export function CategoriesBar({
           style={{ scrollSnapAlign: "start" }}
         >
           همه
-        </motion.button>
+        </button>
 
         {categories.map((cat) => {
           const isActive = selected === cat.id;
           return (
-            <motion.button
+            <button
               key={cat.id}
-              whileTap="tap"
-              variants={chipVariants}
+              type="button"
               onClick={() => handleSelect(cat.id)}
               className={cn(
-                "shrink-0 snap-start inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium border transition-all whitespace-nowrap select-none",
+                "shrink-0 snap-start inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium border transition-all whitespace-nowrap select-none active:scale-[0.92]",
                 isActive
-                  ? "bg-primary/10 text-primary border-primary/30 shadow-sm"
+                  ? "bg-primary/10 text-primary border-primary/30 shadow-xs"
                   : "bg-background/70 backdrop-blur-md border-border/50 text-text-secondary hover:border-primary/30 hover:bg-background/90"
               )}
               style={{ scrollSnapAlign: "start" }}
@@ -69,18 +62,24 @@ export function CategoriesBar({
                 <span className={cn(
                   "inline-flex items-center justify-center w-7 h-7 rounded-full text-sm transition-all overflow-hidden shrink-0",
                   isActive
-                    ? "bg-primary text-white shadow-sm"
+                    ? "bg-primary text-white shadow-xs"
                     : "bg-border/40 text-text-secondary"
                 )}>
                   {cat.location_icon ? (
-                    <img src={imgUrl(cat.location_icon)} alt="" className="w-6 h-6 object-contain" />
+                    <OptimizedImage
+                      src={cat.location_icon}
+                      alt=""
+                      width={24}
+                      height={24}
+                      className="w-6 h-6 object-contain"
+                    />
                   ) : (
                     cat.icon
                   )}
                 </span>
               )}
               <span className={cn(isActive && "font-semibold")}>{cat.name}</span>
-            </motion.button>
+            </button>
           );
         })}
       </div>

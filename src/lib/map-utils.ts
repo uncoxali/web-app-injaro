@@ -44,3 +44,23 @@ export const MAP_CAMERA_PADDING = {
   left: 48,
   right: 48,
 } as const;
+
+/** Viewport bbox [west, south, east, north] for supercluster from center + zoom. */
+export function bboxFromViewState(
+  longitude: number,
+  latitude: number,
+  zoom: number,
+  widthPx = 480,
+  heightPx = 720
+): [number, number, number, number] {
+  const scale = 360 / (256 * Math.pow(2, zoom));
+  const lngSpan = (widthPx * scale) / 2;
+  const latSpan =
+    (heightPx * scale) / (2 * Math.cos((latitude * Math.PI) / 180));
+  return [
+    longitude - lngSpan,
+    latitude - latSpan,
+    longitude + lngSpan,
+    latitude + latSpan,
+  ];
+}

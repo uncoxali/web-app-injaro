@@ -48,7 +48,7 @@ export default function SupportPage() {
 
   return (
     <div className="flex flex-col min-h-dvh">
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border/50">
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-xs border-b border-border/50">
         <div className="flex items-center gap-3 px-4 h-14">
           <button onClick={() => router.back()} className="text-text-secondary hover:text-text-primary transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -72,7 +72,7 @@ export default function SupportPage() {
               onChange={(e) => { setSubject(e.target.value); setErrors((p) => ({ ...p, subject: "" })); }}
               placeholder=" "
               className={cn(
-                "peer h-14 w-full rounded-xl border bg-surface px-4 pt-5 pb-1 text-sm text-text-primary outline-none transition-colors",
+                "peer h-14 w-full rounded-xl border bg-surface px-4 pt-5 pb-1 text-sm text-text-primary outline-hidden transition-colors",
                 "focus:border-primary focus:ring-1 focus:ring-primary/20",
                 errors.subject ? "border-error" : "border-border"
               )}
@@ -83,7 +83,7 @@ export default function SupportPage() {
                 "absolute right-3 top-4 text-text-secondary text-sm pointer-events-none transition-all",
                 "peer-placeholder-shown:text-sm peer-placeholder-shown:top-4",
                 "peer-focus:text-xs peer-focus:-top-2 peer-focus:right-3",
-                "peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:-top-2"
+                "peer-not-placeholder-shown:text-xs peer-not-placeholder-shown:-top-2"
               )}
             >
               موضوع
@@ -102,7 +102,7 @@ export default function SupportPage() {
               placeholder=" "
               rows={4}
               className={cn(
-                "peer w-full rounded-xl border bg-surface px-4 pt-6 pb-3 text-sm text-text-primary outline-none transition-colors resize-none min-h-[120px]",
+                "peer w-full rounded-xl border bg-surface px-4 pt-6 pb-3 text-sm text-text-primary outline-hidden transition-colors resize-none min-h-[120px]",
                 "focus:border-primary focus:ring-1 focus:ring-primary/20",
                 errors.message ? "border-error" : "border-border"
               )}
@@ -113,7 +113,7 @@ export default function SupportPage() {
                 "absolute right-3 top-4 text-text-secondary text-sm pointer-events-none transition-all",
                 "peer-placeholder-shown:text-sm peer-placeholder-shown:top-4",
                 "peer-focus:text-xs peer-focus:-top-2 peer-focus:right-3",
-                "peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:-top-2"
+                "peer-not-placeholder-shown:text-xs peer-not-placeholder-shown:-top-2"
               )}
             >
               پیام
@@ -125,7 +125,7 @@ export default function SupportPage() {
         </motion.div>
       </div>
 
-      <div className="sticky bottom-0 bg-background/80 backdrop-blur-sm px-4 py-4 border-t border-border/50">
+      <div className="sticky bottom-0 bg-background/80 backdrop-blur-xs px-4 py-4 border-t border-border/50">
         <Button fullWidth size="lg" onClick={handleSubmit} loading={sending}>
           ارسال
         </Button>

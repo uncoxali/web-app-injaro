@@ -37,9 +37,10 @@ export function getLandingLocations(): Promise<LandingLocation[]> {
 }
 
 export async function getLandingEventBySlug(
-  slug: string
+  slug: string,
+  cachedEvents?: LandingEvent[]
 ): Promise<LandingEvent | null> {
-  const events = await getLandingEvents();
+  const events = cachedEvents ?? (await getLandingEvents());
   return events.find((e) => e.event_slug === slug) ?? null;
 }
 

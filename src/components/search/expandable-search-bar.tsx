@@ -54,7 +54,7 @@ export function ExpandableSearchBar({
             placeholder={placeholder}
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            className="w-full h-10 px-3 rounded-xl bg-surface border border-border/50 text-sm text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-primary/30"
+            className="w-full h-10 px-3 rounded-xl bg-surface border border-border/50 text-sm text-text-primary placeholder:text-text-secondary/50 focus:outline-hidden focus:border-primary/30"
           />
           {query && (
             <button

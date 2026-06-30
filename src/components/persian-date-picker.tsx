@@ -76,7 +76,7 @@ export function PersianDatePicker({
   };
 
   const selectClass = cn(
-    "h-11 rounded-lg border border-border bg-surface px-3 text-base text-text-primary outline-none transition-colors appearance-none",
+    "h-11 rounded-lg border border-border bg-surface px-3 text-base text-text-primary outline-hidden transition-colors appearance-none",
     "focus:border-primary focus:ring-1 focus:ring-primary/20",
     error && "border-error"
   );
@@ -102,7 +102,7 @@ export function PersianDatePicker({
         <select
           value={month}
           onChange={(e) => handleChange("month", e.target.value)}
-          className={cn(selectClass, "flex-[2]")}
+          className={cn(selectClass, "flex-2")}
         >
           <option value="">ماه</option>
           {months.map((m) => (

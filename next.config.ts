@@ -3,6 +3,13 @@ import type { NextConfig } from "next";
 const API_ORIGIN = process.env.API_PROXY_TARGET || "https://api.injaro.info";
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "injaro.darkube.ir", pathname: "/media/**" },
+      { protocol: "https", hostname: "api.injaro.info", pathname: "/**" },
+      { protocol: "https", hostname: "cdn.jsdelivr.net", pathname: "/**" },
+    ],
+  },
   async rewrites() {
     return [
       {

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { AnimatePresence } from "framer-motion";
-import { getSponsors, type Sponsor } from "@/lib/api/locations";
+import { useState } from "react";
 import { isAuthenticated } from "@/lib/auth-utils";
+import { useSponsors } from "@/lib/queries/sponsors";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 import { cn } from "@/lib/utils";
 
 function SponsorSkeleton() {
@@ -25,9 +25,9 @@ function SponsorLogo({ name, logo }: { name: string; logo?: string }) {
   return (
     <div className="relative shrink-0">
       <div className="absolute inset-0 rounded-xl bg-primary/25 blur-md scale-125" />
-      <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-background ring-2 ring-background shadow-sm">
+      <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-background ring-2 ring-background shadow-xs">
         {logo ? (
-          <img src={logo} alt={name} className="h-full w-full object-cover" />
+          <OptimizedImage src={logo} alt={name} width={44} height={44} className="h-full w-full" />
         ) : (
           <span className="text-base font-bold text-primary">
             {name.charAt(0)}
@@ -39,23 +39,11 @@ function SponsorLogo({ name, logo }: { name: string; logo?: string }) {
 }
 
 export function SponsorsFloating() {
-  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const authed = isAuthenticated();
+  const { data: sponsors = [], isLoading: loading } = useSponsors(authed);
   const [current, setCurrent] = useState(0);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!isAuthenticated()) {
-      setLoading(false);
-      return;
-    }
-    getSponsors()
-      .then((data) => {
-        const list = Array.isArray(data) ? data : [];
-        setSponsors(list);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  if (!authed) return null;
 
   if (loading) {
     return (
@@ -78,51 +66,44 @@ export function SponsorsFloating() {
       style={{ bottom: "calc(env(safe-area-inset-bottom) + 5.25rem)" }}
     >
       <div className="pointer-events-auto relative overflow-hidden rounded-2xl border border-border/70 bg-background/85 backdrop-blur-xl shadow-lg">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/80 to-transparent" />
 
-        <div
-          className="pointer-events-none absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/50 to-transparent opacity-0 animate-sponsor-shine"
-          aria-hidden
-        />
+        <a
+          key={sponsor.id}
+          href={sponsor.link || "#"}
+          target={sponsor.link ? "_blank" : undefined}
+          rel={sponsor.link ? "noopener noreferrer" : undefined}
+          onClick={!sponsor.link ? (e) => e.preventDefault() : undefined}
+          className="flex items-center gap-3 p-3 pe-4"
+        >
+          <SponsorLogo name={sponsor.name} logo={sponsor.logo} />
 
-        <AnimatePresence mode="wait">
-          <a
-            key={sponsor.id}
-            href={sponsor.link || "#"}
-            target={sponsor.link ? "_blank" : undefined}
-            rel={sponsor.link ? "noopener noreferrer" : undefined}
-            onClick={!sponsor.link ? (e) => e.preventDefault() : undefined}
-            className="flex items-center gap-3 p-3 pe-4"
-          >
-            <SponsorLogo name={sponsor.name} logo={sponsor.logo} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-text-primary">
+              {sponsor.name}
+            </p>
+            <p className="text-[10px] text-text-secondary">
+              با حمایت از اینجارو
+            </p>
+          </div>
 
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-text-primary">
-                {sponsor.name}
-              </p>
-              <p className="text-[10px] text-text-secondary">
-                با حمایت از اینجارو
-              </p>
+          {sponsor.link && (
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                className="-scale-x-100"
+              >
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
             </div>
-
-            {sponsor.link && (
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  className="-scale-x-100"
-                >
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </div>
-            )}
-          </a>
-        </AnimatePresence>
+          )}
+        </a>
 
         {sponsors.length > 1 && (
           <div className="flex justify-center gap-1.5 pb-2.5">

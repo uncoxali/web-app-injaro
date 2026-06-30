@@ -1,30 +1,22 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { getCategories, type Category } from "@/lib/api/categories";
 import { updateProfile } from "@/lib/api/profile";
+import { useCategories } from "@/lib/queries/categories";
 import { cn } from "@/lib/utils";
 
 const STEPS = 3;
 
 export default function OnboardingInterestsPage() {
   const router = useRouter();
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { data: categories = [], isLoading: loading } = useCategories();
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    getCategories()
-      .then(setCategories)
-      .catch(() => toast.error("خطا در بارگذاری دسته‌بندی‌ها"))
-      .finally(() => setLoading(false));
-  }, []);
 
   const toggle = useCallback((id: number) => {
     setSelected((prev) => {
@@ -82,8 +74,8 @@ export default function OnboardingInterestsPage() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-gradient-to-b from-primary/[0.04] via-background to-background">
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm pt-12 pb-4 px-6">
+    <div className="flex min-h-dvh flex-col bg-linear-to-b from-primary/4 via-background to-background">
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-xs pt-12 pb-4 px-6">
         <div className="h-1.5 w-full rounded-full bg-border/60 overflow-hidden mb-6">
           <motion.div
             className="h-full rounded-full bg-primary"
@@ -113,13 +105,12 @@ export default function OnboardingInterestsPage() {
               <motion.button
                 key={cat.id}
                 variants={chipItem}
-                layout
                 onClick={() => toggle(cat.id)}
                 className={cn(
                   "inline-flex items-center gap-2.5 px-4 py-3 rounded-2xl border text-sm font-medium transition-all",
                   "hover:scale-[1.02] active:scale-95",
                   isSelected
-                    ? "border-primary bg-primary/8 text-primary shadow-sm shadow-primary/10"
+                    ? "border-primary bg-primary/8 text-primary shadow-xs shadow-primary/10"
                     : "border-border bg-surface text-text-secondary hover:border-primary/30 hover:text-text-primary"
                 )}
               >
@@ -145,7 +136,7 @@ export default function OnboardingInterestsPage() {
         </motion.div>
       </div>
 
-      <div className="sticky bottom-0 bg-background/80 backdrop-blur-sm px-6 py-4 border-t border-border/50">
+      <div className="sticky bottom-0 bg-background/80 backdrop-blur-xs px-6 py-4 border-t border-border/50">
         <div className="flex items-center gap-3">
           <button
             onClick={handleSkip}

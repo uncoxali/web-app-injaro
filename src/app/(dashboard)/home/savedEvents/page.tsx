@@ -1,33 +1,24 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { getSavedEvents, type SavedEvent } from "@/lib/api/events";
+import { useSavedEvents } from "@/lib/queries/saved-events";
 import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
-import { imgUrl, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 export default function SavedEventsPage() {
   const router = useRouter();
-  const [events, setEvents] = useState<SavedEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const {
+    data: events = [],
+    isLoading: loading,
+    isError: error,
+    refetch: fetchSaved,
+  } = useSavedEvents();
   const [searchQuery, setSearchQuery] = useState("");
-
-  const fetchSaved = useCallback(() => {
-    setLoading(true);
-    setError(false);
-    getSavedEvents()
-      .then(setEvents)
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    fetchSaved();
-  }, [fetchSaved]);
 
   const filteredEvents = useMemo(() => {
     if (!searchQuery.trim()) return events;
@@ -46,7 +37,7 @@ export default function SavedEventsPage() {
   if (error) {
     return (
       <div className="flex min-h-dvh items-center justify-center">
-        <ErrorState onRetry={fetchSaved} />
+        <ErrorState onRetry={() => void fetchSaved()} />
       </div>
     );
   }
@@ -75,7 +66,7 @@ export default function SavedEventsPage() {
           <div className="px-4 pb-3">
             <div className="relative">
               <svg
-                className="absolute start-3 top-1/2 -translate-y-1/2 text-text-secondary"
+                className="absolute inset-s-3 top-1/2 -translate-y-1/2 text-text-secondary"
                 xmlns="http://www.w3.org/2000/svg"
                 width="16"
                 height="16"
@@ -92,12 +83,12 @@ export default function SavedEventsPage() {
                 placeholder="جستجو در ذخیره‌شده‌ها..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 ps-9 pe-4 rounded-xl bg-surface border border-border/60 text-sm text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/10 transition-all"
+                className="w-full h-10 ps-9 pe-4 rounded-xl bg-surface border border-border/60 text-sm text-text-primary placeholder:text-text-secondary/50 focus:outline-hidden focus:border-primary/40 focus:ring-2 focus:ring-primary/10 transition-all"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute end-3 top-1/2 -translate-y-1/2 text-text-secondary/60 hover:text-text-secondary"
+                  className="absolute inset-e-3 top-1/2 -translate-y-1/2 text-text-secondary/60 hover:text-text-secondary"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -137,22 +128,14 @@ export default function SavedEventsPage() {
                 onClick={() => router.push(`/events/${ev.event_slug}`)}
                 className="flex flex-col rounded-2xl bg-surface border border-border/50 overflow-hidden hover:border-primary/30 hover:shadow-md transition-all text-right active:scale-[0.97] group"
               >
-                <div className="relative w-full aspect-[4/5] overflow-hidden bg-surface">
-                  {ev.thumbnail ? (
-                    <img
-                      src={imgUrl(ev.thumbnail) ?? ""}
-                      alt={ev.topic}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-secondary/20">
-                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                        <circle cx="8.5" cy="8.5" r="1.5" />
-                        <polyline points="21 15 16 10 5 21" />
-                      </svg>
-                    </div>
-                  )}
+                <div className="relative w-full aspect-4/5 overflow-hidden bg-surface">
+                  <OptimizedImage
+                    src={ev.thumbnail}
+                    alt={ev.topic}
+                    fill
+                    sizes="(max-width: 480px) 45vw, 200px"
+                    className="group-hover:scale-105 transition-transform duration-500"
+                  />
                 </div>
                 <div className="p-2.5">
                   <p className="text-xs font-medium text-text-primary line-clamp-2 leading-snug">

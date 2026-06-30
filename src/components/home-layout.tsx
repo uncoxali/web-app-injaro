@@ -4,7 +4,6 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { MobileShell } from "@/components/mobile-shell";
 import { BottomNav } from "@/components/bottom-nav";
-import { PageTransition } from "@/components/page-transition";
 
 interface HomeLayoutProps {
   children: ReactNode;
@@ -17,7 +16,7 @@ export function HomeLayout({ children }: HomeLayoutProps) {
 
   return (
     <MobileShell hideNav={hideNav} noBottomPadding={isMapPage} noTopPadding={isMapPage}>
-      <PageTransition>{children}</PageTransition>
+      {children}
       {!hideNav && <BottomNav />}
     </MobileShell>
   );

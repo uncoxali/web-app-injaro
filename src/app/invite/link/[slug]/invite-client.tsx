@@ -66,7 +66,7 @@ export function InviteClient({ invite: initialInvite, slug, fetchError: serverEr
 
   if (fetchError) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-gradient-to-b from-primary/5 to-background">
+      <div className="flex min-h-dvh items-center justify-center bg-linear-to-b from-primary/5 to-background">
         <ErrorState
           title="خطا در بارگذاری"
           message="لینک دعوت نامعتبر است"
@@ -78,14 +78,14 @@ export function InviteClient({ invite: initialInvite, slug, fetchError: serverEr
 
   if (!invite) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-gradient-to-b from-primary/5 to-background">
+      <div className="flex min-h-dvh items-center justify-center bg-linear-to-b from-primary/5 to-background">
         <Spinner size="lg" />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-gradient-to-b from-primary/5 via-background to-background px-6">
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-linear-to-b from-primary/5 via-background to-background px-6">
       <AnimatePresence mode="wait">
         {submitted ? (
           <motion.div
@@ -128,7 +128,7 @@ export function InviteClient({ invite: initialInvite, slug, fetchError: serverEr
             exit={{ opacity: 0, y: -20 }}
             className="flex flex-col items-center w-full max-w-sm"
           >
-            <div className="w-full aspect-[16/9] rounded-2xl bg-gradient-to-br from-primary/10 to-surface border border-border/60 overflow-hidden mb-6">
+            <div className="w-full aspect-video rounded-2xl bg-linear-to-br from-primary/10 to-surface border border-border/60 overflow-hidden mb-6">
               {invite.thumbnail ? (
                 <img
                   src={imgUrl(invite.thumbnail) ?? ""}

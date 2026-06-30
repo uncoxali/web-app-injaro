@@ -7,7 +7,8 @@ import { useMapStore } from "@/store/map";
 import { reportNavigationClick } from "@/lib/api/locations";
 import { isAuthenticated, loginUrl } from "@/lib/auth-utils";
 import { Button } from "@/components/ui/button";
-import { cn, imgUrl } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 function LocationLogo({
   name,
@@ -30,11 +31,7 @@ function LocationLogo({
         )}
       >
         {logo ? (
-          <img
-            src={imgUrl(logo)}
-            alt={name}
-            className="h-full w-full object-cover"
-          />
+          <OptimizedImage src={logo} alt={name} fill sizes="64px" />
         ) : (
           <span className="text-xl font-bold text-primary">{name.charAt(0)}</span>
         )}
@@ -141,7 +138,7 @@ export function LocationBottomSheet() {
             style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
           >
             <div className="overflow-hidden rounded-t-[28px] border border-border/70 bg-background/95 shadow-lg backdrop-blur-xl">
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
+              <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/70 to-transparent" />
 
               <div
                 className="flex cursor-grab touch-none flex-col items-center pt-3 pb-1 active:cursor-grabbing"

@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { toJalaali } from "jalaali-js";
@@ -13,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { cn, imgUrl, toPersianDigits } from "@/lib/utils";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 const tabs = [
   { key: "about", label: "درباره" },
@@ -106,11 +106,11 @@ export function BrandDetailClient({
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <div ref={bannerRef} className="relative h-56 overflow-hidden bg-gradient-to-b from-primary/[0.04] to-surface">
+      <div ref={bannerRef} className="relative h-56 overflow-hidden bg-linear-to-b from-primary/4 to-surface">
         <button
           onClick={() => router.back()}
           aria-label="بازگشت"
-          className="absolute top-4 start-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-sm shadow-md flex items-center justify-center text-text-primary hover:bg-background transition-colors"
+          className="absolute top-4 inset-s-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-xs shadow-md flex items-center justify-center text-text-primary hover:bg-background transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="9 18 15 12 9 6" />
@@ -125,21 +125,23 @@ export function BrandDetailClient({
             }}
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary/[0.04] to-surface" />
+          <div className="absolute inset-0 bg-linear-to-br from-primary/10 via-primary/4 to-surface" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-background/60 via-transparent to-transparent" />
       </div>
 
       <div className="relative px-4 -mt-12 z-10">
         <div className="flex items-end gap-4">
           {data.logo ? (
-            <img
-              src={imgUrl(data.logo)}
+            <OptimizedImage
+              src={data.logo}
               alt={data.name}
-              className="w-20 h-20 rounded-2xl border-4 border-background shadow-lg object-cover bg-surface"
+              width={80}
+              height={80}
+              className="w-20 h-20 rounded-2xl border-4 border-background shadow-lg bg-surface"
             />
           ) : (
-            <div className="w-20 h-20 rounded-2xl border-4 border-background shadow-lg bg-gradient-to-br from-primary/10 to-surface flex items-center justify-center">
+            <div className="w-20 h-20 rounded-2xl border-4 border-background shadow-lg bg-linear-to-br from-primary/10 to-surface flex items-center justify-center">
               <span className="text-2xl font-bold text-primary">
                 {data.name.slice(0, 1)}
               </span>
@@ -198,7 +200,7 @@ export function BrandDetailClient({
         ref={tabBarRef}
         className={cn(
           "sticky top-0 z-10 bg-background/60 backdrop-blur-2xl border-b border-border/40 mt-5 transition-shadow",
-          tabBarSticky && "shadow-sm"
+          tabBarSticky && "shadow-xs"
         )}
       >
         <div className="flex px-4">
@@ -245,9 +247,9 @@ export function BrandDetailClient({
       <Modal open={showQr} onClose={() => setShowQr(false)} title="QR کد">
         <div className="flex flex-col items-center py-4">
           {data.qr_code ? (
-            <img src={imgUrl(data.qr_code)} alt="QR" className="w-48 h-48 rounded-xl" />
+            <OptimizedImage src={data.qr_code} alt="QR" width={192} height={192} className="w-48 h-48 rounded-xl" />
           ) : (
-            <div className="w-48 h-48 rounded-xl bg-gradient-to-br from-primary/[0.04] to-surface border border-border flex items-center justify-center">
+            <div className="w-48 h-48 rounded-xl bg-linear-to-br from-primary/4 to-surface border border-border flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-text-secondary/20">
                 <rect x="2" y="2" width="5" height="5" />
                 <rect x="17" y="2" width="5" height="5" />
@@ -417,12 +419,14 @@ function EventsTab({ events }: { events: LocationDetail["events"] }) {
           onClick={() => router.push(`/events/${ev.event_slug}`)}
           className="flex flex-col rounded-2xl bg-surface border border-border/30 overflow-hidden hover:border-primary/30 hover:shadow-md transition-all text-right active:scale-[0.97] group"
         >
-          <div className="relative w-full aspect-[4/5] overflow-hidden bg-surface">
+          <div className="relative w-full aspect-4/5 overflow-hidden bg-surface">
             {ev.thumbnail ? (
-              <img
-                src={imgUrl(ev.thumbnail)}
+              <OptimizedImage
+                src={ev.thumbnail}
                 alt=""
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                fill
+                sizes="200px"
+                className="group-hover:scale-105 transition-transform duration-500"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-text-secondary/15">
@@ -489,15 +493,16 @@ function KenarCard({ item }: { item: NonNullable<LocationDetail["kenar"]>[number
       className="flex flex-col rounded-xl bg-surface border border-border/50 overflow-hidden hover:border-primary/30 hover:shadow-sm transition-all text-right active:scale-[0.98]"
     >
       {item.image ? (
-        <div className="aspect-[4/3] bg-surface overflow-hidden">
-          <img
-            src={imgUrl(item.image)}
+        <div className="relative aspect-4/3 bg-surface overflow-hidden">
+          <OptimizedImage
+            src={item.image}
             alt={item.title}
-            className="w-full h-full object-cover"
+            fill
+            sizes="300px"
           />
         </div>
       ) : (
-        <div className="aspect-[4/3] bg-gradient-to-br from-primary/[0.04] to-surface flex items-center justify-center">
+        <div className="aspect-4/3 bg-linear-to-br from-primary/4 to-surface flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-secondary/20">
             <rect x="3" y="3" width="18" height="18" rx="2" />
             <circle cx="8.5" cy="8.5" r="1.5" />

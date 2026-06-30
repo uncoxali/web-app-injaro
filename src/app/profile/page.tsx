@@ -4,13 +4,15 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import { getProfile, updateProfile, updateAvatar, type UserProfile } from "@/lib/api/profile";
+import { updateProfile, updateAvatar } from "@/lib/api/profile";
+import { useProfile } from "@/lib/queries/profile";
 import { PersianDatePicker } from "@/components/persian-date-picker";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/error-state";
 import { PROVINCES, JOBS } from "@/lib/constants/enums";
-import { cn, imgUrl } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 const container = {
   hidden: { opacity: 0 },
@@ -33,31 +35,26 @@ export default function EditProfilePage() {
   const [gender, setGender] = useState<"male" | "female" | "">("");
   const [avatar, setAvatar] = useState("");
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const {
+    data: profileData,
+    isLoading: loading,
+    isError: error,
+    refetch: fetchProfile,
+  } = useProfile();
+
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const fetchProfile = useCallback(() => {
-    setLoading(true);
-    setError(false);
-    getProfile()
-      .then((p: UserProfile) => {
-        setFullName(p.full_name || "");
-        setEmail(p.email || "");
-        setLivingCity(p.living_city || "");
-        setJob(p.job || "");
-        setBirthAt(p.birth_at || "");
-        setGender(p.gender || "");
-        setAvatar(p.avatar_url || "");
-      })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, []);
-
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+    if (!profileData) return;
+    setFullName(profileData.full_name || "");
+    setEmail(profileData.email || "");
+    setLivingCity(profileData.living_city || "");
+    setJob(profileData.job || "");
+    setBirthAt(profileData.birth_at || "");
+    setGender(profileData.gender || "");
+    setAvatar(profileData.avatar_url || "");
+  }, [profileData]);
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -112,7 +109,7 @@ export default function EditProfilePage() {
 
   return (
     <div className="flex flex-col min-h-dvh">
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border/50">
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-xs border-b border-border/50">
         <div className="flex items-center gap-3 px-4 h-14">
           <button
             onClick={() => router.back()}
@@ -135,9 +132,9 @@ export default function EditProfilePage() {
         >
           <motion.div variants={item} className="flex flex-col items-center">
             <div className="relative">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/15 to-primary/[0.04] ring-2 ring-primary/[0.06] flex items-center justify-center shadow-sm overflow-hidden">
+              <div className="w-20 h-20 rounded-full bg-linear-to-br from-primary/15 to-primary/4 ring-2 ring-primary/6 flex items-center justify-center shadow-xs overflow-hidden">
                 {avatar ? (
-                  <img src={imgUrl(avatar)} alt="" className="w-full h-full object-cover" />
+                  <OptimizedImage src={avatar} alt="" width={80} height={80} className="w-full h-full" />
                 ) : (
                   <span className="text-2xl font-bold text-primary/70">
                     {fullName.slice(0, 2) || "?"}
@@ -175,7 +172,7 @@ export default function EditProfilePage() {
                 value={livingCity}
                 onChange={(e) => setLivingCity(e.target.value)}
                 className={cn(
-                  "h-11 w-full rounded-lg border bg-surface px-3 text-sm text-text-primary outline-none transition-colors appearance-none",
+                  "h-11 w-full rounded-lg border bg-surface px-3 text-sm text-text-primary outline-hidden transition-colors appearance-none",
                   "focus:border-primary focus:ring-1 focus:ring-primary/20",
                   "border-border"
                 )}
@@ -195,7 +192,7 @@ export default function EditProfilePage() {
                 value={job}
                 onChange={(e) => setJob(e.target.value)}
                 className={cn(
-                  "h-11 w-full rounded-lg border bg-surface px-3 text-sm text-text-primary outline-none transition-colors appearance-none",
+                  "h-11 w-full rounded-lg border bg-surface px-3 text-sm text-text-primary outline-hidden transition-colors appearance-none",
                   "focus:border-primary focus:ring-1 focus:ring-primary/20",
                   "border-border"
                 )}
@@ -240,7 +237,7 @@ export default function EditProfilePage() {
         </motion.div>
       </div>
 
-      <div className="sticky bottom-0 bg-background/80 backdrop-blur-sm px-4 py-4 border-t border-border/50">
+      <div className="sticky bottom-0 bg-background/80 backdrop-blur-xs px-4 py-4 border-t border-border/50">
         <Button fullWidth size="lg" onClick={handleSubmit} loading={saving}>
           ذخیره
         </Button>
@@ -277,7 +274,7 @@ function FloatingLabelInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder=" "
         className={cn(
-          "peer h-14 w-full rounded-xl border bg-surface px-4 pt-5 pb-1 text-sm text-text-primary outline-none transition-colors",
+          "peer h-14 w-full rounded-xl border bg-surface px-4 pt-5 pb-1 text-sm text-text-primary outline-hidden transition-colors",
           "focus:border-primary focus:ring-1 focus:ring-primary/20",
           error ? "border-error" : "border-border"
         )}
@@ -288,7 +285,7 @@ function FloatingLabelInput({
           "absolute right-3 top-4 text-text-secondary text-sm pointer-events-none transition-all",
           "peer-placeholder-shown:text-sm peer-placeholder-shown:top-4",
           "peer-focus:text-xs peer-focus:-top-2 peer-focus:right-3",
-          "peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:-top-2"
+          "peer-not-placeholder-shown:text-xs peer-not-placeholder-shown:-top-2"
         )}
       >
         {label}

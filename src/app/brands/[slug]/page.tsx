@@ -1,4 +1,5 @@
 import { BrandDetailClient } from "@/components/brand/brand-detail-client";
+import { fetchLocationDetailServer } from "@/lib/server-fetch";
 
 export default async function BrandPage({
   params,
@@ -7,5 +8,21 @@ export default async function BrandPage({
 }) {
   const { slug } = await params;
 
-  return <BrandDetailClient initialData={null} slug={slug} hasError={false} />;
+  let initialData = null;
+  let hasError = false;
+
+  try {
+    initialData = await fetchLocationDetailServer(slug);
+    if (!initialData) hasError = true;
+  } catch {
+    hasError = true;
+  }
+
+  return (
+    <BrandDetailClient
+      initialData={initialData}
+      slug={slug}
+      hasError={hasError}
+    />
+  );
 }

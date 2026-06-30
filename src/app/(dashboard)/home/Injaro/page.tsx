@@ -2,19 +2,19 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useMapStore } from "@/store/map";
-import { getLocations } from "@/lib/api/locations";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  getLandingEvents,
   getLandingLocations,
   landingLocationToMarker,
   filterLandingLocations,
-  type LandingEvent,
   type LandingLocation,
 } from "@/lib/api/landing";
+import { useLandingEvents, landingKeys } from "@/lib/queries/landing";
+import { useCategories } from "@/lib/queries/categories";
+import { useFetchAuthMapLocations } from "@/lib/queries/map-locations";
 import type { Location } from "@/store/map";
 import { isTehranArea, TEHRAN_CENTER } from "@/lib/map-utils";
 import { isAuthenticated } from "@/lib/auth-utils";
-import { getCategories, type Category } from "@/lib/api/categories";
 import dynamic from "next/dynamic";
 
 
@@ -29,6 +29,10 @@ const MapboxMap = dynamic(
 );
 
 export default function InjaroHomePage() {
+  const queryClient = useQueryClient();
+  const fetchAuthMapLocations = useFetchAuthMapLocations();
+  const { data: categories = [] } = useCategories();
+  const { data: events = [] } = useLandingEvents();
   const setMarkers = useMapStore((s) => s.setMarkers);
   const selectedMapCategory = useMapStore((s) => s.selectedMapCategory);
   const setSelectedMapCategory = useMapStore((s) => s.setSelectedMapCategory);
@@ -36,9 +40,7 @@ export default function InjaroHomePage() {
   const setFitBoundsTarget = useMapStore((s) => s.setFitBoundsTarget);
   const setClusteringEnabled = useMapStore((s) => s.setClusteringEnabled);
 
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [events, setEvents] = useState<LandingEvent[]>([]);
-  const [guest, setGuest] = useState(() => !isAuthenticated());
+  const [guest, setGuest] = useState(true);
   const landingLocationsRef = useRef<LandingLocation[]>([]);
 
 
@@ -83,7 +85,11 @@ export default function InjaroHomePage() {
   const fetchGuestLocations = useCallback(
     async (search?: string) => {
       if (landingLocationsRef.current.length === 0) {
-        landingLocationsRef.current = await getLandingLocations();
+        const cached = queryClient.getQueryData<LandingLocation[]>(
+          landingKeys.locations
+        );
+        landingLocationsRef.current =
+          cached ?? (await getLandingLocations());
       }
       const filtered = filterLandingLocations(
         landingLocationsRef.current,
@@ -93,20 +99,14 @@ export default function InjaroHomePage() {
         .filter((loc) => isTehranArea(loc.latitude, loc.longitude))
         .map((loc, i) => landingLocationToMarker(loc, i + 1));
     },
-    []
+    [queryClient]
   );
 
   const fetchAuthLocations = useCallback(
     async (category?: number | null, search?: string) => {
-      const deduped = await getLocations({
-        category: category ?? undefined,
-        search: search || undefined,
-      });
-      return deduped.filter((marker) =>
-        isTehranArea(marker.latitude, marker.longitude)
-      );
+      return fetchAuthMapLocations(category, search);
     },
-    []
+    [fetchAuthMapLocations]
   );
 
   const fetchLocations = useCallback(
@@ -143,14 +143,6 @@ export default function InjaroHomePage() {
     const authed = isAuthenticated();
     setGuest(!authed);
 
-    getCategories()
-      .then(setCategories)
-      .catch(() => {});
-
-    getLandingEvents()
-      .then(setEvents)
-      .catch(() => {});
-
     const initialSearch = useMapStore.getState().mapSearchQuery.trim() || undefined;
     fetchLocations(
       authed ? useMapStore.getState().selectedMapCategory : undefined,
@@ -184,7 +176,7 @@ export default function InjaroHomePage() {
   const hasCategories = categories.length > 0;
 
   return (
-    <div className="relative w-full min-h-dvh overflow-hidden flex flex-col bg-black">
+    <div className="relative w-full h-dvh overflow-hidden flex flex-col bg-background">
       <div className="absolute inset-0 z-0">
         <MapboxMap onLoad={() => {}} />
       </div>

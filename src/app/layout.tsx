@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import "@/styles/icons.css";
 import { Providers } from "@/components/providers";
 import { SWRegister } from "@/components/sw-register";
 import { InstallPrompt } from "@/components/install-prompt";
@@ -39,7 +38,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fa" dir="rtl" className="h-full antialiased" suppressHydrationWarning>
-      <body className="min-h-dvh flex flex-col bg-fixed bg-gradient-to-b from-primary/5 via-background to-background text-text-primary">
+      <body className="min-h-dvh flex flex-col font-sans bg-fixed bg-linear-to-b from-primary/5 via-background to-background text-text-primary">
         <GoogleAnalytics />
         <Providers>
           <SWRegister />

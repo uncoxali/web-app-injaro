@@ -3,16 +3,16 @@
 import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
+import { AuthStepPanel } from "@/components/auth/auth-step-panel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { OTPInput } from "@/components/ui/otp-input";
 import { PersianDatePicker } from "@/components/persian-date-picker";
 import { Spinner } from "@/components/ui/spinner";
 import { sendOtp, verifyOtp, registerUser, AuthApiError } from "@/lib/api/auth";
-import { getCategories, type Category } from "@/lib/api/categories";
 import { updateProfile } from "@/lib/api/profile";
+import { useCategories } from "@/lib/queries/categories";
 import { cookieUtils } from "@/lib/cookies";
 import { useAuthStore } from "@/store/auth";
 import { isAuthenticated } from "@/lib/auth-utils";
@@ -22,12 +22,6 @@ import { PROVINCES, JOBS } from "@/lib/constants/enums";
 const RESEND_COOLDOWN = 90;
 
 type Step = "phone" | "verify" | "info" | "interests";
-
-const slideVariants = {
-  enter: (dir: number) => ({ x: dir > 0 ? -300 : 300, opacity: 0 }),
-  center: { x: 0, opacity: 1 },
-  exit: (dir: number) => ({ x: dir > 0 ? 300 : -300, opacity: 0 }),
-};
 
 export default function UnifiedAuthPageWrapper() {
   return (
@@ -46,7 +40,7 @@ function StepDots({ current, total }: { current: number; total: number }) {
           className={cn(
             "h-2 rounded-full transition-all duration-300",
             i === current
-              ? "w-8 bg-primary shadow-sm shadow-primary/30"
+              ? "w-8 bg-primary shadow-xs shadow-primary/30"
               : i < current
               ? "w-2 bg-primary/40"
               : "w-2 bg-border/60"
@@ -67,7 +61,6 @@ function UnifiedAuthPage() {
 
   const [mode, setMode] = useState<"login" | "register">("login");
   const [step, setStep] = useState<Step>("phone");
-  const [direction, setDirection] = useState(1);
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [isNewUser, setIsNewUserLocal] = useState(false);
@@ -78,8 +71,7 @@ function UnifiedAuthPage() {
     }
   }, [router, redirect]);
 
-  const navigate = (to: Step, dir?: number) => {
-    setDirection(dir ?? 1);
+  const navigate = (to: Step) => {
     setStep(to);
   };
 
@@ -123,13 +115,9 @@ function UnifiedAuthPage() {
   };
 
   return (
-    <div className="flex min-h-dvh w-full flex-col items-center justify-center px-4 bg-gradient-to-b from-primary/5 via-background to-background">
+    <div className="flex min-h-dvh w-full flex-col items-center justify-center px-4 bg-linear-to-b from-primary/5 via-background to-background">
       <div className="w-full max-w-[420px]">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full rounded-3xl border border-border/20 bg-white/60 dark:bg-white/[0.03] backdrop-blur-2xl shadow-xl p-6 md:p-8"
-        >
+        <div className="w-full rounded-3xl border border-border/20 bg-white/60 dark:bg-white/3 backdrop-blur-2xl shadow-xl p-6 md:p-8 animate-fade-in">
           <div className="flex flex-col items-center gap-6">
             {step === "phone" && (
               <div className="flex items-center w-full max-w-[200px] rounded-full bg-border/40 p-1">
@@ -138,7 +126,7 @@ function UnifiedAuthPage() {
                   className={cn(
                     "flex-1 py-2 text-sm font-medium rounded-full transition-all",
                     mode === "login"
-                      ? "bg-primary text-primary-foreground shadow-sm"
+                      ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-text-secondary hover:text-text-primary"
                   )}
                 >
@@ -149,7 +137,7 @@ function UnifiedAuthPage() {
                   className={cn(
                     "flex-1 py-2 text-sm font-medium rounded-full transition-all",
                     mode === "register"
-                      ? "bg-primary text-primary-foreground shadow-sm"
+                      ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-text-secondary hover:text-text-primary"
                   )}
                 >
@@ -160,56 +148,50 @@ function UnifiedAuthPage() {
 
             <StepDots current={steps.findIndex((s) => s.id === step)} total={steps.length} />
 
-            <AnimatePresence mode="wait" custom={direction}>
-              {step === "phone" && (
-                <PhoneStep
-                  key="phone"
-                  mode={mode}
-                  phone={phone}
-                  setPhone={setPhone}
-                  isValid={isValidPhone}
-                  loading={loading}
-                  onSubmit={handleSendOtp}
-                />
-              )}
-              {step === "verify" && mode === "login" && (
-                <VerifyStep
-                  key="verify"
-                  phone={normalizedPhone}
-                  isNewUser={isNewUser}
-                  mode={mode}
-                  onVerified={(user, access, refresh) => {
-                    login(user, access, refresh);
-                    router.replace(redirect && redirect.startsWith("/") ? redirect : "/home");
-                  }}
-                  onBack={() => navigate("phone", -1)}
-                />
-              )}
-              {step === "info" && mode === "register" && (
-                <InfoStep
-                  key="info"
-                  mode={mode}
-                  phone={normalizedPhone}
-                  onComplete={() => navigate("interests", 1)}
-                />
-              )}
-              {step === "interests" && (
-                <InterestsStep
-                  key="interests"
-                  onComplete={() => {
-                    logout();
-                    cookieUtils.clearAll();
-                    setMode("login");
-                    setStep("phone");
-                    setPhone("");
-                    setIsNewUserLocal(false);
-                    toast.success("ثبت‌نام با موفقیت انجام شد، وارد شوید");
-                  }}
-                />
-              )}
-            </AnimatePresence>
+            {step === "phone" && (
+              <PhoneStep
+                mode={mode}
+                phone={phone}
+                setPhone={setPhone}
+                isValid={isValidPhone}
+                loading={loading}
+                onSubmit={handleSendOtp}
+              />
+            )}
+            {step === "verify" && mode === "login" && (
+              <VerifyStep
+                phone={normalizedPhone}
+                isNewUser={isNewUser}
+                mode={mode}
+                onVerified={(user, access, refresh) => {
+                  login(user, access, refresh);
+                  router.replace(redirect && redirect.startsWith("/") ? redirect : "/home");
+                }}
+                onBack={() => navigate("phone")}
+              />
+            )}
+            {step === "info" && mode === "register" && (
+              <InfoStep
+                mode={mode}
+                phone={normalizedPhone}
+                onComplete={() => navigate("interests")}
+              />
+            )}
+            {step === "interests" && (
+              <InterestsStep
+                onComplete={() => {
+                  logout();
+                  cookieUtils.clearAll();
+                  setMode("login");
+                  setStep("phone");
+                  setPhone("");
+                  setIsNewUserLocal(false);
+                  toast.success("ثبت‌نام با موفقیت انجام شد، وارد شوید");
+                }}
+              />
+            )}
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
@@ -231,15 +213,7 @@ function PhoneStep({
   onSubmit: () => void;
 }) {
   return (
-    <motion.div
-      custom={-1}
-      variants={slideVariants}
-      initial="enter"
-      animate="center"
-      exit="exit"
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className="w-full flex flex-col gap-5"
-    >
+    <AuthStepPanel className="flex flex-col gap-5">
       <div className="text-center">
         <h1 className="text-2xl font-bold text-text-primary">{mode === "login" ? "ورود به اینجارو" : "عضویت در اینجارو"}</h1>
         <p className="text-sm text-text-secondary mt-1.5">{mode === "login" ? "برای ورود شماره موبایل خود را وارد کنید" : "برای ثبت‌نام شماره موبایل خود را وارد کنید"}</p>
@@ -266,7 +240,7 @@ function PhoneStep({
       <p className="text-xs text-text-secondary text-center">
         با ادامه، <Link href="/rules" className="text-primary font-medium underline">قوانین و مقررات</Link> اینجارو را می‌پذیرید
       </p>
-    </motion.div>
+    </AuthStepPanel>
   );
 }
 
@@ -355,15 +329,7 @@ function VerifyStep({
     phone.length === 11 ? `${phone.slice(0, 4)}***${phone.slice(7)}` : phone;
 
   return (
-    <motion.div
-      custom={1}
-      variants={slideVariants}
-      initial="enter"
-      animate="center"
-      exit="exit"
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className="w-full flex flex-col gap-6"
-    >
+    <AuthStepPanel className="flex flex-col gap-6">
       <div className="text-center">
         <h1 className="text-2xl font-bold text-text-primary">کد تایید</h1>
         <p className="text-sm text-text-secondary mt-1.5">
@@ -403,7 +369,7 @@ function VerifyStep({
       <button onClick={onBack} className="text-sm text-text-secondary hover:text-text-primary transition-colors">
         ویرایش شماره موبایل
       </button>
-    </motion.div>
+    </AuthStepPanel>
   );
 }
 
@@ -468,37 +434,20 @@ function InfoStep({
     }
   };
 
-  const container = {
-    hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.05 } },
-  };
-  const item = {
-    hidden: { opacity: 0, y: 16 },
-    show: { opacity: 1, y: 0 },
-  };
-
   const genderOptions: { value: "male" | "female"; label: string }[] = [
     { value: "male", label: "مرد" },
     { value: "female", label: "زن" },
   ];
 
   return (
-    <motion.div
-      custom={1}
-      variants={slideVariants}
-      initial="enter"
-      animate="center"
-      exit="exit"
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className="w-full"
-    >
+    <AuthStepPanel>
       <div className="text-center mb-5">
         <h1 className="text-2xl font-bold text-text-primary">ثبت‌نام</h1>
         <p className="text-sm text-text-secondary mt-1.5">اطلاعات خود را وارد کنید</p>
       </div>
 
-      <motion.div variants={container} initial="hidden" animate="show" className="flex flex-col gap-4">
-        <motion.div variants={item}>
+      <div className="flex flex-col gap-4">
+        <div>
           <Input
             label="نام و نام خانوادگی"
             placeholder="مثال: علی محمدی"
@@ -506,9 +455,9 @@ function InfoStep({
             onChange={(e) => setFullName(e.target.value)}
             error={errors.fullName}
           />
-        </motion.div>
+        </div>
 
-        <motion.div variants={item}>
+        <div>
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-text-primary">شهر محل زندگی</label>
             <select
@@ -518,7 +467,7 @@ function InfoStep({
                 setErrors((prev) => ({ ...prev, livingCity: "" }));
               }}
               className={cn(
-                "h-11 w-full rounded-lg border bg-surface px-3 text-base text-text-primary outline-none transition-colors appearance-none",
+                "h-11 w-full rounded-lg border bg-surface px-3 text-base text-text-primary outline-hidden transition-colors appearance-none",
                 "focus:border-primary focus:ring-1 focus:ring-primary/20",
                 errors.livingCity ? "border-error" : "border-border",
                 !livingCity && "text-text-secondary/60"
@@ -531,9 +480,9 @@ function InfoStep({
             </select>
             {errors.livingCity && <span className="text-xs text-error">{errors.livingCity}</span>}
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div variants={item}>
+        <div>
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-text-primary">شغل</label>
             <select
@@ -543,7 +492,7 @@ function InfoStep({
                 setErrors((prev) => ({ ...prev, job: "" }));
               }}
               className={cn(
-                "h-11 w-full rounded-lg border bg-surface px-3 text-base text-text-primary outline-none transition-colors appearance-none",
+                "h-11 w-full rounded-lg border bg-surface px-3 text-base text-text-primary outline-hidden transition-colors appearance-none",
                 "focus:border-primary focus:ring-1 focus:ring-primary/20",
                 errors.job ? "border-error" : "border-border",
                 !job && "text-text-secondary/60"
@@ -556,9 +505,9 @@ function InfoStep({
             </select>
             {errors.job && <span className="text-xs text-error">{errors.job}</span>}
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div variants={item}>
+        <div>
           <PersianDatePicker
             value={birthAt}
             onChange={(d) => {
@@ -567,9 +516,9 @@ function InfoStep({
             }}
             error={errors.birthAt}
           />
-        </motion.div>
+        </div>
 
-        <motion.div variants={item}>
+        <div>
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-text-primary">جنسیت</label>
             <div className="flex gap-3">
@@ -595,15 +544,15 @@ function InfoStep({
             </div>
             {errors.gender && <span className="text-xs text-error">{errors.gender}</span>}
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div variants={item} className="mt-2">
+        <div className="mt-2">
           <Button fullWidth size="lg" className="rounded-full" onClick={handleSubmit} loading={loading}>
             ثبت‌نام
           </Button>
-        </motion.div>
-      </motion.div>
-    </motion.div>
+        </div>
+      </div>
+    </AuthStepPanel>
   );
 }
 
@@ -612,17 +561,9 @@ function InterestsStep({
 }: {
   onComplete: () => void;
 }) {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { data: categories = [], isLoading: loading } = useCategories();
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    getCategories()
-      .then(setCategories)
-      .catch(() => toast.error("خطا در بارگذاری دسته‌بندی‌ها"))
-      .finally(() => setLoading(false));
-  }, []);
 
   const toggle = useCallback((id: number) => {
     setSelected((prev) => {
@@ -662,15 +603,7 @@ function InterestsStep({
   }
 
   return (
-    <motion.div
-      custom={1}
-      variants={slideVariants}
-      initial="enter"
-      animate="center"
-      exit="exit"
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className="w-full flex flex-col"
-    >
+    <AuthStepPanel className="flex flex-col">
       <div className="text-center mb-4">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 mb-3">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF5A5F" strokeWidth="1.5">
@@ -683,26 +616,20 @@ function InterestsStep({
       </div>
 
       <div className="flex-1 overflow-y-auto max-h-[320px] -mx-2 px-2 scrollbar-thin">
-        <motion.div
-          variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.04 } } }}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-2 gap-3 py-2"
-        >
+        <div className="grid grid-cols-2 gap-3 py-2">
           {categories.map((cat) => {
             const isSelected = selected.has(cat.id);
             return (
-              <motion.button
+              <button
                 key={cat.id}
-                variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-                layout
+                type="button"
                 onClick={() => toggle(cat.id)}
                 className={cn(
                   "relative flex flex-col items-center gap-2.5 p-4 rounded-2xl border text-sm font-medium transition-all",
                   "hover:scale-[1.02] active:scale-95",
                   isSelected
-                    ? "border-primary bg-gradient-to-b from-primary/10 to-primary/5 text-primary shadow-sm shadow-primary/10"
-                    : "border-border/40 bg-white/50 dark:bg-white/[0.02] text-text-secondary hover:border-primary/30 hover:text-text-primary hover:shadow-sm"
+                    ? "border-primary bg-linear-to-b from-primary/10 to-primary/5 text-primary shadow-xs shadow-primary/10"
+                    : "border-border/40 bg-white/50 dark:bg-white/2 text-text-secondary hover:border-primary/30 hover:text-text-primary hover:shadow-sm"
                 )}
               >
                 {cat.icon && <span className="text-2xl leading-none">{cat.icon}</span>}
@@ -714,16 +641,16 @@ function InterestsStep({
                     </svg>
                   </div>
                 )}
-              </motion.button>
+              </button>
             );
           })}
-        </motion.div>
+        </div>
       </div>
 
       <div className="flex items-center gap-3 pt-4 border-t border-border/20 mt-3">
         <button
           onClick={handleSkip}
-          className="shrink-0 h-13 px-5 rounded-full text-sm font-medium text-text-secondary border border-border/30 bg-white/50 dark:bg-white/[0.02] hover:bg-border/30 hover:text-text-primary transition-all active:scale-95"
+          className="shrink-0 h-13 px-5 rounded-full text-sm font-medium text-text-secondary border border-border/30 bg-white/50 dark:bg-white/2 hover:bg-border/30 hover:text-text-primary transition-all active:scale-95"
         >
           رد کردن
         </button>
@@ -738,6 +665,6 @@ function InterestsStep({
           </Button>
         </div>
       </div>
-    </motion.div>
+    </AuthStepPanel>
   );
 }
