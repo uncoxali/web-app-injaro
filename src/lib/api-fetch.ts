@@ -22,7 +22,7 @@ async function sleep(ms: number) {
 export async function apiFetchJson<T>(
   path: string,
   init?: RequestInit,
-  retries = 2
+  retries = 3
 ): Promise<T> {
   let lastError: Error | null = null;
 

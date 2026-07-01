@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import {
   type LandingEvent,
   type LandingLocation,
+  landingLocationToMarker,
 } from "@/lib/api/landing";
 import { useLandingEvents, useLandingLocations } from "@/lib/queries/landing";
 import { ErrorState } from "@/components/ui/error-state";
@@ -15,6 +16,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { UnifiedSearchResults } from "@/components/search/unified-search-results";
 import { useMapStore } from "@/store/map";
 import { imgUrl, toPersianDigits, cn } from "@/lib/utils";
+import { LocationMapPin } from "@/components/map/location-map-pin";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { isAuthenticated } from "@/lib/auth-utils";
 
@@ -123,7 +125,7 @@ function HeroSection({ event }: { event: LandingEvent }) {
   return (
     <motion.div variants={fadeUp} className="px-5 pt-2">
       <Link href={`/events/${event.event_slug}`} className="block group">
-        <div className="relative aspect-4/3 rounded-3xl overflow-hidden bg-gray-100 dark:bg-gray-800 shadow-lg shadow-black/5">
+        <div className="relative aspect-[5/6] rounded-3xl overflow-hidden bg-gray-100 dark:bg-gray-800 shadow-lg shadow-black/5">
           <EventImage src={event.thumbnail} alt={event.topic} priority />
           <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-5">
@@ -141,29 +143,6 @@ function HeroSection({ event }: { event: LandingEvent }) {
 }
 
 
-
-function LiveBadge({ liveCount }: { liveCount: number }) {
-  if (liveCount === 0) return null;
-
-  return (
-    <motion.div variants={fadeUp} className="px-5">
-      <Link href="/home/Injaro">
-        <div className="flex items-center gap-2.5 py-3 px-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-60" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
-          </span>
-          <span className="text-sm font-medium text-red-600 dark:text-red-400">
-            {toPersianDigits(liveCount)} مکان در حال پخش
-          </span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mr-auto text-red-400">
-            <path d="M9 18l6-6-6-6" />
-          </svg>
-        </div>
-      </Link>
-    </motion.div>
-  );
-}
 
 function EventsSection({ events }: { events: LandingEvent[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -206,7 +185,7 @@ function EventsSection({ events }: { events: LandingEvent[] }) {
   return (
     <motion.section variants={fadeUp} className="px-5">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">رویدادهای در حال برگزاری</h2>
+        <h2 className="text-lg font-semibold">رویدادهای اینجارو</h2>
         <Link href="/home/Tazeha" className="text-sm font-medium text-primary">
           مشاهده همه
         </Link>
@@ -252,51 +231,26 @@ function EventsSection({ events }: { events: LandingEvent[] }) {
 }
 
 function LocationPin({ location, isActive }: { location: LandingLocation; isActive: boolean }) {
-  const id = `pin-${location.slug}`;
   return (
-    <div
-      className={cn(
-        "flex items-end justify-center w-[72px] h-[88px] transition-[transform,opacity] duration-300 ease-out will-change-transform",
-        isActive ? "scale-100 opacity-100" : "scale-[0.88] opacity-65"
-      )}
-    >
-      <svg width={52} height={64} viewBox="0 0 42 50" fill="none">
-        <defs>
-          <clipPath id={`pc-${id}`}>
-            <circle cx="21" cy="15" r="9" />
-          </clipPath>
-        </defs>
-        <path
-          d="M21 1C12.72 1 6 7.72 6 16c0 10.5 15 33 15 33s15-22.5 15-33c0-8.28-6.72-15-15-15z"
-          fill={isActive ? "#ff5a5f" : "#ffffff"}
-          stroke={isActive ? "#ff5a5f" : "#d1d5db"}
-          strokeWidth="1.5"
-        />
-        <circle
-          cx="21"
-          cy="15"
-          r="9"
-          fill={isActive ? "#ffffff" : "#f3f4f6"}
-          stroke={isActive ? "#ff5a5f" : "#d1d5db"}
-          strokeWidth="1.5"
-        />
-        {location.logo ? (
-          <image
-            href={imgUrl(location.logo)}
-            x="12"
-            y="6"
-            width="18"
-            height="18"
-            clipPath={`url(#pc-${id})`}
-            preserveAspectRatio="xMidYMid slice"
-          />
-        ) : null}
-      </svg>
-    </div>
+    <LocationMapPin
+      id={location.slug}
+      logo={location.logo}
+      size={isActive ? "md" : "sm"}
+      selected={isActive}
+      className="transition-[transform,opacity] duration-300 ease-out will-change-transform"
+    />
   );
 }
 
-function MapSection({ locations, liveCount }: { locations: LandingLocation[]; liveCount: number }) {
+function MapSection({
+  locations,
+  liveCount,
+  onLocationClick,
+}: {
+  locations: LandingLocation[];
+  liveCount: number;
+  onLocationClick: (loc: LandingLocation) => void;
+}) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -342,8 +296,7 @@ function MapSection({ locations, liveCount }: { locations: LandingLocation[]; li
           مشاهده همه
         </Link>
       </div>
-      <Link href="/home/Injaro" className="block">
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden bg-surface/50">
+      <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-surface/50">
           <div className="p-4 pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -362,37 +315,40 @@ function MapSection({ locations, liveCount }: { locations: LandingLocation[]; li
               )}
             </div>
           </div>
-          <div className="px-4 pb-4">
+          <div className="px-4 pt-2 pb-4">
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="flex items-end gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 snap-x snap-mandatory scroll-smooth"
+            className="flex items-end gap-3 overflow-x-auto overflow-y-visible scrollbar-none -mx-4 px-4 pt-3 pb-1 snap-x snap-mandatory scroll-smooth"
             style={{ WebkitOverflowScrolling: "touch" }}
           >
             {preview.map((loc, i) => {
               const isActive = i === activeIdx;
               return (
-                <div
+                <button
                   key={loc.slug}
+                  type="button"
+                  onClick={() => onLocationClick(loc)}
                   ref={(el) => { itemRefs.current[i] = el; }}
-                  className="shrink-0 w-[72px] snap-center flex flex-col items-center gap-1.5"
+                  className="shrink-0 w-[64px] snap-center flex flex-col items-center gap-1.5 text-center"
                 >
-                  <LocationPin location={loc} isActive={isActive} />
+                  <div className="flex h-[72px] w-full items-end justify-center">
+                    <LocationPin location={loc} isActive={isActive} />
+                  </div>
                   <span
                     className={cn(
-                      "font-medium text-center line-clamp-1 max-w-[72px] transition-colors duration-300",
-                      isActive ? "text-xs text-text-primary" : "text-[10px] text-text-secondary"
+                      "font-medium text-center line-clamp-1 max-w-[64px] transition-colors duration-300",
+                      isActive ? "text-xs text-primary font-semibold" : "text-[10px] text-text-secondary"
                     )}
                   >
                     {loc.name}
                   </span>
-                </div>
+                </button>
               );
             })}
             </div>
           </div>
-        </div>
-      </Link>
+      </div>
     </motion.div>
   );
 }
@@ -407,7 +363,7 @@ function Skeleton() {
           <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse" />
         </div>
       </div>
-      <div className="aspect-4/3 rounded-3xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
+      <div className="aspect-[5/6] rounded-3xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
       <div className="flex gap-2">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="h-10 w-20 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse" />
@@ -426,6 +382,9 @@ function Skeleton() {
 export default function HomePage() {
   const router = useRouter();
   const setMapSearchQuery = useMapStore((s) => s.setMapSearchQuery);
+  const setFlyToTarget = useMapStore((s) => s.setFlyToTarget);
+  const setSelectedLocation = useMapStore((s) => s.setSelectedLocation);
+  const setSheetOpen = useMapStore((s) => s.setSheetOpen);
   const {
     data: events = [],
     isLoading: eventsLoading,
@@ -466,12 +425,27 @@ export default function HomePage() {
     };
   }, [searchQuery, events, locations]);
 
-  const handleLocationSelect = useCallback(
-    (loc: { name: string }) => {
-      setMapSearchQuery(loc.name);
+  const focusMapOnLocation = useCallback(
+    (loc: LandingLocation) => {
+      const marker = landingLocationToMarker(loc, 1);
+      setSelectedLocation(marker);
+      setFlyToTarget({
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        zoom: 15,
+      });
+      setSheetOpen(true);
       router.push("/home/Injaro");
     },
-    [router, setMapSearchQuery]
+    [router, setFlyToTarget, setSelectedLocation, setSheetOpen]
+  );
+
+  const handleLocationSelect = useCallback(
+    (loc: LandingLocation) => {
+      setMapSearchQuery(loc.name);
+      focusMapOnLocation(loc);
+    },
+    [focusMapOnLocation, setMapSearchQuery]
   );
 
   const handleSearchOpen = useCallback(() => {
@@ -548,11 +522,15 @@ export default function HomePage() {
       >
         {featured && <HeroSection event={featured} />}
 
-        <LiveBadge liveCount={liveCount} />
-
         <EventsSection events={rest} />
 
-        {locations.length > 0 && <MapSection locations={locations} liveCount={liveCount} />}
+        {locations.length > 0 && (
+          <MapSection
+            locations={locations}
+            liveCount={liveCount}
+            onLocationClick={focusMapOnLocation}
+          />
+        )}
       </motion.div>
     </div>
   );

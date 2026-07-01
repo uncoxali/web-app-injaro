@@ -2,10 +2,7 @@ import { cookies } from "next/headers";
 import type { EventDetail } from "@/lib/api/events";
 import type { LocationDetail } from "@/lib/api/locations";
 import { normalizeLocationDetail } from "@/lib/api/locations";
-
-const API_ORIGIN =
-  process.env.API_PROXY_TARGET?.replace(/\/$/, "") ||
-  "https://api.injaro.info";
+import { buildUpstreamPath, fetchUpstream } from "@/lib/upstream-fetch";
 
 async function serverFetch(path: string): Promise<Response> {
   const cookieStore = await cookies();
@@ -18,7 +15,7 @@ async function serverFetch(path: string): Promise<Response> {
     headers.Authorization = `Bearer ${accessToken}`;
   }
 
-  return fetch(`${API_ORIGIN}${path}`, {
+  return fetchUpstream(buildUpstreamPath(path), {
     headers,
     next: { revalidate: 60 },
   });

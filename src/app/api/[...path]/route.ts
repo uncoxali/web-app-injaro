@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const API_ORIGIN = (
-  process.env.API_PROXY_TARGET || "https://api.injaro.info"
-).replace(/\/$/, "");
+import { buildUpstreamUrl, fetchUpstream } from "@/lib/upstream-fetch";
 
 const HOP_BY_HOP = new Set([
   "connection",
@@ -18,17 +15,11 @@ const HOP_BY_HOP = new Set([
   "content-encoding",
 ]);
 
-function buildTargetUrl(pathSegments: string[], search: string): string {
-  const pathname = pathSegments.join("/");
-  const withSlash = pathname.endsWith("/") ? pathname : `${pathname}/`;
-  return `${API_ORIGIN}/${withSlash}${search}`;
-}
-
 async function proxyToBackend(
   request: NextRequest,
   pathSegments: string[]
 ): Promise<NextResponse> {
-  const targetUrl = buildTargetUrl(pathSegments, request.nextUrl.search);
+  const targetUrl = buildUpstreamUrl(pathSegments, request.nextUrl.search);
 
   const headers = new Headers();
   request.headers.forEach((value, key) => {
@@ -40,14 +31,23 @@ async function proxyToBackend(
   const init: RequestInit = {
     method: request.method,
     headers,
-    redirect: "follow",
   };
 
   if (request.method !== "GET" && request.method !== "HEAD") {
     init.body = await request.arrayBuffer();
   }
 
-  const upstream = await fetch(targetUrl, init);
+  let upstream: Response;
+  try {
+    upstream = await fetchUpstream(targetUrl, init);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "fetch failed";
+    console.error("[api-proxy] upstream failed:", targetUrl, err);
+    return NextResponse.json(
+      { error: "Upstream unavailable", message },
+      { status: 502 }
+    );
+  }
 
   const responseHeaders = new Headers();
   upstream.headers.forEach((value, key) => {

@@ -11,7 +11,7 @@ export default function HomeLoading() {
             <div className="w-9 h-9 rounded-full bg-border/40" />
           </div>
         </div>
-        <div className="aspect-4/3 rounded-3xl bg-border/40" />
+        <div className="aspect-[5/6] rounded-3xl bg-border/40" />
         <div className="flex gap-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-10 w-20 rounded-full bg-border/40" />

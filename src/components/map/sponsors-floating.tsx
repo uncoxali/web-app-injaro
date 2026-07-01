@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { isAuthenticated } from "@/lib/auth-utils";
 import { useSponsors } from "@/lib/queries/sponsors";
+import type { Sponsor } from "@/lib/api/locations";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { cn } from "@/lib/utils";
 
@@ -38,10 +39,99 @@ function SponsorLogo({ name, logo }: { name: string; logo?: string }) {
   );
 }
 
+function SponsorSlide({ sponsor }: { sponsor: Sponsor }) {
+  return (
+    <a
+      href={sponsor.link || "#"}
+      target={sponsor.link ? "_blank" : undefined}
+      rel={sponsor.link ? "noopener noreferrer" : undefined}
+      onClick={!sponsor.link ? (e) => e.preventDefault() : undefined}
+      className="flex w-full items-center gap-3 p-3 pe-4"
+      draggable={false}
+    >
+      <SponsorLogo name={sponsor.name} logo={sponsor.logo} />
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-text-primary">
+          {sponsor.name}
+        </p>
+        <p className="text-[10px] text-text-secondary">با حمایت از اینجارو</p>
+      </div>
+
+      {sponsor.link && (
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            className="-scale-x-100"
+          >
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </div>
+      )}
+    </a>
+  );
+}
+
 export function SponsorsFloating() {
-  const authed = isAuthenticated();
+  const [authed, setAuthed] = useState(false);
   const { data: sponsors = [], isLoading: loading } = useSponsors(authed);
   const [current, setCurrent] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const scrollRaf = useRef<number | null>(null);
+  const currentRef = useRef(0);
+
+  useEffect(() => {
+    setAuthed(isAuthenticated());
+  }, []);
+
+  const updateCurrentFromScroll = useCallback(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const containerCenter =
+      container.getBoundingClientRect().left + container.clientWidth / 2;
+    let closest = 0;
+    let minDist = Infinity;
+
+    slideRefs.current.forEach((slide, i) => {
+      if (!slide) return;
+      const rect = slide.getBoundingClientRect();
+      const slideCenter = rect.left + rect.width / 2;
+      const dist = Math.abs(containerCenter - slideCenter);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = i;
+      }
+    });
+
+    if (closest !== currentRef.current) {
+      currentRef.current = closest;
+      setCurrent(closest);
+    }
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    if (scrollRaf.current !== null) return;
+    scrollRaf.current = requestAnimationFrame(() => {
+      scrollRaf.current = null;
+      updateCurrentFromScroll();
+    });
+  }, [updateCurrentFromScroll]);
+
+  const goToSlide = useCallback((index: number) => {
+    const slide = slideRefs.current[index];
+    if (!slide || !scrollRef.current) return;
+    slide.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    currentRef.current = index;
+    setCurrent(index);
+  }, []);
 
   if (!authed) return null;
 
@@ -58,70 +148,55 @@ export function SponsorsFloating() {
 
   if (sponsors.length === 0) return null;
 
-  const sponsor = sponsors[current];
-
   return (
     <div
       className="absolute inset-x-0 z-30 px-4 pointer-events-none"
       style={{ bottom: "calc(env(safe-area-inset-bottom) + 5.25rem)" }}
     >
-      <div className="pointer-events-auto relative overflow-hidden rounded-2xl border border-border/70 bg-background/85 backdrop-blur-xl shadow-lg">
+      <div
+        className="pointer-events-auto relative overflow-hidden rounded-2xl border border-border/70 bg-background/85 backdrop-blur-xl shadow-lg"
+        onPointerDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+      >
         <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/80 to-transparent" />
 
-        <a
-          key={sponsor.id}
-          href={sponsor.link || "#"}
-          target={sponsor.link ? "_blank" : undefined}
-          rel={sponsor.link ? "noopener noreferrer" : undefined}
-          onClick={!sponsor.link ? (e) => e.preventDefault() : undefined}
-          className="flex items-center gap-3 p-3 pe-4"
-        >
-          <SponsorLogo name={sponsor.name} logo={sponsor.logo} />
-
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-text-primary">
-              {sponsor.name}
-            </p>
-            <p className="text-[10px] text-text-secondary">
-              با حمایت از اینجارو
-            </p>
-          </div>
-
-          {sponsor.link && (
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                className="-scale-x-100"
-              >
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </div>
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className={cn(
+            "flex overflow-x-auto scrollbar-none scroll-smooth",
+            sponsors.length > 1 && "snap-x snap-mandatory touch-pan-x"
           )}
-        </a>
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
+          {sponsors.map((sponsor, i) => (
+            <div
+              key={sponsor.id}
+              ref={(el) => {
+                slideRefs.current[i] = el;
+              }}
+              className="w-full shrink-0 snap-center"
+            >
+              <SponsorSlide sponsor={sponsor} />
+            </div>
+          ))}
+        </div>
 
         {sponsors.length > 1 && (
           <div className="flex justify-center gap-1.5 pb-2.5">
-              {sponsors.map((s, i) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  aria-label={`اسپانسر ${i + 1}`}
-                  onClick={() => setCurrent(i)}
-                  className={cn(
-                    "h-1 rounded-full transition-all duration-300",
-                    i === current
-                      ? "w-5 bg-primary"
-                      : "w-1.5 bg-border hover:bg-primary/40"
-                  )}
-                  />
-              ))}
-            </div>
+            {sponsors.map((s, i) => (
+              <button
+                key={s.id}
+                type="button"
+                aria-label={`اسپانسر ${i + 1}`}
+                onClick={() => goToSlide(i)}
+                className={cn(
+                  "h-1.5 rounded-full transition-all duration-300",
+                  i === current ? "w-5 bg-primary" : "w-1.5 bg-border hover:bg-primary/40"
+                )}
+              />
+            ))}
+          </div>
         )}
       </div>
     </div>

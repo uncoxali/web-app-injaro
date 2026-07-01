@@ -36,7 +36,7 @@ export function CategoriesBar({
             "shrink-0 snap-start inline-flex items-center justify-center px-4 py-2 rounded-full text-sm font-medium border transition-all whitespace-nowrap select-none active:scale-[0.92]",
             selected === null
               ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
-              : "bg-background/70 backdrop-blur-md border-border/50 text-text-secondary hover:border-primary/30"
+              : "bg-background border-border text-text-secondary hover:border-primary/30"
           )}
           style={{ scrollSnapAlign: "start" }}
         >
@@ -53,8 +53,8 @@ export function CategoriesBar({
               className={cn(
                 "shrink-0 snap-start inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium border transition-all whitespace-nowrap select-none active:scale-[0.92]",
                 isActive
-                  ? "bg-primary/10 text-primary border-primary/30 shadow-xs"
-                  : "bg-background/70 backdrop-blur-md border-border/50 text-text-secondary hover:border-primary/30 hover:bg-background/90"
+                  ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
+                  : "bg-background border-border text-text-secondary hover:border-primary/30"
               )}
               style={{ scrollSnapAlign: "start" }}
             >
@@ -62,7 +62,7 @@ export function CategoriesBar({
                 <span className={cn(
                   "inline-flex items-center justify-center w-7 h-7 rounded-full text-sm transition-all overflow-hidden shrink-0",
                   isActive
-                    ? "bg-primary text-white shadow-xs"
+                    ? "bg-white/20 text-white"
                     : "bg-border/40 text-text-secondary"
                 )}>
                   {cat.location_icon ? (

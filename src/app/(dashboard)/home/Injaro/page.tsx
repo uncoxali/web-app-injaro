@@ -39,6 +39,9 @@ export default function InjaroHomePage() {
   const setFlyToTarget = useMapStore((s) => s.setFlyToTarget);
   const setFitBoundsTarget = useMapStore((s) => s.setFitBoundsTarget);
   const setClusteringEnabled = useMapStore((s) => s.setClusteringEnabled);
+  const selectLocation = useMapStore((s) => s.selectLocation);
+  const setSelectedLocation = useMapStore((s) => s.setSelectedLocation);
+  const setSheetOpen = useMapStore((s) => s.setSheetOpen);
 
   const [guest, setGuest] = useState(true);
   const landingLocationsRef = useRef<LandingLocation[]>([]);
@@ -77,9 +80,33 @@ export default function InjaroHomePage() {
   const applyMarkers = useCallback(
     (mapMarkers: Location[]) => {
       setMarkers(mapMarkers);
+
+      const pending = useMapStore.getState().selectedLocation;
+      if (pending?.slug) {
+        const marker = mapMarkers.find((m) => m.slug === pending.slug);
+        if (marker) {
+          selectLocation(marker.id);
+          setSelectedLocation(marker);
+          setFlyToTarget({
+            latitude: marker.latitude,
+            longitude: marker.longitude,
+            zoom: 15,
+          });
+          setSheetOpen(true);
+          return;
+        }
+      }
+
       doZoom(mapMarkers);
     },
-    [setMarkers, doZoom]
+    [
+      setMarkers,
+      doZoom,
+      selectLocation,
+      setSelectedLocation,
+      setFlyToTarget,
+      setSheetOpen,
+    ]
   );
 
   const fetchGuestLocations = useCallback(

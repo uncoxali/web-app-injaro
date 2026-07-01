@@ -5,7 +5,8 @@ import { Marker, type MapGeoJSONFeature } from "react-map-gl/mapbox";
 import Supercluster from "supercluster";
 import { useMapStore, type Location } from "@/store/map";
 import { bboxFromViewState } from "@/lib/map-utils";
-import { cn } from "@/lib/utils";
+import { toPersianDigits } from "@/lib/utils";
+import { LocationMapPin } from "@/components/map/location-map-pin";
 
 const clusterRadius = 50;
 const maxZoom = 14;
@@ -102,8 +103,8 @@ export function MarkersLayer() {
               <div className="flex items-start justify-center cursor-pointer transition-transform drop-shadow-md">
                 <div className="relative">
                   <svg
-                    width="36"
-                    height="44"
+                    width="42"
+                    height="52"
                     viewBox="0 0 42 50"
                     fill="none"
                   >
@@ -113,8 +114,8 @@ export function MarkersLayer() {
                     />
                     <circle cx="21" cy="15" r="10" fill="white" />
                   </svg>
-                  <span className="absolute inset-s-0 inset-e-0 top-[5px] h-5 flex items-center justify-center text-sm font-bold text-primary leading-none">
-                    {pointCount}
+                  <span className="absolute inset-s-0 inset-e-0 top-[6px] h-5 flex items-center justify-center text-sm font-bold text-primary leading-none">
+                    {toPersianDigits(pointCount)}
                   </span>
                 </div>
               </div>
@@ -132,54 +133,15 @@ export function MarkersLayer() {
             longitude={coords[0]}
             latitude={coords[1]}
             onClick={() => handleMarkerClick(location)}
+            anchor="bottom"
           >
-            <div
-              className={cn(
-                "relative flex items-start justify-center cursor-pointer transition-transform drop-shadow-md",
-                isSelected && "scale-110 z-10 drop-shadow-lg"
-              )}
-            >
-              <div className="relative">
-                <svg
-                  width="36"
-                  height="44"
-                  viewBox="0 0 42 50"
-                  fill="none"
-                >
-                  <defs>
-                    <clipPath id={`mc-${markerId}`}>
-                      <circle cx="21" cy="15" r="9" />
-                    </clipPath>
-                  </defs>
-                  <path
-                    d="M21 1C12.72 1 6 7.72 6 16c0 10.5 15 33 15 33s15-22.5 15-33c0-8.28-6.72-15-15-15z"
-                    fill={isSelected ? "#ff5a5f" : "#ffffff"}
-                    stroke={isSelected ? "#ff5a5f" : "#d1d5db"}
-                    strokeWidth="1.5"
-                  />
-                  <circle
-                    cx="21"
-                    cy="15"
-                    r="9"
-                    fill={isSelected ? "#ffffff" : "#f3f4f6"}
-                    stroke={isSelected ? "#ff5a5f" : "#d1d5db"}
-                    strokeWidth="1.5"
-                  />
-                  {location.logo ? (
-                    <image
-                      href={location.logo}
-                      x="12"
-                      y="6"
-                      width="18"
-                      height="18"
-                      clipPath={`url(#mc-${markerId})`}
-                      preserveAspectRatio="xMidYMid slice"
-                    />
-                  ) : (
-                    <circle cx="21" cy="15" r="5" fill={isSelected ? "#ffffff" : "#FF5A5F"} />
-                  )}
-                </svg>
-              </div>
+            <div className="cursor-pointer">
+              <LocationMapPin
+                id={markerId}
+                logo={location.logo}
+                size="sm"
+                selected={isSelected}
+              />
             </div>
           </Marker>
         );
