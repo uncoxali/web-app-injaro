@@ -5,6 +5,9 @@ const API_ORIGIN = process.env.API_PROXY_TARGET || "https://api.injaro.info";
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
+  turbopack: {
+    root: path.join(__dirname),
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "injaro.darkube.ir", pathname: "/media/**" },
@@ -21,7 +24,6 @@ const nextConfig: NextConfig = {
     ];
   },
   env: {
-    NEXT_PUBLIC_API_BASE: process.env.NEXT_PUBLIC_API_BASE,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
     NEXT_PUBLIC_LANDING_URL: process.env.NEXT_PUBLIC_LANDING_URL,
     NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN:

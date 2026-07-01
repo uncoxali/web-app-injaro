@@ -1,5 +1,4 @@
 import type { Location } from "@/store/map";
-import { redirectToLogin } from "@/lib/auth-utils";
 import { API_BASE } from "@/lib/api-base";
 
 export interface LandingEvent {
@@ -20,11 +19,9 @@ export interface LandingLocation {
 
 async function publicFetch<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`);
-  if (res.status === 403) {
-    redirectToLogin();
-    throw new Error("Forbidden");
+  if (!res.ok) {
+    throw new Error(`Failed to fetch ${path} (${res.status})`);
   }
-  if (!res.ok) throw new Error(`Failed to fetch ${path}`);
   return res.json();
 }
 

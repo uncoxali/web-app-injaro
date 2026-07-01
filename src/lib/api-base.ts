@@ -1,3 +1,6 @@
-/** Same-origin path; proxied to api.injaro.info via next.config rewrites. */
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") || "/api";
+/**
+ * Same-origin API proxy — routed to the backend via next.config rewrites.
+ * Always use /api in the browser to avoid CORS and cookie issues.
+ * Server-side fetches use server-fetch.ts with API_PROXY_TARGET instead.
+ */
+export const API_BASE = "/api";
