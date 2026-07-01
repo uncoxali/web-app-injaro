@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { cn, imgUrl } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { Category } from "@/lib/api/categories";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 interface CategorySelectProps {
   categories: Category[];
@@ -64,9 +65,15 @@ export function CategorySelect({
               style={{ scrollSnapAlign: "start" }}
             >
               {cat.location_icon ? (
-                <img
-                  src={imgUrl(isActive ? cat.location_selected_icon || cat.location_icon : cat.location_icon)}
+                <OptimizedImage
+                  src={
+                    isActive
+                      ? cat.location_selected_icon || cat.location_icon
+                      : cat.location_icon
+                  }
                   alt=""
+                  width={16}
+                  height={16}
                   className="h-4 w-4 shrink-0 object-contain"
                 />
               ) : cat.icon ? (

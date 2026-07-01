@@ -1,4 +1,4 @@
-const CACHE_NAME = "injaro-v4";
+const CACHE_NAME = "injaro-v5";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
@@ -33,6 +33,15 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
+
+  // Cross-origin media/CDN — let the browser handle directly (SW cache breaks these)
+  if (
+    url.hostname === "injaro.darkube.ir" ||
+    url.hostname === "api.injaro.info" ||
+    url.hostname === "cdn.jsdelivr.net"
+  ) {
+    return;
+  }
 
   // API requests: network-first with fallback
   if (

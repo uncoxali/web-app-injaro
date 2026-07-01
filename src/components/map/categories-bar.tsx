@@ -67,7 +67,11 @@ export function CategoriesBar({
                 )}>
                   {cat.location_icon ? (
                     <OptimizedImage
-                      src={cat.location_icon}
+                      src={
+                        isActive
+                          ? cat.location_selected_icon || cat.location_icon
+                          : cat.location_icon
+                      }
                       alt=""
                       width={24}
                       height={24}

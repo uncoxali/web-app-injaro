@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const API_ORIGIN = process.env.API_PROXY_TARGET || "https://api.injaro.info";
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: path.join(__dirname),
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "injaro.darkube.ir", pathname: "/media/**" },

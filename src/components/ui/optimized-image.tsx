@@ -1,8 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
-import { cn, imgUrl, isSvgUrl } from "@/lib/utils";
+import { cn, imgUrl } from "@/lib/utils";
 
 interface OptimizedImageProps {
   src?: string;
@@ -41,7 +40,7 @@ function ImagePlaceholder({ className }: { className?: string }) {
   );
 }
 
-function DirectImage({
+function RemoteImage({
   url,
   alt,
   className,
@@ -85,6 +84,11 @@ function DirectImage({
   );
 }
 
+/** Remote/CDN media — direct <img> (next/image breaks SVG + signed MinIO URLs). */
+function isRemoteUrl(url: string): boolean {
+  return url.startsWith("http://") || url.startsWith("https://");
+}
+
 export function OptimizedImage({
   src,
   alt,
@@ -96,17 +100,14 @@ export function OptimizedImage({
   sizes,
 }: OptimizedImageProps) {
   const url = imgUrl(src);
-  const [optimizerFailed, setOptimizerFailed] = useState(false);
 
   if (!url) {
     return <ImagePlaceholder className={className} />;
   }
 
-  const skipOptimizer = optimizerFailed || isSvgUrl(url);
-
-  if (skipOptimizer) {
+  if (isRemoteUrl(url)) {
     return (
-      <DirectImage
+      <RemoteImage
         url={url}
         alt={alt}
         className={className}
@@ -127,7 +128,6 @@ export function OptimizedImage({
         className={cn("object-cover", className)}
         priority={priority}
         sizes={sizes ?? "100vw"}
-        onError={() => setOptimizerFailed(true)}
       />
     );
   }
@@ -141,7 +141,6 @@ export function OptimizedImage({
       className={cn("object-cover", className)}
       priority={priority}
       sizes={sizes}
-      onError={() => setOptimizerFailed(true)}
     />
   );
 }
