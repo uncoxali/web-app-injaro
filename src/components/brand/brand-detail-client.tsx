@@ -25,18 +25,16 @@ type TabKey = (typeof tabs)[number]["key"];
 interface BrandDetailClientProps {
   initialData: LocationDetail | null;
   slug: string;
-  hasError: boolean;
 }
 
 export function BrandDetailClient({
   initialData,
   slug,
-  hasError: serverError,
 }: BrandDetailClientProps) {
   const router = useRouter();
   const [data, setData] = useState<LocationDetail | null>(initialData);
-  const [loading, setLoading] = useState(!initialData && !serverError);
-  const [error, setError] = useState(serverError);
+  const [loading, setLoading] = useState(!initialData);
+  const [error, setError] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("about");
   const [showQr, setShowQr] = useState(false);
   const [parallaxY, setParallaxY] = useState(0);
@@ -45,13 +43,13 @@ export function BrandDetailClient({
   const bannerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (initialData || serverError) return;
+    if (initialData) return;
 
     getLocationDetail(slug)
       .then(setData)
       .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, [slug, initialData, serverError]);
+  }, [slug, initialData]);
 
   useEffect(() => {
     const handleScroll = () => {

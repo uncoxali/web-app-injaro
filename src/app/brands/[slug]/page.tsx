@@ -9,20 +9,12 @@ export default async function BrandPage({
   const { slug } = await params;
 
   let initialData = null;
-  let hasError = false;
 
   try {
     initialData = await fetchLocationDetailServer(slug);
-    if (!initialData) hasError = true;
   } catch {
-    hasError = true;
+    // Client may retry with auth token.
   }
 
-  return (
-    <BrandDetailClient
-      initialData={initialData}
-      slug={slug}
-      hasError={hasError}
-    />
-  );
+  return <BrandDetailClient initialData={initialData} slug={slug} />;
 }

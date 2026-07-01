@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { imgUrl } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { cn, imgUrl, isSvgUrl } from "@/lib/utils";
 
 interface OptimizedImageProps {
   src?: string;
@@ -41,6 +41,50 @@ function ImagePlaceholder({ className }: { className?: string }) {
   );
 }
 
+function DirectImage({
+  url,
+  alt,
+  className,
+  fill,
+  width,
+  height,
+  priority,
+}: {
+  url: string;
+  alt: string;
+  className?: string;
+  fill?: boolean;
+  width?: number;
+  height?: number;
+  priority?: boolean;
+}) {
+  if (fill) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={url}
+        alt={alt}
+        className={cn("absolute inset-0 h-full w-full object-cover", className)}
+        loading={priority ? "eager" : "lazy"}
+        decoding="async"
+      />
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={url}
+      alt={alt}
+      width={width ?? 400}
+      height={height ?? 400}
+      className={cn("object-cover", className)}
+      loading={priority ? "eager" : "lazy"}
+      decoding="async"
+    />
+  );
+}
+
 export function OptimizedImage({
   src,
   alt,
@@ -52,9 +96,26 @@ export function OptimizedImage({
   sizes,
 }: OptimizedImageProps) {
   const url = imgUrl(src);
+  const [optimizerFailed, setOptimizerFailed] = useState(false);
 
   if (!url) {
     return <ImagePlaceholder className={className} />;
+  }
+
+  const skipOptimizer = optimizerFailed || isSvgUrl(url);
+
+  if (skipOptimizer) {
+    return (
+      <DirectImage
+        url={url}
+        alt={alt}
+        className={className}
+        fill={fill}
+        width={width}
+        height={height}
+        priority={priority}
+      />
+    );
   }
 
   if (fill) {
@@ -66,6 +127,7 @@ export function OptimizedImage({
         className={cn("object-cover", className)}
         priority={priority}
         sizes={sizes ?? "100vw"}
+        onError={() => setOptimizerFailed(true)}
       />
     );
   }
@@ -79,6 +141,7 @@ export function OptimizedImage({
       className={cn("object-cover", className)}
       priority={priority}
       sizes={sizes}
+      onError={() => setOptimizerFailed(true)}
     />
   );
 }

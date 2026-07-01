@@ -1,4 +1,4 @@
-const CACHE_NAME = "injaro-v3";
+const CACHE_NAME = "injaro-v4";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
@@ -41,6 +41,12 @@ self.addEventListener("fetch", (event) => {
     url.pathname.startsWith("/accounts/") ||
     url.pathname.startsWith("/invite/")
   ) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  // Next.js image optimizer: network-first (signed URLs rotate; avoid stale cache)
+  if (url.pathname.startsWith("/_next/image")) {
     event.respondWith(networkFirst(request));
     return;
   }

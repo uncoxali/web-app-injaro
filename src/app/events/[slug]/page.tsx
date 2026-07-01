@@ -9,20 +9,14 @@ export default async function EventPage({
   const { slug } = await params;
 
   let initialData = null;
-  let hasError = false;
 
   try {
     initialData = await fetchEventDetailServer(slug);
-    if (!initialData) hasError = true;
   } catch {
-    hasError = true;
+    // Guest/unauthenticated SSR may 403 — client handles public fallback.
   }
 
   return (
-    <EventDetailClient
-      initialData={initialData}
-      slug={slug}
-      hasError={hasError}
-    />
+    <EventDetailClient initialData={initialData} slug={slug} />
   );
 }

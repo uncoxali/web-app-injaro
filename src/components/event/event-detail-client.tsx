@@ -40,21 +40,19 @@ function formatPersianDateTime(iso?: string): string {
 interface EventDetailClientProps {
   initialData: EventDetail | null;
   slug: string;
-  hasError: boolean;
 }
 
 export function EventDetailClient({
   initialData,
   slug,
-  hasError: serverError,
 }: EventDetailClientProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [data, setData] = useState<EventDetail | null>(initialData);
   const [guestEvent, setGuestEvent] = useState<LandingEvent | null>(null);
   const [isGuest, setIsGuest] = useState(false);
-  const [loading, setLoading] = useState(!initialData && !serverError);
-  const [error, setError] = useState(serverError);
+  const [loading, setLoading] = useState(!initialData);
+  const [error, setError] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const [ticketQrOpen, setTicketQrOpen] = useState(false);
@@ -62,7 +60,7 @@ export function EventDetailClient({
   const [popupImageIndex, setPopupImageIndex] = useState(0);
 
   useEffect(() => {
-    if (initialData || serverError) return;
+    if (initialData) return;
 
     const authed = isAuthenticated();
 
@@ -92,7 +90,7 @@ export function EventDetailClient({
     }
 
     load();
-  }, [slug, initialData, serverError, queryClient]);
+  }, [slug, initialData, queryClient]);
 
   const handleParticipate = useCallback(() => {
     router.push(loginUrl(`/events/${slug}`));
