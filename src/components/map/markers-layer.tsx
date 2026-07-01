@@ -23,6 +23,7 @@ export function MarkersLayer() {
   const longitude = useMapStore((s) => s.viewState.longitude);
   const zoom = useMapStore((s) => Math.floor(s.viewState.zoom));
   const selectedLocationId = useMapStore((s) => s.selectedLocationId);
+  const selectedMapCategory = useMapStore((s) => s.selectedMapCategory);
   const selectLocation = useMapStore((s) => s.selectLocation);
   const setSelectedLocation = useMapStore((s) => s.setSelectedLocation);
   const setSheetOpen = useMapStore((s) => s.setSheetOpen);
@@ -125,6 +126,7 @@ export function MarkersLayer() {
 
         const location = props as Location;
         const isSelected = selectedLocationId === location.id;
+        const isCategoryFiltered = selectedMapCategory !== null;
         const markerId = location.slug || String(location.id);
 
         return (
@@ -140,6 +142,7 @@ export function MarkersLayer() {
                 id={markerId}
                 logo={location.logo}
                 size="sm"
+                highlighted={isCategoryFiltered}
                 selected={isSelected}
               />
             </div>

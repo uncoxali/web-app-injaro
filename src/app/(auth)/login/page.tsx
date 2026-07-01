@@ -15,7 +15,7 @@ import { updateProfile } from "@/lib/api/profile";
 import { useCategories } from "@/lib/queries/categories";
 import { cookieUtils } from "@/lib/cookies";
 import { useAuthStore } from "@/store/auth";
-import { isAuthenticated } from "@/lib/auth-utils";
+import { isAuthenticated, getLoginBackTarget } from "@/lib/auth-utils";
 import { toEnglishDigits, toPersianDigits, cn } from "@/lib/utils";
 import { PROVINCES, JOBS } from "@/lib/constants/enums";
 
@@ -82,6 +82,19 @@ function UnifiedAuthPage() {
   const normalizedPhone = toEnglishDigits(phone);
   const isValidPhone = /^09\d{9}$/.test(normalizedPhone);
 
+  const handleBack = useCallback(() => {
+    if (step === "verify" || step === "info") {
+      setStep("phone");
+      return;
+    }
+    if (step === "interests") {
+      setStep("info");
+      return;
+    }
+
+    router.replace(getLoginBackTarget(redirect));
+  }, [redirect, router, step]);
+
   const handleSendOtp = async () => {
     if (!isValidPhone) return;
     if (mode === "register") {
@@ -115,7 +128,29 @@ function UnifiedAuthPage() {
   };
 
   return (
-    <div className="flex min-h-dvh w-full flex-col items-center justify-center px-4 bg-linear-to-b from-primary/5 via-background to-background">
+    <div className="relative flex min-h-dvh w-full flex-col items-center justify-center px-4 bg-linear-to-b from-primary/5 via-background to-background">
+      <button
+        type="button"
+        onClick={handleBack}
+        aria-label="بازگشت"
+        className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-border/30 bg-white/80 text-text-secondary shadow-sm backdrop-blur-sm transition-all hover:text-text-primary active:scale-95 pointer-events-auto"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
+
       <div className="w-full max-w-[420px]">
         <div className="w-full rounded-3xl border border-border/20 bg-white/60 dark:bg-white/3 backdrop-blur-2xl shadow-xl p-6 md:p-8 animate-fade-in">
           <div className="flex flex-col items-center gap-6">

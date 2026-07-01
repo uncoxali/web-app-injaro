@@ -122,7 +122,7 @@ export async function getLocations(params?: {
   search?: string;
 }): Promise<Location[]> {
   const searchParams = new URLSearchParams();
-  if (params?.category) searchParams.set("category", String(params.category));
+  if (params?.category) searchParams.set("events__category", String(params.category));
   if (params?.search) searchParams.set("search", params.search);
 
   const qs = searchParams.toString();

@@ -16,6 +16,9 @@ interface LocationMapPinProps {
   id: string;
   logo?: string;
   size?: LocationMapPinSize;
+  /** Red pin style (e.g. category filter active or clicked). */
+  highlighted?: boolean;
+  /** Clicked / focused — adds scale and shadow. */
   selected?: boolean;
   className?: string;
 }
@@ -24,6 +27,7 @@ export function LocationMapPin({
   id,
   logo,
   size = "md",
+  highlighted = false,
   selected = false,
   className,
 }: LocationMapPinProps) {
@@ -31,9 +35,10 @@ export function LocationMapPin({
   const clipId = `pin-clip-${id}`;
   const logoSrc = imgUrl(logo);
   const logoY = 15 - logoSize / 2;
-  const pinFill = selected ? PIN_COLOR : "#ffffff";
-  const pinStroke = selected ? PIN_COLOR : PIN_STROKE;
-  const circleFill = selected ? "#ffffff" : "#f3f4f6";
+  const pinActive = highlighted || selected;
+  const pinFill = pinActive ? PIN_COLOR : "#ffffff";
+  const pinStroke = pinActive ? PIN_COLOR : PIN_STROKE;
+  const circleFill = pinActive ? "#ffffff" : "#f3f4f6";
 
   return (
     <div
@@ -78,7 +83,7 @@ export function LocationMapPin({
             cx="21"
             cy="15"
             r={5}
-            fill={selected ? "#ffffff" : PIN_COLOR}
+            fill={pinActive ? "#ffffff" : PIN_COLOR}
           />
         )}
       </svg>

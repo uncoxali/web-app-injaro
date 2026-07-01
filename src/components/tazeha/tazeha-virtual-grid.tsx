@@ -4,8 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import type { TazehaItem } from "@/lib/api/tazeha";
 
-/** Image (aspect 4/5 in 2-col grid) + title block below */
-const ROW_HEIGHT = 340;
+const ROW_HEIGHT = 196;
 
 interface TazehaVirtualGridProps {
   items: TazehaItem[];
@@ -15,7 +14,6 @@ interface TazehaVirtualGridProps {
 export function TazehaVirtualGrid({ items, renderCard }: TazehaVirtualGridProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const [scrollMargin, setScrollMargin] = useState(0);
-  const rowCount = Math.ceil(items.length / 2);
 
   useEffect(() => {
     if (listRef.current) {
@@ -24,9 +22,9 @@ export function TazehaVirtualGrid({ items, renderCard }: TazehaVirtualGridProps)
   }, [items.length]);
 
   const virtualizer = useWindowVirtualizer({
-    count: rowCount,
+    count: items.length,
     estimateSize: () => ROW_HEIGHT,
-    overscan: 4,
+    overscan: 6,
     scrollMargin,
   });
 
@@ -39,22 +37,22 @@ export function TazehaVirtualGrid({ items, renderCard }: TazehaVirtualGridProps)
         style={{ height: `${virtualizer.getTotalSize()}px` }}
       >
         {virtualizer.getVirtualItems().map((virtualRow) => {
-          const rowIndex = virtualRow.index;
-          const left = items[rowIndex * 2];
-          const right = items[rowIndex * 2 + 1];
+          const item = items[virtualRow.index];
 
           return (
             <div
               key={virtualRow.key}
               ref={virtualizer.measureElement}
               data-index={virtualRow.index}
-              className="absolute inset-x-0 grid grid-cols-2 gap-3 pb-3"
+              className="absolute inset-x-0"
               style={{
                 transform: `translateY(${virtualRow.start - scrollMargin}px)`,
               }}
             >
-              {left ? renderCard(left) : <div />}
-              {right ? renderCard(right) : <div />}
+              {virtualRow.index > 0 && (
+                <div className="mx-5 border-t border-black/8" />
+              )}
+              {renderCard(item)}
             </div>
           );
         })}

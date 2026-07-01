@@ -10,6 +10,25 @@ export function loginUrl(redirectPath?: string): string {
   return `/login?redirect=${encodeURIComponent(redirectPath)}`;
 }
 
+/** Paths guests can open without being sent back to /login */
+export function isPublicAppPath(pathname: string): boolean {
+  if (pathname === "/" || pathname === "/home" || pathname === "/home/") {
+    return true;
+  }
+
+  const publicPrefixes = ["/home/Injaro", "/home/Tazeha", "/events"];
+  return publicPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
+export function getLoginBackTarget(redirectPath?: string | null): string {
+  if (redirectPath && redirectPath.startsWith("/") && isPublicAppPath(redirectPath)) {
+    return redirectPath;
+  }
+  return "/home";
+}
+
 let redirectingToLogin = false;
 
 export function redirectToLogin(): void {
