@@ -87,7 +87,7 @@ export function HomeEventsSection({ events }: HomeEventsSectionProps) {
   if (events.length === 0) return null;
 
   return (
-    <section className="px-5">
+    <section>
       <div className="rounded-3xl bg-[#ececec] px-4 pb-4 pt-4 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-bold text-text-primary">آخرین رویدادها</h2>

@@ -25,7 +25,7 @@ const fadeUp = {
 
 function Skeleton() {
   return (
-    <div className="flex flex-col gap-5 px-5 pt-5">
+    <div className="flex flex-col gap-5 px-5 pt-5 pb-28">
       <div className="flex items-center justify-between">
         <div className="h-7 w-24 rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse" />
         <div className="flex gap-2">
@@ -34,7 +34,7 @@ function Skeleton() {
         </div>
       </div>
       <div className="relative aspect-[5/6] rounded-3xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
-      <div className="mt-2 flex flex-col items-center gap-3">
+      <div className="flex flex-col items-center gap-4">
         <div className="h-4 w-56 rounded-md bg-gray-100 dark:bg-gray-800 animate-pulse" />
         <div className="h-11 w-44 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse" />
         <div className="h-3 w-48 rounded-md bg-gray-100 dark:bg-gray-800 animate-pulse" />
@@ -195,7 +195,7 @@ export default function HomePage() {
         variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}
         initial="hidden"
         animate="show"
-        className="flex flex-col gap-6 pt-3"
+        className="flex flex-col gap-5 px-5 pt-5 pb-28"
       >
         {events.length > 0 && (
           <motion.div variants={fadeUp}>
@@ -208,7 +208,7 @@ export default function HomePage() {
         </motion.div>
 
         {events.length > 0 && (
-          <motion.div variants={fadeUp} className="pb-28">
+          <motion.div variants={fadeUp}>
             <HomeHero events={events} showTodayBadge />
           </motion.div>
         )}

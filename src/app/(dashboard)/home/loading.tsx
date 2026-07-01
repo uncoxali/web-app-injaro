@@ -3,7 +3,7 @@ import { PageLoadingShell } from "@/components/ui/page-loading-shell";
 export default function HomeLoading() {
   return (
     <PageLoadingShell>
-      <div className="flex flex-col gap-5 px-5 pt-5 pb-8 flex-1">
+      <div className="flex flex-col gap-5 px-5 pt-5 pb-28 flex-1">
         <div className="flex items-center justify-between">
           <div className="h-7 w-24 rounded-lg bg-border/40" />
           <div className="flex gap-2">

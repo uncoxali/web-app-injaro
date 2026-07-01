@@ -58,7 +58,7 @@ export function HomeHero({
   };
 
   return (
-    <div className={cn("px-3 pt-3", className)}>
+    <div className={cn(className)}>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={event.event_slug}
@@ -148,17 +148,17 @@ export function HomeHero({
       </AnimatePresence>
 
       {showGuestCta && (
-        <div className="mt-6 flex flex-col items-center text-center">
+        <div className="mt-5 flex flex-col items-center gap-4 text-center">
           <p className="max-w-[18rem] text-sm font-medium leading-relaxed text-text-primary">
             برای شخصی‌سازی و تجربه کاربری بهتر رویدادها، وارد شو
           </p>
           <Link
             href={loginUrl("/home")}
-            className="mt-5 inline-flex min-w-[11rem] items-center justify-center rounded-full bg-primary px-8 py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(255,90,95,0.4)] transition-transform active:scale-[0.98]"
+            className="inline-flex min-w-[11rem] items-center justify-center rounded-full bg-primary px-8 py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(255,90,95,0.4)] transition-transform active:scale-[0.98]"
           >
             ورود / ثبت‌نام
           </Link>
-          <p className="mt-5 text-xs text-text-secondary">
+          <p className="text-xs text-text-secondary">
             بیش از {toPersianDigits("10000")} کاربر در رویدادهای شهری
           </p>
         </div>
