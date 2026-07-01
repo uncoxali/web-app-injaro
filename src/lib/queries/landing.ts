@@ -15,6 +15,7 @@ export function useLandingEvents() {
   return useQuery<LandingEvent[]>({
     queryKey: landingKeys.events,
     queryFn: getLandingEvents,
+    retry: 2,
   });
 }
 
@@ -22,5 +23,6 @@ export function useLandingLocations() {
   return useQuery<LandingLocation[]>({
     queryKey: landingKeys.locations,
     queryFn: getLandingLocations,
+    retry: 2,
   });
 }

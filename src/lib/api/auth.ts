@@ -1,5 +1,5 @@
 import { cookieUtils } from "@/lib/cookies";
-import { API_BASE } from "@/lib/api-base";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface SendOtpBody {
   phone_number: string;
@@ -61,7 +61,7 @@ async function request<T>(
   path: string,
   body: Record<string, unknown>
 ): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await apiFetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

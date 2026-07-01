@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { API_BASE } from "@/lib/api-base";
+import { apiUrl } from "@/lib/api-fetch";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -46,7 +46,7 @@ export function imgUrl(path?: string): string | undefined {
     return `${MEDIA_BASE.replace(/\/$/, "")}${normalized}`;
   }
 
-  return `${API_BASE}${normalized}`;
+  return apiUrl(normalized);
 }
 
 export function isSvgUrl(url: string): boolean {

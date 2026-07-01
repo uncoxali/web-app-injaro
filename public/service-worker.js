@@ -1,4 +1,4 @@
-const CACHE_NAME = "injaro-v5";
+const CACHE_NAME = "injaro-v6";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
@@ -43,14 +43,15 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // API requests: network-first with fallback
+  // Never intercept API or backend paths — stale SW cache caused broken responses
   if (
     url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/landing/") ||
     url.pathname.startsWith("/main/") ||
     url.pathname.startsWith("/accounts/") ||
-    url.pathname.startsWith("/invite/")
+    url.pathname.startsWith("/invite/") ||
+    url.pathname.startsWith("/analyst/")
   ) {
-    event.respondWith(networkFirst(request));
     return;
   }
 

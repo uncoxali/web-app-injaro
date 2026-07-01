@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import type { TazehaItem } from "@/lib/api/tazeha";
 
-const ROW_HEIGHT = 272;
+/** Image (aspect 4/5 in 2-col grid) + title block below */
+const ROW_HEIGHT = 340;
 
 interface TazehaVirtualGridProps {
   items: TazehaItem[];
@@ -45,9 +46,10 @@ export function TazehaVirtualGrid({ items, renderCard }: TazehaVirtualGridProps)
           return (
             <div
               key={virtualRow.key}
-              className="absolute inset-x-0 grid grid-cols-2 gap-3"
+              ref={virtualizer.measureElement}
+              data-index={virtualRow.index}
+              className="absolute inset-x-0 grid grid-cols-2 gap-3 pb-3"
               style={{
-                height: `${virtualRow.size}px`,
                 transform: `translateY(${virtualRow.start - scrollMargin}px)`,
               }}
             >

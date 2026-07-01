@@ -1,8 +1,6 @@
 import type { NextConfig } from "next";
 import path from "path";
 
-const API_ORIGIN = process.env.API_PROXY_TARGET || "https://api.injaro.info";
-
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
   turbopack: {
@@ -17,10 +15,11 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
-      {
-        source: "/api/:path*",
-        destination: `${API_ORIGIN}/:path*`,
-      },
+      { source: "/landing/:path*", destination: "/api/landing/:path*" },
+      { source: "/main/:path*", destination: "/api/main/:path*" },
+      { source: "/accounts/:path*", destination: "/api/accounts/:path*" },
+      { source: "/invite/:path*", destination: "/api/invite/:path*" },
+      { source: "/analyst/:path*", destination: "/api/analyst/:path*" },
     ];
   },
   env: {

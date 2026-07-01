@@ -1,5 +1,5 @@
 import type { Location } from "@/store/map";
-import { API_BASE } from "@/lib/api-base";
+import { apiFetchJson } from "@/lib/api-fetch";
 
 export interface LandingEvent {
   event_slug: string;
@@ -17,20 +17,12 @@ export interface LandingLocation {
   category?: number;
 }
 
-async function publicFetch<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch ${path} (${res.status})`);
-  }
-  return res.json();
-}
-
 export function getLandingEvents(): Promise<LandingEvent[]> {
-  return publicFetch<LandingEvent[]>("/landing/tazeha/list/");
+  return apiFetchJson<LandingEvent[]>("/landing/tazeha/list/");
 }
 
 export function getLandingLocations(): Promise<LandingLocation[]> {
-  return publicFetch<LandingLocation[]>("/landing/location/list/");
+  return apiFetchJson<LandingLocation[]>("/landing/location/list/");
 }
 
 export async function getLandingEventBySlug(

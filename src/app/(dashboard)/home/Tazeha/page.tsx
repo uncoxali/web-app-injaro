@@ -71,7 +71,7 @@ function getSlug(item: TazehaItem): string {
 }
 
 function getTitle(item: TazehaItem): string {
-  return item.event_name || item.topic || "";
+  return item.topic || item.event_name || "";
 }
 
 function getImage(item: TazehaItem): string {
@@ -174,10 +174,16 @@ function EventCard({
             </div>
           )}
         </div>
-        <div className="p-3">
-          <p className="text-xs font-semibold text-text-primary leading-snug line-clamp-2">
-            {title}
-          </p>
+        <div className="p-3 pt-2.5">
+          {title ? (
+            <p className="text-xs font-semibold text-text-primary leading-snug line-clamp-2">
+              {title}
+            </p>
+          ) : (
+            <p className="text-xs text-text-secondary/60 leading-snug line-clamp-2">
+              بدون عنوان
+            </p>
+          )}
         </div>
       </Link>
   );
@@ -417,7 +423,7 @@ export default function TazehaPage() {
         </div>
       </div>
 
-      <div className="flex-1 px-4 pt-4 pb-6">
+      <div className="flex-1 px-4 pt-4 pb-28">
         {searchOpen && searchQuery.trim() ? (
           <UnifiedSearchResults
             query={searchQuery}

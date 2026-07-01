@@ -1,5 +1,5 @@
 import { authFetch } from "@/lib/auth-fetch";
-import { API_BASE } from "@/lib/api-base";
+import { apiFetch } from "@/lib/api-fetch";
 
 export interface EventImage {
   url: string;
@@ -66,7 +66,7 @@ export async function getEventDetail(slug: string): Promise<EventDetail> {
 
 export async function getPublicEventDetail(slug: string): Promise<EventDetail | null> {
   try {
-    const res = await fetch(`${API_BASE}/main/v2/event/${slug}/`);
+    const res = await apiFetch(`/main/v2/event/${slug}/`);
     if (!res.ok) return null;
     return res.json();
   } catch {

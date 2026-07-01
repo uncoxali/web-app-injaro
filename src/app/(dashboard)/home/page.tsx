@@ -439,7 +439,12 @@ export default function HomePage() {
     refetch: refetchLocations,
   } = useLandingLocations();
   const loading = eventsLoading || locationsLoading;
-  const error = eventsError || locationsError;
+  const error =
+    !loading &&
+    events.length === 0 &&
+    locations.length === 0 &&
+    eventsError &&
+    locationsError;
   const [guest, setGuest] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");

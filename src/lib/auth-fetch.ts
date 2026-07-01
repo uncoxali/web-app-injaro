@@ -1,6 +1,6 @@
 import { cookieUtils } from "./cookies";
 import { redirectToLogin } from "./auth-utils";
-import { API_BASE } from "./api-base";
+import { apiFetch } from "./api-fetch";
 
 interface AuthFetchOptions extends RequestInit {
   skipAuth?: boolean;
@@ -14,7 +14,7 @@ async function refreshTokens(): Promise<boolean> {
   if (!refreshToken) return false;
 
   try {
-    const res = await fetch(`${API_BASE}/accounts/auth/refresh/`, {
+    const res = await apiFetch("/accounts/auth/refresh/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh: refreshToken }),
@@ -58,7 +58,7 @@ export async function authFetch(
 
   const hadToken = !skipAuth && !!cookieUtils.getAccessToken();
 
-  let res = await fetch(`${API_BASE}${url}`, {
+  let res = await apiFetch(url, {
     ...fetchOptions,
     headers,
   });
@@ -80,7 +80,7 @@ export async function authFetch(
         newHeaders.set("Authorization", `Bearer ${newToken}`);
       }
 
-      res = await fetch(`${API_BASE}${url}`, {
+      res = await apiFetch(url, {
         ...fetchOptions,
         headers: newHeaders,
       });
