@@ -1,24 +1,19 @@
 import { cn } from "@/lib/utils";
 
-function MapPattern({ variant }: { variant: "light" | "dark" }) {
-  const isDark = variant === "dark";
-  const bg = isDark ? "#1e293b" : "#f3f4f6";
-  const stroke = isDark ? "#334155" : "#d1d5db";
-  const strokeSoft = isDark ? "#475569" : "#e5e7eb";
-  const patternId = `profile-map-pattern-${variant}`;
+function MapPattern() {
+  const bg = "#e8e8e8";
+  const stroke = "#c8c8c8";
+  const strokeSoft = "#d6d6d6";
 
   return (
     <svg
-      className={cn(
-        "absolute inset-0 h-full w-full",
-        isDark ? "hidden opacity-[0.45] dark:block" : "opacity-[0.35] dark:hidden"
-      )}
+      className="absolute inset-0 h-full w-full opacity-70"
       xmlns="http://www.w3.org/2000/svg"
       preserveAspectRatio="xMidYMid slice"
     >
       <defs>
         <pattern
-          id={patternId}
+          id="profile-map-pattern"
           width="400"
           height="400"
           patternUnits="userSpaceOnUse"
@@ -28,49 +23,49 @@ function MapPattern({ variant }: { variant: "light" | "dark" }) {
             d="M0 80 Q100 60 200 80 T400 80"
             fill="none"
             stroke={stroke}
-            strokeWidth="2"
+            strokeWidth="1.5"
           />
           <path
             d="M0 160 Q120 140 240 160 T400 160"
             fill="none"
             stroke={stroke}
-            strokeWidth="2"
+            strokeWidth="1.5"
           />
           <path
             d="M0 240 Q80 260 160 240 T320 240 T400 240"
             fill="none"
             stroke={stroke}
-            strokeWidth="2"
+            strokeWidth="1.5"
           />
           <path
             d="M0 320 Q150 300 300 320 T400 320"
             fill="none"
             stroke={stroke}
-            strokeWidth="2"
+            strokeWidth="1.5"
           />
           <path
             d="M60 0 Q80 100 60 200 T60 400"
             fill="none"
             stroke={stroke}
-            strokeWidth="2"
+            strokeWidth="1.5"
           />
           <path
             d="M160 0 Q140 120 160 240 T160 400"
             fill="none"
             stroke={stroke}
-            strokeWidth="2"
+            strokeWidth="1.5"
           />
           <path
             d="M260 0 Q280 100 260 200 T260 400"
             fill="none"
             stroke={stroke}
-            strokeWidth="2"
+            strokeWidth="1.5"
           />
           <path
             d="M340 0 Q320 150 340 300 T340 400"
             fill="none"
             stroke={stroke}
-            strokeWidth="2"
+            strokeWidth="1.5"
           />
           <circle
             cx="120"
@@ -78,7 +73,7 @@ function MapPattern({ variant }: { variant: "light" | "dark" }) {
             r="18"
             fill="none"
             stroke={strokeSoft}
-            strokeWidth="1.5"
+            strokeWidth="1"
           />
           <circle
             cx="280"
@@ -86,7 +81,7 @@ function MapPattern({ variant }: { variant: "light" | "dark" }) {
             r="24"
             fill="none"
             stroke={strokeSoft}
-            strokeWidth="1.5"
+            strokeWidth="1"
           />
           <circle
             cx="200"
@@ -94,11 +89,11 @@ function MapPattern({ variant }: { variant: "light" | "dark" }) {
             r="14"
             fill="none"
             stroke={strokeSoft}
-            strokeWidth="1.5"
+            strokeWidth="1"
           />
         </pattern>
       </defs>
-      <rect width="100%" height="100%" fill={`url(#${patternId})`} />
+      <rect width="100%" height="100%" fill="url(#profile-map-pattern)" />
     </svg>
   );
 }
@@ -107,11 +102,11 @@ export function ProfileMapBackground() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-0 overflow-hidden"
+      className={cn(
+        "pointer-events-none absolute inset-0 overflow-hidden bg-[#e8e8e8]"
+      )}
     >
-      <MapPattern variant="light" />
-      <MapPattern variant="dark" />
-      <div className="absolute inset-0 bg-linear-to-b from-background/20 via-background/60 to-background dark:from-background/40 dark:via-background/80 dark:to-background" />
+      <MapPattern />
     </div>
   );
 }

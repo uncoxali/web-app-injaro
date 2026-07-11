@@ -23,14 +23,18 @@ import { Modal } from "@/components/ui/modal";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ErrorState } from "@/components/ui/error-state";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { cn, toPersianDigits, imgUrl } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { ProfileMapBackground } from "@/components/profile/profile-map-background";
 import type { Category } from "@/lib/api/categories";
 
-const profileCardClass =
-  "overflow-hidden rounded-[22px] bg-white shadow-[0_8px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)] dark:border dark:border-border/30 dark:bg-surface dark:shadow-[0_8px_32px_rgba(0,0,0,0.35),0_2px_8px_rgba(0,0,0,0.2)]";
+const PROFILE_PRIMARY = "#ff5a5f";
+const PROFILE_TEXT = "#1f2937";
+const PROFILE_TEXT_MUTED = "#6b7280";
+const PROFILE_CARD_SHADOW =
+  "0 8px 28px rgba(0,0,0,0.09), 0 2px 8px rgba(0,0,0,0.04)";
+const PROFILE_STAT_SHADOW =
+  "0 6px 22px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04)";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -135,8 +139,45 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-dvh items-center justify-center">
-        <Spinner size="lg" />
+      <div className="relative flex min-h-dvh flex-col bg-[#e8e8e8]">
+        <ProfileMapBackground />
+        <div className="relative z-10 flex flex-col gap-4 px-4 pt-4 pb-6">
+          <div className="flex justify-end">
+            <div className="h-11 w-11 animate-pulse rounded-full bg-[#f0f0f0]" />
+          </div>
+          <div
+            className="h-[104px] animate-pulse rounded-[20px] border bg-white"
+            style={{ borderColor: PROFILE_PRIMARY }}
+          />
+          <div className="grid grid-cols-3 gap-2.5">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-[108px] animate-pulse rounded-[18px] bg-white"
+                style={{ boxShadow: PROFILE_STAT_SHADOW }}
+              />
+            ))}
+          </div>
+          <div
+            className="rounded-[20px] bg-white p-1"
+            style={{ boxShadow: PROFILE_CARD_SHADOW }}
+          >
+            <div className="h-14 animate-pulse border-b border-[#ececec]" />
+            <div className="px-4 py-4">
+              <div className="mb-3 h-4 w-28 animate-pulse rounded bg-[#ececec] ms-auto" />
+              <div className="flex flex-wrap gap-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-8 w-[72px] animate-pulse rounded-full"
+                    style={{ backgroundColor: `${PROFILE_PRIMARY}55` }}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="h-14 animate-pulse border-t border-[#ececec]" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -155,20 +196,22 @@ export default function ProfilePage() {
   );
 
   return (
-    <div className="relative flex min-h-dvh flex-col">
+    <div className="relative flex min-h-dvh flex-col bg-[#e8e8e8] text-[#1f2937]">
       <ProfileMapBackground />
 
       <div className="relative z-10 flex flex-col gap-4 px-4 pt-4 pb-6">
-        <div className="flex items-center justify-between">
-          <ThemeToggle className="h-11 w-11 rounded-full bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)] dark:border-border/40 dark:bg-surface" />
+        <div className="flex items-center justify-end">
           <button
             onClick={handleOpenNotif}
             aria-label="اعلان‌ها"
-            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition-transform active:scale-95 dark:border dark:border-border/40 dark:bg-surface"
+            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-[#f0f0f0] transition-transform active:scale-95"
           >
             <BellIcon />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -inset-e-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white ring-2 ring-background">
+              <span
+                className="absolute -top-0.5 -inset-e-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-white ring-2 ring-[#e8e8e8]"
+                style={{ backgroundColor: PROFILE_PRIMARY }}
+              >
                 {unreadCount > 9 ? "9+" : toPersianDigits(unreadCount)}
               </span>
             )}
@@ -179,21 +222,23 @@ export default function ProfilePage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-          className="flex items-center gap-3 rounded-[22px] border border-primary/80 bg-white p-3 shadow-[0_8px_28px_rgba(0,0,0,0.08),0_2px_8px_rgba(255,90,95,0.12)] dark:border-primary/40 dark:bg-surface dark:shadow-[0_8px_28px_rgba(0,0,0,0.35),0_2px_8px_rgba(0,0,0,0.2)]"
+          className="flex items-center gap-3 rounded-[20px] border bg-white p-3"
+          style={{ borderColor: PROFILE_PRIMARY, boxShadow: PROFILE_CARD_SHADOW }}
         >
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="relative shrink-0">
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingAvatar}
-                className="relative flex h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-full bg-primary shadow-[0_4px_16px_rgba(255,90,95,0.35)]"
+                className="relative flex h-[68px] w-[68px] items-center justify-center overflow-hidden rounded-full shadow-[0_4px_14px_rgba(255,90,95,0.35)]"
+                style={{ backgroundColor: PROFILE_PRIMARY }}
               >
                 {profile?.avatar_url ? (
                   <OptimizedImage
                     src={profile.avatar_url}
                     alt=""
-                    width={72}
-                    height={72}
+                    width={68}
+                    height={68}
                     className="h-full w-full object-cover"
                   />
                 ) : (
@@ -207,18 +252,24 @@ export default function ProfilePage() {
               </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute -bottom-0.5 -inset-e-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white shadow-md ring-2 ring-white transition-colors hover:bg-primary/90 dark:ring-surface"
+                className="absolute -bottom-0.5 -inset-e-0.5 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#4b5563] text-white ring-2 ring-white"
               >
-                <PlusIcon size={12} />
+                <PlusIcon size={11} />
               </button>
             </div>
 
             <div className="min-w-0 flex-1 text-right">
-              <h1 className="truncate text-base font-bold text-text-primary">
+              <h1
+                className="truncate text-[15px] font-bold leading-snug"
+                style={{ color: PROFILE_TEXT }}
+              >
                 {profile?.full_name || "کاربر"}
               </h1>
               {profile?.job ? (
-                <p className="mt-0.5 truncate text-xs text-text-secondary">
+                <p
+                  className="mt-0.5 truncate text-xs"
+                  style={{ color: PROFILE_TEXT_MUTED }}
+                >
                   {profile.job}
                 </p>
               ) : null}
@@ -227,10 +278,13 @@ export default function ProfilePage() {
 
           <button
             onClick={() => setShowQrModal(true)}
-            className="flex shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-border/30 bg-surface/60 px-3 py-2.5 transition-colors hover:bg-surface dark:border-border/50 dark:bg-background/40 dark:hover:bg-background/60"
+            className="flex h-[76px] w-[68px] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[#d1d5db] bg-white"
           >
             <QrIcon />
-            <span className="text-[10px] font-medium text-text-secondary">
+            <span
+              className="text-[10px] font-medium leading-tight"
+              style={{ color: PROFILE_TEXT_MUTED }}
+            >
               کیوآرکد من
             </span>
           </button>
@@ -263,40 +317,55 @@ export default function ProfilePage() {
           />
         </div>
 
-        <div className={profileCardClass}>
+        <div
+          className="overflow-hidden rounded-[20px] bg-white"
+          style={{ boxShadow: PROFILE_CARD_SHADOW }}
+        >
           <MenuRow
             label="داده‌های کاربری"
             icon={<UserDataIcon />}
             onClick={() => router.push("/profile")}
           />
-        </div>
 
-        <div className={profileCardClass}>
-          <div className="px-4 py-4">
+          <div className="border-t border-[#ececec] px-4 py-4">
             <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center text-primary">
-                  <PlusIcon size={22} />
-                </div>
-                <span className="text-sm font-semibold text-text-primary">
-                  علاقه‌مندی‌ها
-                </span>
-              </div>
               <button
+                type="button"
                 onClick={handleOpenInterests}
                 aria-label="افزودن علاقه‌مندی"
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors hover:bg-primary/15"
+                className="flex h-7 w-7 items-center justify-center"
+                style={{ color: PROFILE_PRIMARY }}
               >
-                <PlusIcon size={14} />
+                <PlusIcon size={18} />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenInterests}
+                className="flex items-center gap-1.5"
+              >
+                <span
+                  className="text-sm font-semibold"
+                  style={{ color: PROFILE_TEXT }}
+                >
+                  علاقه‌مندی‌ها
+                </span>
+                <span
+                  className="flex h-6 w-6 items-center justify-center"
+                  style={{ color: PROFILE_PRIMARY }}
+                >
+                  <PlusIcon size={18} />
+                </span>
               </button>
             </div>
 
             <div className="flex flex-wrap gap-2">
               {categoriesLoading ? (
-                Array.from({ length: 3 }).map((_, i) => (
+                Array.from({ length: 4 }).map((_, i) => (
                   <div
                     key={i}
-                    className="h-8 w-20 animate-pulse rounded-full bg-border/30"
+                    className="h-8 w-[72px] animate-pulse rounded-full"
+                    style={{ backgroundColor: `${PROFILE_PRIMARY}44` }}
                   />
                 ))
               ) : userInterests.length > 0 ? (
@@ -306,26 +375,30 @@ export default function ProfilePage() {
               ) : (
                 <button
                   onClick={handleOpenInterests}
-                  className="w-full rounded-xl border border-dashed border-primary/30 py-3 text-center text-xs text-text-secondary transition-colors hover:border-primary/50 hover:text-primary"
+                  className="w-full rounded-xl border border-dashed py-3 text-center text-xs transition-colors"
+                  style={{
+                    borderColor: `${PROFILE_PRIMARY}55`,
+                    color: PROFILE_TEXT_MUTED,
+                  }}
                 >
                   علاقه‌مندی خود را اضافه کنید
                 </button>
               )}
             </div>
           </div>
-        </div>
 
-        <div className={profileCardClass}>
-          <MenuRow
-            label="پشتیبانی و ارتباط با ما"
-            icon={<SupportIcon />}
-            onClick={() => router.push("/home/profile/support")}
-          />
+          <div className="border-t border-[#ececec]">
+            <MenuRow
+              label="پشتیبانی و ارتباط با ما"
+              icon={<SupportIcon />}
+              onClick={() => router.push("/home/profile/support")}
+            />
+          </div>
         </div>
 
         <button
           onClick={() => setShowLogoutConfirm(true)}
-          className="mx-auto mt-1 text-xs text-text-secondary/60 transition-colors hover:text-error"
+          className="mx-auto mt-1 text-xs text-[#9ca3af] transition-colors hover:text-[#ef4444]"
         >
           خروج از حساب
         </button>
@@ -459,17 +532,23 @@ function StatCard({
     <Comp
       onClick={onClick}
       className={cn(
-        "flex flex-col items-center gap-1.5 rounded-[18px] bg-white px-2 py-3.5 shadow-[0_6px_24px_rgba(0,0,0,0.08),0_2px_6px_rgba(0,0,0,0.04)] dark:border dark:border-border/30 dark:bg-surface dark:shadow-[0_6px_24px_rgba(0,0,0,0.35),0_2px_6px_rgba(0,0,0,0.2)]",
+        "flex flex-col items-center gap-1 rounded-[18px] bg-white px-2 py-3.5",
         onClick && "transition-transform active:scale-[0.98]"
       )}
+      style={{ boxShadow: PROFILE_STAT_SHADOW }}
     >
-      <span className="text-xl font-bold text-text-primary">
+      <span className="text-[22px] font-bold leading-none" style={{ color: PROFILE_TEXT }}>
         {toPersianDigits(value)}
       </span>
-      <span className="text-center text-[10px] leading-tight text-text-secondary">
+      <span
+        className="text-center text-[10px] leading-tight"
+        style={{ color: PROFILE_TEXT_MUTED }}
+      >
         {label}
       </span>
-      <div className="mt-0.5 text-primary">{icon}</div>
+      <div className="mt-1" style={{ color: PROFILE_PRIMARY }}>
+        {icon}
+      </div>
     </Comp>
   );
 }
@@ -486,13 +565,18 @@ function MenuRow({
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center justify-between px-4 py-4 transition-colors hover:bg-surface/60 dark:hover:bg-white/5"
+      className="flex w-full items-center justify-between px-4 py-4 transition-colors hover:bg-[#fafafa]"
     >
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center text-primary">
+        <div
+          className="flex h-9 w-9 items-center justify-center"
+          style={{ color: PROFILE_PRIMARY }}
+        >
           {icon}
         </div>
-        <span className="text-sm font-medium text-text-primary">{label}</span>
+        <span className="text-sm font-medium" style={{ color: PROFILE_TEXT }}>
+          {label}
+        </span>
       </div>
       <ChevronIcon />
     </button>
@@ -503,7 +587,13 @@ function InterestTag({ category }: { category: Category }) {
   const iconSrc = category.location_icon || category.icon;
 
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-white shadow-[0_2px_8px_rgba(255,90,95,0.3)]">
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-white"
+      style={{
+        backgroundColor: PROFILE_PRIMARY,
+        boxShadow: "0 2px 8px rgba(255,90,95,0.35)",
+      }}
+    >
       {iconSrc ? (
         <OptimizedImage
           src={imgUrl(iconSrc)}
@@ -534,7 +624,7 @@ function ProfileAvatarPlaceholder() {
 
 function BellIcon({ size = 20, className }: { size?: number; className?: string }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={cn("text-text-secondary", className)}>
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={cn("text-[#6b7280]", className)}>
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
       <path d="M13.73 21a2 2 0 0 1-3.46 0" />
     </svg>
@@ -552,7 +642,7 @@ function PlusIcon({ size = 16 }: { size?: number }) {
 
 function QrIcon() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-text-secondary">
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[#6b7280]">
       <rect x="3" y="3" width="7" height="7" rx="1" />
       <rect x="14" y="3" width="7" height="7" rx="1" />
       <rect x="3" y="14" width="7" height="7" rx="1" />
@@ -566,7 +656,7 @@ function QrIcon() {
 
 function ChevronIcon() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-secondary/30">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: PROFILE_PRIMARY }}>
       <polyline points="15 18 9 12 15 6" />
     </svg>
   );
