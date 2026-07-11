@@ -12,8 +12,7 @@ import {
   type EventDetail,
 } from "@/lib/api/events";
 import { getLandingEventBySlug, type LandingEvent } from "@/lib/api/landing";
-import { landingKeys, useLandingEvents } from "@/lib/queries/landing";
-import { toJalaali } from "jalaali-js";
+import { landingKeys } from "@/lib/queries/landing";
 import { isAuthenticated, loginUrl } from "@/lib/auth-utils";
 import { reportNavigationClick } from "@/lib/api/locations";
 import { Modal } from "@/components/ui/modal";
@@ -22,9 +21,21 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { PERSIAN_MONTHS } from "@/lib/constants/enums";
-import { cn, toPersianDigits, shareContent } from "@/lib/utils";
+import { cn, toPersianDigits } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 
+function formatPersianDateTime(iso?: string): string {
+  if (!iso) return "";
+  const [datePart, timePart] = iso.split("T");
+  if (!datePart) return "";
+  const [year, month, day] = datePart.split("-");
+  const monthName = PERSIAN_MONTHS[parseInt(month) - 1] || "";
+  const time = timePart ? timePart.slice(0, 5) : "";
+  const dayPersian = toPersianDigits(parseInt(day));
+  const yearPersian = toPersianDigits(parseInt(year));
+  const timePersian = time ? toPersianDigits(time) : "";
+  return `${dayPersian} ${monthName} ${yearPersian}${timePersian ? `، ساعت ${timePersian}` : ""}`;
+}
 
 interface EventDetailClientProps {
   initialData: EventDetail | null;
@@ -82,16 +93,8 @@ export function EventDetailClient({
   }, [slug, initialData, queryClient]);
 
   const handleParticipate = useCallback(() => {
-    if (isGuest) {
-      router.push(loginUrl(`/events/${slug}`));
-      return;
-    }
-    if (data?.need_ticket) {
-      setTicketQrOpen(true);
-      return;
-    }
-    toast.success("درخواست شرکت ثبت شد");
-  }, [isGuest, router, slug, data?.need_ticket]);
+    router.push(loginUrl(`/events/${slug}`));
+  }, [router, slug]);
 
   const handleSave = useCallback(async () => {
     if (isGuest) {
@@ -107,10 +110,12 @@ export function EventDetailClient({
     }
   }, [saved, isGuest, router, slug]);
 
-  const handleShare = useCallback(async () => {
-    const result = await shareContent({ title: data?.topic });
-    if (result === "copied") {
-      toast.success("لینک کپی شد");
+  const handleShare = useCallback(() => {
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: data?.topic, url });
+    } else {
+      navigator.clipboard.writeText(url).then(() => toast.success("لینک کپی شد"));
     }
   }, [data]);
 
@@ -152,10 +157,12 @@ export function EventDetailClient({
         event={guestEvent}
         onBack={() => router.back()}
         onParticipate={handleParticipate}
-        onShare={async () => {
-          const result = await shareContent({ title: guestEvent.topic });
-          if (result === "copied") {
-            toast.success("لینک کپی شد");
+        onShare={() => {
+          const url = window.location.href;
+          if (navigator.share) {
+            navigator.share({ title: guestEvent.topic, url });
+          } else {
+            navigator.clipboard.writeText(url).then(() => toast.success("لینک کپی شد"));
           }
         }}
       />
@@ -175,19 +182,19 @@ export function EventDetailClient({
     : data.thumbnail
       ? [{ url: data.thumbnail }]
       : [];
+  const statementLong = (data.statement?.length || 0) > 200;
   const sideOrgs = data.side_organizers || [];
   const talks = data.conversation_panel || [];
   const saloons = data.saloons || [];
-  const showOrganizers = Boolean(data.main_organizers) || sideOrgs.length > 0;
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <div className="relative px-4 pt-4">
+      <div className="relative">
         <GallerySection images={images} onOpenImage={handleOpenImage} />
         <button
           onClick={() => router.back()}
           aria-label="بازگشت"
-          className="absolute top-7 inset-s-7 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-background/85 text-text-primary shadow-md backdrop-blur-xs transition-colors hover:bg-background"
+          className="absolute top-4 inset-s-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-xs shadow-md flex items-center justify-center text-text-primary hover:bg-background transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="9 18 15 12 9 6" />
@@ -195,71 +202,146 @@ export function EventDetailClient({
         </button>
       </div>
 
-      <div className="px-4 pt-3">
-        <div className="mb-1 flex items-start gap-2">
-          <h1 className="flex-1 text-lg font-bold leading-snug text-text-primary">
-            {data.topic}
-          </h1>
-          {data.is_vip && (
-            <Badge variant="warning" size="sm" className="shrink-0">
-              VIP
-            </Badge>
+      <div className="px-4 pt-4 pb-3">
+        <div className="bg-white/60 dark:bg-white/3 backdrop-blur-xl border border-border/15 shadow-xs rounded-2xl p-4 space-y-3">
+          <div className="flex items-start gap-2">
+            <h1 className="text-xl font-bold text-text-primary flex-1 leading-snug">
+              {data.topic}
+            </h1>
+            {data.is_vip && (
+              <Badge variant="warning" size="sm" className="shrink-0">
+                VIP
+              </Badge>
+            )}
+          </div>
+
+          {data.start_datetime && (
+            <div className="flex items-center gap-2 text-sm text-text-secondary">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+              </div>
+              <span className="font-medium">
+                {formatPersianDateTime(data.start_datetime)}
+                {data.finish_datetime && ` — ${formatPersianDateTime(data.finish_datetime)}`}
+              </span>
+            </div>
+          )}
+
+          {data.location && (
+            <button
+              onClick={handleNavigate}
+              className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary transition-colors w-full text-right"
+            >
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+              </div>
+              <span className="font-medium">{data.location.name}</span>
+            </button>
           )}
         </div>
-
-        <EventActionBar
-          saved={saved}
-          onSave={handleSave}
-          onShare={handleShare}
-          onCalendar={() => data.GoogleCalendarLink && window.open(data.GoogleCalendarLink, "_blank")}
-          calendarDisabled={!data.GoogleCalendarLink}
-        />
-
-        <div className="mt-4 flex gap-2.5">
-          <button
-            onClick={handleParticipate}
-            className="flex h-12 flex-1 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white shadow-[0_6px_20px_rgba(255,90,95,0.35)] transition-transform active:scale-[0.98]"
-          >
-            شرکت می‌کنم
-          </button>
-          <button
-            onClick={handleNavigate}
-            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-primary bg-white text-sm font-semibold text-primary shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-transform active:scale-[0.98] dark:border-primary/50 dark:bg-surface"
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                <circle cx="12" cy="10" r="3" />
-              </svg>
-            </span>
-            مسیریابی
-          </button>
-        </div>
-
-        <EventInfoStrip
-          location={data.location?.address || data.location?.name}
-          dateRange={formatEventDateRange(data.start_datetime, data.finish_datetime)}
-          accessLabel={data.need_ticket ? "نیاز به بلیت" : "برای عموم آزاد"}
-          onLocationClick={handleNavigate}
-        />
       </div>
 
-      <div className="flex-1 space-y-6 px-4 pt-6 pb-8">
+      <div className="sticky top-0 z-10 bg-background/60 backdrop-blur-2xl border-b border-border/40">
+        <div className="flex gap-1.5 px-4 py-2.5">
+          <ActionIcon active={saved} onClick={handleSave} tooltip={saved ? "حذف از ذخیره" : "ذخیره"}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill={saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth={saved ? 0 : 1.5}>
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+            </svg>
+          </ActionIcon>
+          <ActionIcon onClick={handleShare} tooltip="اشتراک‌گذاری">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+          </ActionIcon>
+          <ActionIcon onClick={() => data.GoogleCalendarLink && window.open(data.GoogleCalendarLink, "_blank")} tooltip="تقویم" disabled={!data.GoogleCalendarLink}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+              <polyline points="8 14 11 17 16 12" />
+            </svg>
+          </ActionIcon>
+          <ActionIcon onClick={handleNavigate} tooltip="مسیریابی">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+          </ActionIcon>
+          {data.need_ticket && (
+            <ActionIcon onClick={() => setTicketQrOpen(true)} tooltip="بلیت" className="text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+              </svg>
+            </ActionIcon>
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1 px-4 pt-5 pb-8 space-y-5">
         {data.statement && (
           <section>
             <SectionTitle>درباره رویداد</SectionTitle>
-            <StatementBlock text={data.statement} />
+            <div className="bg-white/60 dark:bg-white/3 backdrop-blur-xl border border-border/15 shadow-xs rounded-2xl p-4">
+              <StatementBlock text={data.statement} />
+            </div>
           </section>
         )}
 
-        {showOrganizers && (
-          <OrganizersSection
-            mainOrganizers={data.main_organizers}
-            sideOrganizers={sideOrgs}
-          />
+        {data.main_organizers && (
+          <section>
+            <SectionTitle>برگزارکنندگان</SectionTitle>
+            <div className="bg-white/60 dark:bg-white/3 backdrop-blur-xl border border-border/15 shadow-xs rounded-2xl p-4">
+              <p className="text-sm text-text-secondary leading-relaxed">
+                {data.main_organizers}
+              </p>
+            </div>
+          </section>
         )}
 
-        <SimilarEventsSection currentSlug={slug} />
+        {sideOrgs.length > 0 && (
+          <section>
+            <SectionTitle>برگزارکنندگان فرعی</SectionTitle>
+            <div className="bg-white/60 dark:bg-white/3 backdrop-blur-xl border border-border/15 shadow-xs rounded-2xl p-4">
+              <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory scrollbar-none">
+                {sideOrgs.map((org) => (
+                  <div
+                    key={org.id}
+                    className="snap-start shrink-0 flex flex-col items-center gap-2 w-20"
+                  >
+                    <div className="w-14 h-14 rounded-xl bg-white/50 border border-border/40 flex items-center justify-center overflow-hidden shadow-xs">
+                      {org.logo ? (
+                        <OptimizedImage src={org.logo} alt={org.name} width={56} height={56} className="w-full h-full" />
+                      ) : (
+                        <span className="text-lg font-bold text-text-secondary/40">
+                          {org.name.slice(0, 1)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-text-secondary text-center line-clamp-2 leading-snug">
+                      {org.name}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {talks.length > 0 && (
           <section>
@@ -452,358 +534,6 @@ function GuestEventView({
   );
 }
 
-function formatEventDateRange(start?: string, finish?: string): string {
-  if (!start) return "";
-  const startDate = new Date(start);
-  if (isNaN(startDate.getTime())) return "";
-
-  const finishDate = finish ? new Date(finish) : null;
-  const startJ = toJalaali(
-    startDate.getFullYear(),
-    startDate.getMonth() + 1,
-    startDate.getDate()
-  );
-
-  if (finishDate && !isNaN(finishDate.getTime())) {
-    const finishJ = toJalaali(
-      finishDate.getFullYear(),
-      finishDate.getMonth() + 1,
-      finishDate.getDate()
-    );
-
-    if (startJ.jy === finishJ.jy && startJ.jm === finishJ.jm && startJ.jd !== finishJ.jd) {
-      return `${toPersianDigits(startJ.jd)} تا ${toPersianDigits(finishJ.jd)} ${PERSIAN_MONTHS[startJ.jm - 1]} ${toPersianDigits(startJ.jy)}، ساعت ${toPersianDigits(startDate.getHours())} تا ${toPersianDigits(finishDate.getHours())}`;
-    }
-  }
-
-  const datePart = `${toPersianDigits(startJ.jd)} ${PERSIAN_MONTHS[startJ.jm - 1]} ${toPersianDigits(startJ.jy)}`;
-  const timePart =
-    finishDate && !isNaN(finishDate.getTime())
-      ? `، ساعت ${toPersianDigits(startDate.getHours())} تا ${toPersianDigits(finishDate.getHours())}`
-      : start.includes("T")
-        ? `، ساعت ${toPersianDigits(startDate.getHours())}`
-        : "";
-
-  return `${datePart}${timePart}`;
-}
-
-function EventActionBar({
-  saved,
-  onSave,
-  onShare,
-  onCalendar,
-  calendarDisabled,
-}: {
-  saved: boolean;
-  onSave: () => void;
-  onShare: () => void;
-  onCalendar: () => void;
-  calendarDisabled?: boolean;
-}) {
-  const items = [
-    {
-      key: "like",
-      label: "پسندیدم",
-      onClick: undefined,
-      disabled: true,
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-        </svg>
-      ),
-    },
-    {
-      key: "share",
-      label: "اشتراک گذاری",
-      onClick: onShare,
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <circle cx="18" cy="5" r="3" />
-          <circle cx="6" cy="12" r="3" />
-          <circle cx="18" cy="19" r="3" />
-          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-        </svg>
-      ),
-    },
-    {
-      key: "save",
-      label: "ذخیره سازی",
-      onClick: onSave,
-      active: saved,
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill={saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth={saved ? 0 : 1.5}>
-          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-        </svg>
-      ),
-    },
-    {
-      key: "calendar",
-      label: "افزودن به تقویم",
-      onClick: onCalendar,
-      disabled: calendarDisabled,
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <rect x="3" y="4" width="18" height="18" rx="2" />
-          <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-      ),
-    },
-  ];
-
-  return (
-    <div className="mt-3 flex items-stretch rounded-2xl border border-border/20 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:border-border/30 dark:bg-surface dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
-      {items.map((item, index) => (
-        <div key={item.key} className="flex flex-1 items-stretch">
-          <button
-            type="button"
-            onClick={item.onClick}
-            disabled={item.disabled || !item.onClick}
-            className={cn(
-              "flex flex-1 flex-col items-center justify-center gap-1 px-1 py-3 transition-colors",
-              item.active ? "text-primary" : "text-text-secondary",
-              (item.disabled || !item.onClick) && "opacity-40",
-              item.onClick && !item.disabled && "hover:text-primary"
-            )}
-          >
-            {item.icon}
-            <span className="text-[10px] font-medium leading-tight">{item.label}</span>
-          </button>
-          {index < items.length - 1 && (
-            <div className="w-px self-center bg-border/30" />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function EventInfoStrip({
-  location,
-  dateRange,
-  accessLabel,
-  onLocationClick,
-}: {
-  location?: string;
-  dateRange: string;
-  accessLabel: string;
-  onLocationClick: () => void;
-}) {
-  const items = [
-    {
-      key: "location",
-      label: location || "مکان نامشخص",
-      onClick: onLocationClick,
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-          <circle cx="12" cy="10" r="3" />
-        </svg>
-      ),
-    },
-    {
-      key: "date",
-      label: dateRange || "زمان نامشخص",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
-          <rect x="3" y="4" width="18" height="18" rx="2" />
-          <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-      ),
-    },
-    {
-      key: "access",
-      label: accessLabel,
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
-          <path d="M2 9a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V9z" />
-          <path d="M8 12h8" />
-        </svg>
-      ),
-    },
-  ];
-
-  return (
-    <div className="mt-4 flex rounded-2xl border border-border/20 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:border-border/30 dark:bg-surface dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
-      {items.map((item, index) => {
-        const Comp = item.onClick ? "button" : "div";
-        return (
-          <div key={item.key} className="flex flex-1 items-stretch">
-            <Comp
-              type={item.onClick ? "button" : undefined}
-              onClick={item.onClick}
-              className={cn(
-                "flex flex-1 flex-col items-center gap-2 px-2 py-3 text-center",
-                item.onClick && "transition-colors hover:text-primary"
-              )}
-            >
-              {item.icon}
-              <span className="text-[10px] leading-snug text-text-secondary">
-                {item.label}
-              </span>
-            </Comp>
-            {index < items.length - 1 && (
-              <div className="w-px self-stretch bg-border/30" />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function OrganizersSection({
-  mainOrganizers,
-  sideOrganizers,
-}: {
-  mainOrganizers?: string;
-  sideOrganizers: NonNullable<EventDetail["side_organizers"]>;
-}) {
-  return (
-    <section>
-      <SectionTitle>برگزارکنندگان</SectionTitle>
-      {mainOrganizers && (
-        <p className="mb-4 text-sm leading-relaxed text-text-secondary">
-          {mainOrganizers}
-        </p>
-      )}
-      {sideOrganizers.length > 0 && (
-        <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-none">
-          {sideOrganizers.map((org) => (
-            <div
-              key={org.id}
-              className="flex w-[92px] shrink-0 flex-col items-center gap-2"
-            >
-              <div className="flex h-[92px] w-[92px] items-center justify-center overflow-hidden rounded-[18px] bg-white p-3 shadow-[0_6px_24px_rgba(0,0,0,0.08),0_2px_6px_rgba(0,0,0,0.04)] dark:border dark:border-border/30 dark:bg-surface dark:shadow-[0_6px_24px_rgba(0,0,0,0.35)]">
-                {org.logo ? (
-                  <OptimizedImage
-                    src={org.logo}
-                    alt={org.name}
-                    width={72}
-                    height={72}
-                    className="h-full w-full object-contain"
-                  />
-                ) : (
-                  <span className="text-2xl font-bold text-text-secondary/40">
-                    {org.name.slice(0, 1)}
-                  </span>
-                )}
-              </div>
-              <p className="line-clamp-2 text-center text-[10px] leading-snug text-text-secondary">
-                {org.name}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function SimilarEventsSection({ currentSlug }: { currentSlug: string }) {
-  const router = useRouter();
-  const { data: landingEvents = [] } = useLandingEvents();
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const similarEvents = useMemo(
-    () => landingEvents.filter((event) => event.event_slug !== currentSlug).slice(0, 8),
-    [landingEvents, currentSlug]
-  );
-
-  const scroll = useCallback((direction: "prev" | "next") => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const amount = el.clientWidth * 0.75 * (direction === "next" ? 1 : -1);
-    el.scrollBy({ left: amount, behavior: "smooth" });
-  }, []);
-
-  if (similarEvents.length === 0) return null;
-
-  return (
-    <section>
-      <SectionTitle>رویدادهای مشابه</SectionTitle>
-      <div className="relative">
-        <div
-          ref={scrollRef}
-          className="flex gap-3 overflow-x-auto pb-1 scrollbar-none snap-x snap-mandatory"
-        >
-          {similarEvents.map((event) => (
-            <button
-              key={event.event_slug}
-              onClick={() => router.push(`/events/${event.event_slug}`)}
-              className="group w-[140px] shrink-0 snap-start overflow-hidden rounded-2xl bg-white text-right shadow-[0_6px_24px_rgba(0,0,0,0.08)] transition-transform active:scale-[0.98] dark:border dark:border-border/30 dark:bg-surface dark:shadow-[0_6px_24px_rgba(0,0,0,0.35)]"
-            >
-              <div className="relative aspect-[3/4] overflow-hidden bg-surface">
-                {event.thumbnail ? (
-                  <OptimizedImage
-                    src={event.thumbnail}
-                    alt={event.topic}
-                    fill
-                    sizes="140px"
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-text-secondary/20">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <polyline points="21 15 16 10 5 21" />
-                    </svg>
-                  </div>
-                )}
-                <div className="absolute inset-x-2 bottom-2 rounded-xl bg-white/85 px-2 py-1.5 backdrop-blur-sm dark:bg-surface/90">
-                  <p className="line-clamp-2 text-[10px] font-medium leading-snug text-text-primary">
-                    {event.topic}
-                  </p>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-        {similarEvents.length > 2 && (
-          <>
-            <CarouselArrow direction="prev" onClick={() => scroll("prev")} className="absolute top-1/2 inset-s-0 -translate-y-1/2" />
-            <CarouselArrow direction="next" onClick={() => scroll("next")} className="absolute top-1/2 inset-e-0 -translate-y-1/2" />
-          </>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function CarouselArrow({
-  direction,
-  onClick,
-  className,
-}: {
-  direction: "prev" | "next";
-  onClick: () => void;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={direction === "prev" ? "قبلی" : "بعدی"}
-      className={cn(
-        "z-10 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-white shadow-[0_4px_14px_rgba(255,90,95,0.4)] transition-transform active:scale-95",
-        className
-      )}
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-        {direction === "prev" ? (
-          <polyline points="15 18 9 12 15 6" />
-        ) : (
-          <polyline points="9 18 15 12 9 6" />
-        )}
-      </svg>
-    </button>
-  );
-}
-
 function GallerySection({
   images,
   onOpenImage,
@@ -823,7 +553,7 @@ function GallerySection({
 
   if (!images || images.length === 0) {
     return (
-      <div className="relative flex h-72 items-center justify-center overflow-hidden rounded-3xl bg-linear-to-b from-primary/4 to-surface">
+      <div className="relative h-64 bg-linear-to-b from-primary/4 to-surface flex items-center justify-center">
         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-secondary/20">
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <circle cx="8.5" cy="8.5" r="1.5" />
@@ -833,15 +563,8 @@ function GallerySection({
     );
   }
 
-  const scroll = (direction: "prev" | "next") => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const amount = el.clientWidth * (direction === "next" ? 1 : -1);
-    el.scrollBy({ left: amount, behavior: "smooth" });
-  };
-
   return (
-    <div className="relative overflow-hidden rounded-3xl">
+    <div className="relative">
       <div
         ref={scrollRef}
         onScroll={handleScroll}
@@ -852,7 +575,7 @@ function GallerySection({
           <button
             key={i}
             onClick={() => onOpenImage(i)}
-            className="relative h-72 w-full shrink-0 snap-start overflow-hidden"
+            className="snap-start shrink-0 w-full h-64 overflow-hidden relative"
           >
             <OptimizedImage
               src={img.url}
@@ -861,35 +584,24 @@ function GallerySection({
               priority={i === 0}
               sizes="(max-width: 480px) 100vw, 480px"
             />
-            <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/25 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent pointer-events-none" />
           </button>
         ))}
       </div>
-
       {images.length > 1 && (
-        <>
-          <CarouselArrow
-            direction="prev"
-            onClick={() => scroll("prev")}
-            className="absolute top-1/2 inset-s-3 -translate-y-1/2"
-          />
-          <CarouselArrow
-            direction="next"
-            onClick={() => scroll("next")}
-            className="absolute top-1/2 inset-e-3 -translate-y-1/2"
-          />
-          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
-            {images.map((_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "h-2 rounded-full transition-all",
-                  i === activeIndex ? "w-5 bg-white" : "w-2 bg-white/50"
-                )}
-              />
-            ))}
-          </div>
-        </>
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+          {images.map((_, i) => (
+            <div
+              key={i}
+              className={cn(
+                "h-2 rounded-full transition-all",
+                i === activeIndex
+                  ? "bg-white w-5"
+                  : "bg-white/50 w-2"
+              )}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
@@ -897,9 +609,12 @@ function GallerySection({
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-3 text-sm font-bold text-text-primary">
-      {children}
-    </h2>
+    <div className="flex items-center gap-2 mb-3">
+      <div className="w-1 h-4 rounded-full bg-primary/60" />
+      <h2 className="text-sm font-bold text-text-primary">
+        {children}
+      </h2>
+    </div>
   );
 }
 
@@ -1030,6 +745,39 @@ function CompanyBoothCard({
           <polyline points="15 18 9 12 15 6" />
         </svg>
       )}
+    </button>
+  );
+}
+
+function ActionIcon({
+  children,
+  onClick,
+  tooltip,
+  active,
+  disabled,
+  className,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  tooltip?: string;
+  active?: boolean;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={tooltip}
+      title={tooltip}
+      className={cn(
+        "flex items-center justify-center h-10 w-10 rounded-xl border border-border/50 bg-surface text-text-secondary hover:border-primary/30 hover:text-primary hover:bg-primary/2 transition-all shadow-xs shadow-border/20",
+        active && "border-primary/30 text-primary bg-primary/5",
+        disabled && "opacity-40 cursor-not-allowed",
+        className
+      )}
+    >
+      {children}
     </button>
   );
 }
