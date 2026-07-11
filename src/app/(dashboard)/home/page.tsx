@@ -33,7 +33,11 @@ function Skeleton() {
           <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse" />
         </div>
       </div>
-      <div className="relative aspect-[5/6] rounded-3xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
+      <div className="flex gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="w-[160px] aspect-3/4 rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse shrink-0" />
+        ))}
+      </div>
       <div className="flex flex-col items-center gap-4">
         <div className="h-4 w-56 rounded-md bg-gray-100 dark:bg-gray-800 animate-pulse" />
         <div className="h-11 w-44 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse" />
@@ -50,7 +54,15 @@ function Skeleton() {
           <div key={i} className="w-[140px] aspect-2/3 rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse shrink-0" />
         ))}
       </div>
-      <div className="relative aspect-[5/6] rounded-3xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
+      <div className="flex items-center justify-between">
+        <div className="h-8 w-36 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse" />
+        <div className="h-4 w-12 rounded-md bg-gray-100 dark:bg-gray-800 animate-pulse" />
+      </div>
+      <div className="flex gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="w-[160px] aspect-3/4 rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse shrink-0" />
+        ))}
+      </div>
     </div>
   );
 }
@@ -210,6 +222,12 @@ export default function HomePage() {
         {events.length > 0 && (
           <motion.div variants={fadeUp}>
             <HomeHero events={events} showTodayBadge />
+          </motion.div>
+        )}
+
+        {events.length > 0 && (
+          <motion.div variants={fadeUp}>
+            <HomeEventsSection events={events} title="رویدادهای این هفته" />
           </motion.div>
         )}
       </motion.div>

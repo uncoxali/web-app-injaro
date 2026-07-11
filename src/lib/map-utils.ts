@@ -45,6 +45,66 @@ export const MAP_CAMERA_PADDING = {
   right: 48,
 } as const;
 
+export const MARKER_FOCUS_ZOOM = 15;
+export const MAP_OVERVIEW_ZOOM = 14;
+
+export type MapPoint = { latitude: number; longitude: number };
+
+export type MarkersCameraTarget =
+  | { type: "fly"; latitude: number; longitude: number; zoom: number }
+  | { type: "fitBounds"; bounds: [[number, number], [number, number]] };
+
+export function getMarkersCameraTarget(markers: MapPoint[]): MarkersCameraTarget {
+  if (markers.length === 0) {
+    return { type: "fly", ...TEHRAN_CENTER };
+  }
+
+  if (markers.length === 1) {
+    return {
+      type: "fly",
+      latitude: markers[0].latitude,
+      longitude: markers[0].longitude,
+      zoom: MAP_OVERVIEW_ZOOM,
+    };
+  }
+
+  const lngs = markers.map((m) => m.longitude);
+  const lats = markers.map((m) => m.latitude);
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+
+  if (minLng === maxLng && minLat === maxLat) {
+    return {
+      type: "fly",
+      latitude: minLat,
+      longitude: minLng,
+      zoom: MAP_OVERVIEW_ZOOM,
+    };
+  }
+
+  return {
+    type: "fitBounds",
+    bounds: [
+      [minLng, minLat],
+      [maxLng, maxLat],
+    ],
+  };
+}
+
+export function applyMarkersCameraTarget(
+  target: MarkersCameraTarget,
+  setFlyToTarget: (target: { latitude: number; longitude: number; zoom?: number } | null) => void,
+  setFitBoundsTarget: (target: [[number, number], [number, number]] | null) => void
+) {
+  if (target.type === "fly") {
+    setFlyToTarget(target);
+    return;
+  }
+  setFitBoundsTarget(target.bounds);
+}
+
 /** Viewport bbox [west, south, east, north] for supercluster from center + zoom. */
 export function bboxFromViewState(
   longitude: number,

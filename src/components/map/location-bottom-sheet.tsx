@@ -8,6 +8,7 @@ import { reportNavigationClick } from "@/lib/api/locations";
 import { isAuthenticated, loginUrl } from "@/lib/auth-utils";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { applyMarkersCameraTarget, getMarkersCameraTarget } from "@/lib/map-utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 
 function LocationLogo({
@@ -42,12 +43,41 @@ function LocationLogo({
 
 export function LocationBottomSheet() {
   const router = useRouter();
+  const markers = useMapStore((s) => s.markers);
   const selectedLocation = useMapStore((s) => s.selectedLocation);
   const sheetOpen = useMapStore((s) => s.sheetOpen);
   const setSheetOpen = useMapStore((s) => s.setSheetOpen);
+  const selectLocation = useMapStore((s) => s.selectLocation);
+  const setSelectedLocation = useMapStore((s) => s.setSelectedLocation);
+  const setFlyToTarget = useMapStore((s) => s.setFlyToTarget);
+  const setFitBoundsTarget = useMapStore((s) => s.setFitBoundsTarget);
   const [dragY, setDragY] = useState(0);
   const startY = useRef(0);
   const dragging = useRef(false);
+
+  const closeSheet = useCallback(
+    (options?: { zoomOut?: boolean }) => {
+      setSheetOpen(false);
+      selectLocation(null);
+      setSelectedLocation(null);
+
+      if (options?.zoomOut === false) return;
+
+      applyMarkersCameraTarget(
+        getMarkersCameraTarget(markers),
+        setFlyToTarget,
+        setFitBoundsTarget
+      );
+    },
+    [
+      markers,
+      selectLocation,
+      setFitBoundsTarget,
+      setFlyToTarget,
+      setSelectedLocation,
+      setSheetOpen,
+    ]
+  );
 
   useEffect(() => {
     if (sheetOpen) {
@@ -75,14 +105,14 @@ export function LocationBottomSheet() {
   const handleDragEnd = useCallback(() => {
     dragging.current = false;
     if (dragY > 100) {
-      setSheetOpen(false);
+      closeSheet();
     }
     setDragY(0);
-  }, [dragY, setSheetOpen]);
+  }, [dragY, closeSheet]);
 
   const handleClose = useCallback(() => {
-    setSheetOpen(false);
-  }, [setSheetOpen]);
+    closeSheet();
+  }, [closeSheet]);
 
   const handleNavigate = useCallback(() => {
     if (!selectedLocation) return;
@@ -102,14 +132,14 @@ export function LocationBottomSheet() {
   const handleViewBrand = useCallback(() => {
     if (!selectedLocation) return;
     const brandPath = `/brands/${selectedLocation.slug}`;
-    setSheetOpen(false);
+    closeSheet({ zoomOut: false });
     if (!isAuthenticated()) {
       router.push(loginUrl(brandPath));
       return;
     }
     reportNavigationClick(selectedLocation.slug);
     router.push(brandPath);
-  }, [selectedLocation, router, setSheetOpen]);
+  }, [selectedLocation, router, closeSheet]);
 
   return (
     <AnimatePresence>

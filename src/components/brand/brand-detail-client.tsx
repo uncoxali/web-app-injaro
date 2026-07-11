@@ -2,25 +2,16 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { toJalaali } from "jalaali-js";
-import { getLocationDetail, type LocationDetail } from "@/lib/api/locations";
+import { getLocationDetail, type LocationDetail, type KenarItem } from "@/lib/api/locations";
+import { useCategories } from "@/lib/queries/categories";
 import { Modal } from "@/components/ui/modal";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/ui/error-state";
-import { cn, imgUrl, toPersianDigits } from "@/lib/utils";
+import { PERSIAN_MONTHS } from "@/lib/constants/enums";
+import { cn, toPersianDigits, shareContent } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
-
-const tabs = [
-  { key: "about", label: "درباره" },
-  { key: "events", label: "رویدادها" },
-  { key: "kenar", label: "نزدیک" },
-] as const;
-
-type TabKey = (typeof tabs)[number]["key"];
 
 interface BrandDetailClientProps {
   initialData: LocationDetail | null;
@@ -32,15 +23,13 @@ export function BrandDetailClient({
   slug,
 }: BrandDetailClientProps) {
   const router = useRouter();
+  const { data: categories = [] } = useCategories();
   const [data, setData] = useState<LocationDetail | null>(initialData);
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabKey>("about");
+  const [saved, setSaved] = useState(false);
   const [showQr, setShowQr] = useState(false);
-  const [parallaxY, setParallaxY] = useState(0);
-  const [tabBarSticky, setTabBarSticky] = useState(false);
-  const tabBarRef = useRef<HTMLDivElement>(null);
-  const bannerRef = useRef<HTMLDivElement>(null);
+  const eventsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (initialData) return;
@@ -51,29 +40,10 @@ export function BrandDetailClient({
       .finally(() => setLoading(false));
   }, [slug, initialData]);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollY = window.scrollY;
-      setParallaxY(scrollY * 0.3);
-
-      if (tabBarRef.current) {
-        const tabBarTop = tabBarRef.current.getBoundingClientRect().top;
-        setTabBarSticky(tabBarTop <= 0);
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const handleShare = useCallback(() => {
-    const url = window.location.href;
-    if (navigator.share) {
-      navigator.share({ title: data?.name, url });
-    } else {
-      navigator.clipboard.writeText(url).then(() => {
-        toast.success("لینک کپی شد");
-      });
+  const handleShare = useCallback(async () => {
+    const result = await shareContent({ title: data?.name });
+    if (result === "copied") {
+      toast.success("لینک کپی شد");
     }
   }, [data]);
 
@@ -82,6 +52,15 @@ export function BrandDetailClient({
     const url = `https://www.google.com/maps/dir/?api=1&destination=${data.latitude},${data.longitude}`;
     window.open(url, "_blank");
   }, [data]);
+
+  const handleSave = useCallback(() => {
+    setSaved((prev) => !prev);
+    toast.success(saved ? "از ذخیره خارج شد" : "برند ذخیره شد");
+  }, [saved]);
+
+  const scrollToEvents = useCallback(() => {
+    eventsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   if (loading) {
     return (
@@ -101,395 +80,563 @@ export function BrandDetailClient({
 
   const events = data.events || [];
   const kenar = data.kenar || [];
+  const categoryName =
+    categories.find((cat) => cat.id === data.category)?.name || "";
+  const bannerImages = data.banner ? [{ url: data.banner, alt: data.name }] : [];
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <div ref={bannerRef} className="relative h-56 overflow-hidden bg-linear-to-b from-primary/4 to-surface">
+    <div className="flex min-h-dvh flex-col bg-background">
+      <div className="relative px-4 pt-4">
+        <BrandGallery images={bannerImages} logo={data.logo} name={data.name} />
         <button
           onClick={() => router.back()}
           aria-label="بازگشت"
-          className="absolute top-4 inset-s-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-xs shadow-md flex items-center justify-center text-text-primary hover:bg-background transition-colors"
+          className="absolute top-7 inset-s-7 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-background/85 text-text-primary shadow-md backdrop-blur-xs transition-colors hover:bg-background"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
-        {data.banner ? (
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage: `url(${imgUrl(data.banner)})`,
-              transform: `translateY(${parallaxY}px)`,
-            }}
-          />
-        ) : (
-          <div className="absolute inset-0 bg-linear-to-br from-primary/10 via-primary/4 to-surface" />
-        )}
-        <div className="absolute inset-0 bg-linear-to-t from-background/60 via-transparent to-transparent" />
       </div>
 
-      <div className="relative px-4 -mt-12 z-10">
-        <div className="flex items-end gap-4">
-          {data.logo ? (
-            <OptimizedImage
-              src={data.logo}
-              alt={data.name}
-              width={80}
-              height={80}
-              className="w-20 h-20 rounded-2xl border-4 border-background shadow-lg bg-surface"
-            />
-          ) : (
-            <div className="w-20 h-20 rounded-2xl border-4 border-background shadow-lg bg-linear-to-br from-primary/10 to-surface flex items-center justify-center">
-              <span className="text-2xl font-bold text-primary">
-                {data.name.slice(0, 1)}
-              </span>
-            </div>
-          )}
-          <div className="flex-1 min-w-0 pb-1">
-            <h1 className="text-xl font-bold text-text-primary">
-              {data.name}
-            </h1>
-            <Badge variant="primary" size="sm" className="mt-1">
-              دسته {data.category}
-            </Badge>
-          </div>
-        </div>
-      </div>
+      <div className="px-4 pt-3">
+        <h1 className="mb-1 text-lg font-bold leading-snug text-text-primary">
+          {data.name}
+        </h1>
 
-      <div className="flex gap-2 px-4 mt-5">
-        <button
-          onClick={() => setShowQr(true)}
-          className="flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-border/50 bg-surface text-xs font-medium text-text-secondary hover:border-primary/30 hover:text-primary transition-all"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <rect x="3" y="3" width="7" height="7" />
-            <rect x="14" y="3" width="7" height="7" />
-            <rect x="3" y="14" width="7" height="7" />
-            <rect x="14" y="14" width="7" height="7" />
-          </svg>
-          QR
-        </button>
-        <button
-          onClick={handleNavigate}
-          className="flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-border/50 bg-surface text-xs font-medium text-text-secondary hover:border-primary/30 hover:text-primary transition-all"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-            <circle cx="12" cy="10" r="3" />
-          </svg>
-          مسیریابی
-        </button>
-        <button
-          onClick={handleShare}
-          className="flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-border/50 bg-surface text-xs font-medium text-text-secondary hover:border-primary/30 hover:text-primary transition-all"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <circle cx="18" cy="5" r="3" />
-            <circle cx="6" cy="12" r="3" />
-            <circle cx="18" cy="19" r="3" />
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-          </svg>
-          اشتراک
-        </button>
-      </div>
+        <BrandActionBar
+          saved={saved}
+          onSave={handleSave}
+          onShare={handleShare}
+          onQr={() => setShowQr(true)}
+        />
 
-      <div
-        ref={tabBarRef}
-        className={cn(
-          "sticky top-0 z-10 bg-background/60 backdrop-blur-2xl border-b border-border/40 mt-5 transition-shadow",
-          tabBarSticky && "shadow-xs"
-        )}
-      >
-        <div className="flex px-4">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                "relative flex-1 h-11 text-sm font-medium transition-colors",
-                activeTab === tab.key
-                  ? "text-primary"
-                  : "text-text-secondary hover:text-text-primary"
-              )}
-            >
-              {tab.label}
-              {activeTab === tab.key && (
-                <motion.div
-                  layoutId="brand-tab-underline"
-                  className="absolute bottom-0 left-[15%] right-[15%] h-0.5 rounded-full bg-primary"
-                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
-                />
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex-1 px-4 pt-5 pb-8">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.15 }}
+        <div className="mt-4 flex gap-2.5">
+          <button
+            onClick={scrollToEvents}
+            className="flex h-12 flex-1 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white shadow-[0_6px_20px_rgba(255,90,95,0.35)] transition-transform active:scale-[0.98]"
           >
-            {activeTab === "about" && <AboutTab data={data} onNavigate={handleNavigate} />}
-            {activeTab === "events" && <EventsTab events={events} />}
-            {activeTab === "kenar" && <KenarTab items={kenar} />}
-          </motion.div>
-        </AnimatePresence>
+            مشاهده رویدادها
+          </button>
+          <button
+            onClick={handleNavigate}
+            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-primary bg-white text-sm font-semibold text-primary shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-transform active:scale-[0.98] dark:border-primary/50 dark:bg-surface"
+          >
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white">
+              <MapPinIcon size={14} />
+            </span>
+            مسیریابی
+          </button>
+        </div>
+
+        <BrandInfoStrip
+          address={data.address}
+          category={categoryName}
+          phone={data.phone}
+          onAddressClick={handleNavigate}
+        />
       </div>
 
-      <Modal open={showQr} onClose={() => setShowQr(false)} title="QR کد">
+      <div className="flex-1 space-y-6 px-4 pt-6 pb-8">
+        {(data.description || data.website || data.instagram || data.phone) && (
+          <section>
+            <SectionTitle>درباره برند</SectionTitle>
+            {data.description ? (
+              <p className="text-sm leading-relaxed text-text-secondary">
+                {data.description}
+              </p>
+            ) : null}
+            <BrandContactLinks data={data} />
+          </section>
+        )}
+
+        {kenar.length > 0 && (
+          <KenarCardsSection items={kenar} />
+        )}
+
+        {events.length > 0 && (
+          <div ref={eventsRef}>
+            <BrandEventsCarousel events={events} brandName={data.name} />
+          </div>
+        )}
+      </div>
+
+      <Modal open={showQr} onClose={() => setShowQr(false)} title="کیوآرکد برند">
         <div className="flex flex-col items-center py-4">
           {data.qr_code ? (
-            <OptimizedImage src={data.qr_code} alt="QR" width={192} height={192} className="w-48 h-48 rounded-xl" />
+            <OptimizedImage src={data.qr_code} alt="QR" width={192} height={192} className="h-48 w-48 rounded-xl" />
           ) : (
-            <div className="w-48 h-48 rounded-xl bg-linear-to-br from-primary/4 to-surface border border-border flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-text-secondary/20">
-                <rect x="2" y="2" width="5" height="5" />
-                <rect x="17" y="2" width="5" height="5" />
-                <rect x="2" y="17" width="5" height="5" />
-                <rect x="12" y="12" width="5" height="5" />
-                <rect x="8" y="8" width="2" height="2" />
-                <rect x="14" y="8" width="2" height="2" />
-                <rect x="8" y="14" width="2" height="2" />
-                <rect x="19" y="12" width="3" height="2" />
-                <rect x="12" y="19" width="2" height="3" />
-              </svg>
+            <div className="flex h-48 w-48 items-center justify-center rounded-xl border border-border bg-linear-to-br from-primary/4 to-surface">
+              <QrPlaceholder />
             </div>
           )}
-          <p className="text-xs text-text-secondary mt-3">اسکن کنید تا برند را مشاهده کنید</p>
+          <p className="mt-3 text-xs text-text-secondary">اسکن کنید تا برند را مشاهده کنید</p>
         </div>
       </Modal>
     </div>
   );
 }
 
-function AboutTab({
-  data,
-  onNavigate,
+function BrandGallery({
+  images,
+  logo,
+  name,
 }: {
-  data: LocationDetail;
-  onNavigate: () => void;
+  images: { url: string; alt?: string }[];
+  logo?: string;
+  name: string;
 }) {
-  return (
-    <div className="flex flex-col gap-5">
-      {data.description && (
-        <p className="text-sm text-text-secondary leading-relaxed">
-          {data.description}
-        </p>
-      )}
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
-      <div className="flex flex-col gap-2">
-        {data.website && (
-          <a
-            href={data.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 p-3 rounded-xl bg-surface border border-border/50 hover:border-primary/30 transition-all"
-          >
-            <div className="w-9 h-9 rounded-lg bg-primary/5 flex items-center justify-center shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="2" y1="12" x2="22" y2="12" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
-            </div>
-            <span className="text-sm text-text-primary flex-1">وبسایت</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-secondary/50">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              <polyline points="15 3 21 3 21 9" />
-              <line x1="10" y1="14" x2="21" y2="3" />
-            </svg>
-          </a>
-        )}
-        {data.instagram && (
-          <a
-            href={data.instagram}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 p-3 rounded-xl bg-surface border border-border/50 hover:border-primary/30 transition-all"
-          >
-            <div className="w-9 h-9 rounded-lg bg-primary/5 flex items-center justify-center shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E4405F" strokeWidth="1.5">
-                <rect x="2" y="2" width="20" height="20" rx="5" />
-                <circle cx="12" cy="12" r="5" />
-                <circle cx="17.5" cy="6.5" r="1" />
-              </svg>
-            </div>
-            <span className="text-sm text-text-primary flex-1">اینستاگرام</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-secondary/50">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              <polyline points="15 3 21 3 21 9" />
-              <line x1="10" y1="14" x2="21" y2="3" />
-            </svg>
-          </a>
-        )}
-        {data.phone && (
-          <a
-            href={`tel:${data.phone}`}
-            className="flex items-center gap-3 p-3 rounded-xl bg-surface border border-border/50 hover:border-primary/30 transition-all"
-          >
-            <div className="w-9 h-9 rounded-lg bg-success/5 flex items-center justify-center shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="1.5">
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-              </svg>
-            </div>
-            <span className="text-sm text-text-primary flex-1" dir="ltr">{data.phone}</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-secondary/50">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </a>
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const idx = Math.round(el.scrollLeft / el.clientWidth);
+    setActiveIndex(Math.min(idx, Math.max(images.length - 1, 0)));
+  }, [images.length]);
+
+  const scroll = (direction: "prev" | "next") => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({
+      left: el.clientWidth * (direction === "next" ? 1 : -1),
+      behavior: "smooth",
+    });
+  };
+
+  if (images.length === 0) {
+    return (
+      <div className="relative flex h-72 items-center justify-center overflow-hidden rounded-3xl bg-linear-to-b from-primary/4 to-surface">
+        {logo ? (
+          <OptimizedImage src={logo} alt={name} width={80} height={80} className="h-20 w-20 rounded-2xl object-cover" />
+        ) : (
+          <span className="text-4xl font-bold text-primary/30">{name.slice(0, 1)}</span>
         )}
       </div>
+    );
+  }
 
-      <Button fullWidth onClick={onNavigate}>
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="ml-1.5">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-          <circle cx="12" cy="10" r="3" />
-        </svg>
-        مسیریابی با Google Maps
-      </Button>
+  return (
+    <div className="relative overflow-hidden rounded-3xl">
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth scrollbar-none"
+      >
+        {images.map((img, i) => (
+          <div key={i} className="relative h-72 w-full shrink-0 snap-start">
+            <OptimizedImage
+              src={img.url}
+              alt={img.alt || name}
+              fill
+              priority={i === 0}
+              sizes="(max-width: 480px) 100vw, 480px"
+              className="object-cover"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/25 to-transparent" />
+          </div>
+        ))}
+      </div>
+
+      {logo ? (
+        <div className="absolute top-3 inset-s-3 z-10 flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white/90 p-1 shadow-md">
+          <OptimizedImage src={logo} alt="" width={32} height={32} className="h-full w-full object-contain" />
+        </div>
+      ) : null}
+
+      {images.length > 1 && (
+        <>
+          <CarouselArrow direction="prev" onClick={() => scroll("prev")} className="absolute top-1/2 inset-s-3 -translate-y-1/2" />
+          <CarouselArrow direction="next" onClick={() => scroll("next")} className="absolute top-1/2 inset-e-3 -translate-y-1/2" />
+          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
+            {images.map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "h-2 rounded-full transition-all",
+                  i === activeIndex ? "w-5 bg-white" : "w-2 bg-white/50"
+                )}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-const PERSIAN_MONTHS = [
-  "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
-  "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند",
-];
+function BrandActionBar({
+  saved,
+  onSave,
+  onShare,
+  onQr,
+}: {
+  saved: boolean;
+  onSave: () => void;
+  onShare: () => void;
+  onQr: () => void;
+}) {
+  const items = [
+    {
+      key: "like",
+      label: "پسندیدم",
+      disabled: true,
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+        </svg>
+      ),
+    },
+    {
+      key: "share",
+      label: "اشتراک گذاری",
+      onClick: onShare,
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+        </svg>
+      ),
+    },
+    {
+      key: "save",
+      label: "ذخیره سازی",
+      onClick: onSave,
+      active: saved,
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill={saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth={saved ? 0 : 1.5}>
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+        </svg>
+      ),
+    },
+    {
+      key: "qr",
+      label: "کیوآرکد",
+      onClick: onQr,
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="3" height="3" />
+        </svg>
+      ),
+    },
+  ];
+
+  return (
+    <div className="mt-3 flex items-stretch rounded-2xl border border-border/20 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:border-border/30 dark:bg-surface">
+      {items.map((item, index) => (
+        <div key={item.key} className="flex flex-1 items-stretch">
+          <button
+            type="button"
+            onClick={item.onClick}
+            disabled={item.disabled || !item.onClick}
+            className={cn(
+              "flex flex-1 flex-col items-center justify-center gap-1 px-1 py-3 transition-colors",
+              item.active ? "text-primary" : "text-text-secondary",
+              (item.disabled || !item.onClick) && "opacity-40",
+              item.onClick && !item.disabled && "hover:text-primary"
+            )}
+          >
+            {item.icon}
+            <span className="text-[10px] font-medium leading-tight">{item.label}</span>
+          </button>
+          {index < items.length - 1 && <div className="w-px self-center bg-border/30" />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BrandInfoStrip({
+  address,
+  category,
+  phone,
+  onAddressClick,
+}: {
+  address?: string;
+  category?: string;
+  phone?: string;
+  onAddressClick: () => void;
+}) {
+  const items = [
+    {
+      key: "address",
+      label: address || "آدرس ثبت نشده",
+      onClick: onAddressClick,
+      icon: <MapPinIcon size={18} />,
+    },
+    {
+      key: "category",
+      label: category || "دسته‌بندی نامشخص",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+      ),
+    },
+    {
+      key: "phone",
+      label: phone || "تماس ثبت نشده",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+        </svg>
+      ),
+    },
+  ];
+
+  return (
+    <div className="mt-4 flex rounded-2xl border border-border/20 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:border-border/30 dark:bg-surface">
+      {items.map((item, index) => {
+        const Comp = item.onClick ? "button" : "div";
+        return (
+          <div key={item.key} className="flex flex-1 items-stretch">
+            <Comp
+              type={item.onClick ? "button" : undefined}
+              onClick={item.onClick}
+              className={cn(
+                "flex flex-1 flex-col items-center gap-2 px-2 py-3 text-center",
+                item.onClick && "transition-colors hover:text-primary"
+              )}
+            >
+              {item.icon}
+              <span className="line-clamp-2 text-[10px] leading-snug text-text-secondary">
+                {item.key === "phone" ? <span dir="ltr">{item.label}</span> : item.label}
+              </span>
+            </Comp>
+            {index < items.length - 1 && <div className="w-px self-stretch bg-border/30" />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function BrandContactLinks({ data }: { data: LocationDetail }) {
+  if (!data.website && !data.instagram && !data.phone) return null;
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      {data.website && (
+        <a
+          href={data.website}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-full border border-border/40 px-3 py-1.5 text-xs text-text-secondary transition-colors hover:border-primary/40 hover:text-primary"
+        >
+          وبسایت
+        </a>
+      )}
+      {data.instagram && (
+        <a
+          href={data.instagram}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-full border border-border/40 px-3 py-1.5 text-xs text-text-secondary transition-colors hover:border-primary/40 hover:text-primary"
+        >
+          اینستاگرام
+        </a>
+      )}
+      {data.phone && (
+        <a
+          href={`tel:${data.phone}`}
+          className="rounded-full border border-border/40 px-3 py-1.5 text-xs text-text-secondary transition-colors hover:border-primary/40 hover:text-primary"
+          dir="ltr"
+        >
+          {data.phone}
+        </a>
+      )}
+    </div>
+  );
+}
+
+function KenarCardsSection({ items }: { items: KenarItem[] }) {
+  const router = useRouter();
+
+  return (
+    <section>
+      <SectionTitle>نزدیک به شما</SectionTitle>
+      <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-none">
+        {items.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => item.link && router.push(item.link)}
+            className="flex w-[92px] shrink-0 flex-col items-center gap-2"
+          >
+            <div className="flex h-[92px] w-[92px] items-center justify-center overflow-hidden rounded-[18px] bg-white p-3 shadow-[0_6px_24px_rgba(0,0,0,0.08)] dark:border dark:border-border/30 dark:bg-surface">
+              {item.image ? (
+                <OptimizedImage
+                  src={item.image}
+                  alt={item.title}
+                  width={72}
+                  height={72}
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <span className="text-2xl font-bold text-text-secondary/40">
+                  {item.title.slice(0, 1)}
+                </span>
+              )}
+            </div>
+            <p className="line-clamp-2 text-center text-[10px] leading-snug text-text-secondary">
+              {item.title}
+            </p>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function toShamsiDate(gregDateStr: string): string {
   const d = new Date(gregDateStr);
   if (isNaN(d.getTime())) return gregDateStr;
   const j = toJalaali(d.getFullYear(), d.getMonth() + 1, d.getDate());
-  return `${j.jd} ${PERSIAN_MONTHS[j.jm - 1]} ${toPersianDigits(j.jy)}`;
+  return `${toPersianDigits(j.jd)} ${PERSIAN_MONTHS[j.jm - 1]} ${toPersianDigits(j.jy)}`;
 }
 
-function EventsTab({ events }: { events: LocationDetail["events"] }) {
+function BrandEventsCarousel({
+  events,
+  brandName,
+}: {
+  events: NonNullable<LocationDetail["events"]>;
+  brandName: string;
+}) {
   const router = useRouter();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  if (!events || events.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-secondary/20">
-          <rect x="3" y="4" width="18" height="18" rx="2" />
-          <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-        <p className="text-sm text-text-secondary mt-3">رویدادی وجود ندارد</p>
-      </div>
-    );
-  }
+  const scroll = useCallback((direction: "prev" | "next") => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({
+      left: el.clientWidth * 0.75 * (direction === "next" ? 1 : -1),
+      behavior: "smooth",
+    });
+  }, []);
 
   return (
-    <div className="grid grid-cols-2 gap-3">
-      {events.map((ev) => (
-        <button
-          key={ev.event_slug}
-          onClick={() => router.push(`/events/${ev.event_slug}`)}
-          className="flex flex-col rounded-2xl bg-surface border border-border/30 overflow-hidden hover:border-primary/30 hover:shadow-md transition-all text-right active:scale-[0.97] group"
+    <section>
+      <SectionTitle>رویدادهای {brandName}</SectionTitle>
+      <div className="relative">
+        <div
+          ref={scrollRef}
+          className="flex gap-3 overflow-x-auto pb-1 scrollbar-none snap-x snap-mandatory"
         >
-          <div className="relative w-full aspect-4/5 overflow-hidden bg-surface">
-            {ev.thumbnail ? (
-              <OptimizedImage
-                src={ev.thumbnail}
-                alt=""
-                fill
-                sizes="200px"
-                className="group-hover:scale-105 transition-transform duration-500"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-text-secondary/15">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
+          {events.map((ev) => (
+            <button
+              key={ev.event_slug}
+              onClick={() => router.push(`/events/${ev.event_slug}`)}
+              className="group w-[140px] shrink-0 snap-start overflow-hidden rounded-2xl bg-white text-right shadow-[0_6px_24px_rgba(0,0,0,0.08)] transition-transform active:scale-[0.98] dark:border dark:border-border/30 dark:bg-surface"
+            >
+              <div className="relative aspect-[3/4] overflow-hidden bg-surface">
+                {ev.thumbnail ? (
+                  <OptimizedImage
+                    src={ev.thumbnail}
+                    alt={ev.topic}
+                    fill
+                    sizes="140px"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-text-secondary/20">
+                    <ImagePlaceholder />
+                  </div>
+                )}
+                <div className="absolute inset-x-2 bottom-2 rounded-xl bg-white/85 px-2 py-1.5 backdrop-blur-sm dark:bg-surface/90">
+                  <p className="line-clamp-2 text-[10px] font-medium leading-snug text-text-primary">
+                    {ev.topic}
+                  </p>
+                  {ev.start_datetime ? (
+                    <p className="mt-0.5 text-[9px] text-text-secondary">
+                      {toShamsiDate(ev.start_datetime)}
+                    </p>
+                  ) : null}
+                </div>
               </div>
-            )}
-          </div>
-          <div className="p-3">
-            <p className="text-xs font-semibold text-text-primary line-clamp-2 leading-snug">
-              {ev.topic}
-            </p>
-            {ev.start_datetime && (
-              <p className="text-[10px] text-text-secondary mt-1.5">
-                {toShamsiDate(ev.start_datetime)}
-              </p>
-            )}
-          </div>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function KenarTab({ items }: { items: LocationDetail["kenar"] }) {
-  if (!items || items.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-secondary/20">
-          <rect x="3" y="3" width="7" height="7" />
-          <rect x="14" y="3" width="7" height="7" />
-          <rect x="3" y="14" width="7" height="7" />
-          <rect x="14" y="14" width="7" height="7" />
-        </svg>
-        <p className="text-sm text-text-secondary mt-3">محتوایی وجود ندارد</p>
+            </button>
+          ))}
+        </div>
+        {events.length > 2 && (
+          <>
+            <CarouselArrow direction="prev" onClick={() => scroll("prev")} className="absolute top-1/2 inset-s-0 -translate-y-1/2" />
+            <CarouselArrow direction="next" onClick={() => scroll("next")} className="absolute top-1/2 inset-e-0 -translate-y-1/2" />
+          </>
+        )}
       </div>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      {items.map((item) => (
-        <KenarCard key={item.id} item={item} />
-      ))}
-    </div>
+    </section>
   );
 }
 
-function KenarCard({ item }: { item: NonNullable<LocationDetail["kenar"]>[number] }) {
-  const router = useRouter();
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h2 className="mb-3 text-sm font-bold text-text-primary">{children}</h2>;
+}
 
-  const handleClick = () => {
-    if (item.link) {
-      router.push(item.link);
-    }
-  };
-
+function CarouselArrow({
+  direction,
+  onClick,
+  className,
+}: {
+  direction: "prev" | "next";
+  onClick: () => void;
+  className?: string;
+}) {
   return (
     <button
-      onClick={handleClick}
-      className="flex flex-col rounded-xl bg-surface border border-border/50 overflow-hidden hover:border-primary/30 hover:shadow-sm transition-all text-right active:scale-[0.98]"
-    >
-      {item.image ? (
-        <div className="relative aspect-4/3 bg-surface overflow-hidden">
-          <OptimizedImage
-            src={item.image}
-            alt={item.title}
-            fill
-            sizes="300px"
-          />
-        </div>
-      ) : (
-        <div className="aspect-4/3 bg-linear-to-br from-primary/4 to-surface flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-secondary/20">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <polyline points="21 15 16 10 5 21" />
-          </svg>
-        </div>
+      type="button"
+      onClick={onClick}
+      aria-label={direction === "prev" ? "قبلی" : "بعدی"}
+      className={cn(
+        "z-10 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-white shadow-[0_4px_14px_rgba(255,90,95,0.4)] transition-transform active:scale-95",
+        className
       )}
-      <div className="p-2.5">
-        <p className="text-xs font-medium text-text-primary line-clamp-2 leading-snug">
-          {item.title}
-        </p>
-      </div>
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        {direction === "prev" ? (
+          <polyline points="15 18 9 12 15 6" />
+        ) : (
+          <polyline points="9 18 15 12 9 6" />
+        )}
+      </svg>
     </button>
+  );
+}
+
+function MapPinIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+function QrPlaceholder() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-text-secondary/20">
+      <rect x="2" y="2" width="5" height="5" />
+      <rect x="17" y="2" width="5" height="5" />
+      <rect x="2" y="17" width="5" height="5" />
+      <rect x="12" y="12" width="5" height="5" />
+    </svg>
+  );
+}
+
+function ImagePlaceholder() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <polyline points="21 15 16 10 5 21" />
+    </svg>
   );
 }

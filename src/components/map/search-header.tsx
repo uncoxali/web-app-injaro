@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useMapStore } from "@/store/map";
+import { MARKER_FOCUS_ZOOM } from "@/lib/map-utils";
 import { ExpandableSearchBar } from "@/components/search/expandable-search-bar";
 import { UnifiedSearchResults } from "@/components/search/unified-search-results";
 import type { SearchEventResult } from "@/components/search/unified-search-results";
@@ -21,6 +22,7 @@ export function SearchHeader({ onSearch, events = [], className }: SearchHeaderP
   const selectLocation = useMapStore((s) => s.selectLocation);
   const setSelectedLocation = useMapStore((s) => s.setSelectedLocation);
   const setSheetOpen = useMapStore((s) => s.setSheetOpen);
+  const setFlyToTarget = useMapStore((s) => s.setFlyToTarget);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -80,10 +82,15 @@ export function SearchHeader({ onSearch, events = [], className }: SearchHeaderP
       if (!marker) return;
       selectLocation(marker.id);
       setSelectedLocation(marker);
+      setFlyToTarget({
+        latitude: marker.latitude,
+        longitude: marker.longitude,
+        zoom: MARKER_FOCUS_ZOOM,
+      });
       setSheetOpen(true);
       setOpen(false);
     },
-    [markers, selectLocation, setSelectedLocation, setSheetOpen]
+    [markers, selectLocation, setSelectedLocation, setFlyToTarget, setSheetOpen]
   );
 
   const hasResults = locationResults.length > 0 || filteredEvents.length > 0;

@@ -13,7 +13,7 @@ import { useLandingEvents, landingKeys } from "@/lib/queries/landing";
 import { useCategories } from "@/lib/queries/categories";
 import { useFetchAuthMapLocations } from "@/lib/queries/map-locations";
 import type { Location } from "@/store/map";
-import { isTehranArea, TEHRAN_CENTER } from "@/lib/map-utils";
+import { isTehranArea, applyMarkersCameraTarget, getMarkersCameraTarget } from "@/lib/map-utils";
 import { isAuthenticated } from "@/lib/auth-utils";
 import dynamic from "next/dynamic";
 
@@ -50,29 +50,11 @@ export default function InjaroHomePage() {
 
   const doZoom = useCallback(
     (mapMarkers: Location[]) => {
-      if (mapMarkers.length === 0) {
-        setFlyToTarget({ ...TEHRAN_CENTER });
-        return;
-      }
-      if (mapMarkers.length === 1) {
-        setFlyToTarget({
-          latitude: mapMarkers[0].latitude,
-          longitude: mapMarkers[0].longitude,
-          zoom: 14,
-        });
-        return;
-      }
-      const lngs = mapMarkers.map((m) => m.longitude);
-      const lats = mapMarkers.map((m) => m.latitude);
-      const minLng = Math.min(...lngs);
-      const maxLng = Math.max(...lngs);
-      const minLat = Math.min(...lats);
-      const maxLat = Math.max(...lats);
-      if (minLng === maxLng && minLat === maxLat) {
-        setFlyToTarget({ latitude: minLat, longitude: minLng, zoom: 14 });
-        return;
-      }
-      setFitBoundsTarget([[minLng, minLat], [maxLng, maxLat]]);
+      applyMarkersCameraTarget(
+        getMarkersCameraTarget(mapMarkers),
+        setFlyToTarget,
+        setFitBoundsTarget
+      );
     },
     [setFlyToTarget, setFitBoundsTarget]
   );

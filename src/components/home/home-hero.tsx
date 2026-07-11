@@ -1,12 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import type { LandingEvent } from "@/lib/api/landing";
+import type { TazehaItem } from "@/lib/api/tazeha";
 import { loginUrl } from "@/lib/auth-utils";
 import { toPersianDigits, cn } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
+import {
+  formatTazehaDateRange,
+  getTazehaDescription,
+  getTazehaImage,
+  getTazehaLocation,
+  getTazehaTitle,
+} from "@/components/tazeha/tazeha-format";
+import { useEnrichedTazehaItems } from "@/lib/queries/tazeha-enrichment";
+
+function landingToItem(event: LandingEvent): TazehaItem {
+  return {
+    event_slug: event.event_slug,
+    topic: event.topic,
+    thumbnail: event.thumbnail,
+    event_name: event.topic,
+  };
+}
 
 function HeroSlideImage({
   src,
@@ -29,6 +47,32 @@ function HeroSlideImage({
   );
 }
 
+function HeroGlassOverlay({ item }: { item: TazehaItem }) {
+  const title = getTazehaTitle(item);
+  const description = getTazehaDescription(item);
+  const dateRange = formatTazehaDateRange(item);
+  const location = getTazehaLocation(item);
+  const footer = [dateRange, location].filter(Boolean).join(" · ");
+
+  return (
+    <div className="absolute inset-x-3 bottom-3 z-10 rounded-2xl border border-white/70 bg-white/55 px-4 py-3.5 text-right shadow-[0_4px_24px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-xl backdrop-saturate-150 dark:bg-white/20">
+      <h3 className="text-sm font-bold leading-snug text-text-primary line-clamp-1">
+        {title}
+      </h3>
+      {description ? (
+        <p className="mt-1 text-xs leading-relaxed text-text-secondary line-clamp-2">
+          {description}
+        </p>
+      ) : null}
+      {footer ? (
+        <p className="mt-2 text-[11px] leading-snug text-text-secondary/85">
+          {footer}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 interface HomeHeroProps {
   events: LandingEvent[];
   showGuestCta?: boolean;
@@ -43,10 +87,13 @@ export function HomeHero({
   className,
 }: HomeHeroProps) {
   const [index, setIndex] = useState(0);
+  const tazehaItems = useMemo(() => events.map(landingToItem), [events]);
+  const { items: enrichedItems } = useEnrichedTazehaItems(tazehaItems, events.length > 0);
 
   if (events.length === 0) return null;
 
   const event = events[index];
+  const enriched = enrichedItems[index] ?? landingToItem(event);
   const hasMultiple = events.length > 1;
 
   const goPrev = () => {
@@ -71,12 +118,13 @@ export function HomeHero({
           <Link href={`/events/${event.event_slug}`} className="block">
             <div className="relative aspect-[5/6] overflow-hidden rounded-3xl bg-gray-100 shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:bg-gray-800">
               <HeroSlideImage
-                src={event.thumbnail}
-                alt={event.topic}
+                src={getTazehaImage(enriched)}
+                alt={getTazehaTitle(enriched)}
                 priority={index === 0}
               />
+              <HeroGlassOverlay item={enriched} />
               {showTodayBadge && (
-                <div className="absolute top-3 right-3 z-10 flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-white shadow-[0_2px_8px_rgba(255,90,95,0.35)]">
+                <div className="absolute top-3 right-3 z-20 flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-white shadow-[0_2px_8px_rgba(255,90,95,0.35)]">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="14"
@@ -106,7 +154,7 @@ export function HomeHero({
                 type="button"
                 onClick={goPrev}
                 aria-label="رویداد قبلی"
-                className="absolute top-1/2 left-3 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-primary shadow-sm backdrop-blur-xs transition-transform active:scale-90"
+                className="absolute top-1/2 left-3 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-primary shadow-sm backdrop-blur-xs transition-transform active:scale-90"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -126,7 +174,7 @@ export function HomeHero({
                 type="button"
                 onClick={goNext}
                 aria-label="رویداد بعدی"
-                className="absolute top-1/2 right-3 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-primary shadow-sm backdrop-blur-xs transition-transform active:scale-90"
+                className="absolute top-1/2 right-3 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-primary shadow-sm backdrop-blur-xs transition-transform active:scale-90"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

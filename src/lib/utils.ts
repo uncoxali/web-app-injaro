@@ -63,3 +63,27 @@ export function toEnglishDigits(str: string): string {
     String(persianDigits.indexOf(d))
   );
 }
+
+export type ShareResult = "shared" | "copied" | "canceled";
+
+/** Web Share API with clipboard fallback; ignores user cancel (AbortError). */
+export async function shareContent(options: {
+  title?: string;
+  url?: string;
+}): Promise<ShareResult> {
+  const url = options.url ?? window.location.href;
+
+  if (typeof navigator !== "undefined" && navigator.share) {
+    try {
+      await navigator.share({ title: options.title, url });
+      return "shared";
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return "canceled";
+      }
+    }
+  }
+
+  await navigator.clipboard.writeText(url);
+  return "copied";
+}

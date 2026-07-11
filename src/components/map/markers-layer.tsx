@@ -4,7 +4,7 @@ import { useMemo, useCallback } from "react";
 import { Marker, type MapGeoJSONFeature } from "react-map-gl/mapbox";
 import Supercluster from "supercluster";
 import { useMapStore, type Location } from "@/store/map";
-import { bboxFromViewState } from "@/lib/map-utils";
+import { bboxFromViewState, MARKER_FOCUS_ZOOM } from "@/lib/map-utils";
 import { toPersianDigits } from "@/lib/utils";
 import { LocationMapPin } from "@/components/map/location-map-pin";
 
@@ -27,6 +27,7 @@ export function MarkersLayer() {
   const selectLocation = useMapStore((s) => s.selectLocation);
   const setSelectedLocation = useMapStore((s) => s.setSelectedLocation);
   const setSheetOpen = useMapStore((s) => s.setSheetOpen);
+  const setFlyToTarget = useMapStore((s) => s.setFlyToTarget);
   const clusteringEnabled = useMapStore((s) => s.clusteringEnabled);
 
   const supercluster = useMemo(() => {
@@ -62,9 +63,14 @@ export function MarkersLayer() {
     (location: Location) => {
       selectLocation(location.id);
       setSelectedLocation(location);
+      setFlyToTarget({
+        latitude: location.latitude,
+        longitude: location.longitude,
+        zoom: MARKER_FOCUS_ZOOM,
+      });
       setSheetOpen(true);
     },
-    [selectLocation, setSelectedLocation, setSheetOpen]
+    [selectLocation, setSelectedLocation, setFlyToTarget, setSheetOpen]
   );
 
   const handleClusterClick = useCallback(

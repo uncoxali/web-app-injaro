@@ -37,7 +37,7 @@ export function HomeNavbar({
   return (
     <header
       className={cn(
-        "fixed inset-x-0 top-0 z-50 bg-[#ececec] border-b border-black/[0.06]",
+        "fixed top-0 left-1/2 z-50 w-full max-w-[480px] -translate-x-1/2 bg-[#ececec] border-b border-black/[0.06]",
         className
       )}
       style={{ paddingTop: "env(safe-area-inset-top)" }}

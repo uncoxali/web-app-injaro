@@ -3,17 +3,26 @@ import { PageLoadingShell } from "@/components/ui/page-loading-shell";
 export default function ProfileLoading() {
   return (
     <PageLoadingShell>
-      <div className="flex flex-col flex-1 px-4 pt-6">
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-20 h-20 rounded-full bg-border/40" />
-          <div className="flex-1 space-y-2">
-            <div className="h-5 w-32 rounded-lg bg-border/40" />
-            <div className="h-3 w-24 rounded-lg bg-border/30" />
-          </div>
+      <div className="flex flex-col flex-1 gap-4 px-4 pt-4">
+        <div className="h-11 w-11 rounded-full bg-border/30" />
+        <div className="h-[100px] rounded-[22px] bg-border/30" />
+        <div className="grid grid-cols-3 gap-2.5">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-[100px] rounded-[18px] bg-border/25" />
+          ))}
         </div>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-14 rounded-2xl bg-border/25 mb-3" />
-        ))}
+        <div className="flex-1 rounded-[22px] bg-border/20">
+          <div className="h-14 border-b border-border/20" />
+          <div className="h-28 border-b border-border/20 p-4">
+            <div className="mb-3 h-4 w-24 rounded-md bg-border/30 ms-auto" />
+            <div className="flex gap-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-7 w-16 rounded-full bg-border/25" />
+              ))}
+            </div>
+          </div>
+          <div className="h-14" />
+        </div>
       </div>
     </PageLoadingShell>
   );

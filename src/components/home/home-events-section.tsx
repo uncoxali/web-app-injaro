@@ -19,9 +19,19 @@ function EventCardImage({ src, alt }: { src?: string; alt: string }) {
 
 interface HomeEventsSectionProps {
   events: LandingEvent[];
+  title?: string;
+  variant?: "boxed" | "plain";
+  titleStyle?: "text" | "pill";
+  cardWidth?: string;
 }
 
-export function HomeEventsSection({ events }: HomeEventsSectionProps) {
+export function HomeEventsSection({
+  events,
+  title = "آخرین رویدادها",
+  variant = "boxed",
+  titleStyle = "text",
+  cardWidth = "w-[140px]",
+}: HomeEventsSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -86,101 +96,136 @@ export function HomeEventsSection({ events }: HomeEventsSectionProps) {
 
   if (events.length === 0) return null;
 
-  return (
-    <section>
-      <div className="rounded-3xl bg-[#ececec] px-4 pb-4 pt-4 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-bold text-text-primary">آخرین رویدادها</h2>
-          <Link
-            href="/home/Tazeha"
-            className="inline-flex items-center gap-0.5 text-sm font-semibold text-primary"
-          >
-            بیشتر
+  const content = (
+    <>
+      <div className="mb-3 flex items-center justify-between">
+        {titleStyle === "pill" ? (
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-sm font-bold text-white shadow-[0_2px_8px_rgba(255,90,95,0.35)]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
+              width="14"
+              height="14"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2.5"
+              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
+              aria-hidden
             >
-              <polyline points="15 18 9 12 15 6" />
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
             </svg>
-          </Link>
-        </div>
-
-        <div className="relative">
-          <div
-            ref={scrollRef}
-            onScroll={handleScroll}
-            className="flex items-center gap-2.5 overflow-x-auto scrollbar-none py-2 snap-x snap-mandatory scroll-smooth"
-            style={{ WebkitOverflowScrolling: "touch" }}
-          >
-            {events.map((event, i) => (
-                <Link
-                  key={event.event_slug}
-                  ref={(el) => {
-                    itemRefs.current[i] = el;
-                  }}
-                  href={`/events/${event.event_slug}`}
-                  className="shrink-0 snap-center"
-                >
-                  <div className="relative aspect-3/4 w-[140px] overflow-hidden rounded-2xl bg-gray-200 shadow-sm shadow-black/10">
-                    <EventCardImage src={event.thumbnail} alt={event.topic} />
-                  </div>
-                </Link>
-              ))}
+            {title}
           </div>
-
-          {events.length > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={goPrev}
-                aria-label="رویداد قبلی"
-                className="absolute top-1/2 left-2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-primary shadow-sm backdrop-blur-xs transition-transform active:scale-90"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="15 18 9 12 15 6" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={goNext}
-                aria-label="رویداد بعدی"
-                className="absolute top-1/2 right-2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-primary shadow-sm backdrop-blur-xs transition-transform active:scale-90"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </button>
-            </>
-          )}
-        </div>
+        ) : (
+          <h2 className="text-base font-bold text-text-primary">{title}</h2>
+        )}
+        <Link
+          href="/home/Tazeha"
+          className="inline-flex items-center gap-0.5 text-sm font-semibold text-primary"
+        >
+          بیشتر
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </Link>
       </div>
+
+      <div className="relative">
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex items-center gap-3 overflow-x-auto scrollbar-none py-2 snap-x snap-mandatory scroll-smooth"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
+          {events.map((event, i) => (
+            <Link
+              key={event.event_slug}
+              ref={(el) => {
+                itemRefs.current[i] = el;
+              }}
+              href={`/events/${event.event_slug}`}
+              className="shrink-0 snap-center"
+            >
+              <div
+                className={`relative aspect-3/4 ${cardWidth} overflow-hidden rounded-2xl bg-gray-200 shadow-[0_4px_16px_rgba(0,0,0,0.1)]`}
+              >
+                <EventCardImage src={event.thumbnail} alt={event.topic} />
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {events.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={goPrev}
+              aria-label="رویداد قبلی"
+              className="absolute top-1/2 left-2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-primary shadow-sm backdrop-blur-xs transition-transform active:scale-90"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={goNext}
+              aria-label="رویداد بعدی"
+              className="absolute top-1/2 right-2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-primary shadow-sm backdrop-blur-xs transition-transform active:scale-90"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </>
+        )}
+      </div>
+    </>
+  );
+
+  return (
+    <section>
+      {variant === "boxed" ? (
+        <div className="rounded-3xl bg-[#ececec] px-4 pb-4 pt-4 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+          {content}
+        </div>
+      ) : (
+        <div>{content}</div>
+      )}
     </section>
   );
 }

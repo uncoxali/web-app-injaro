@@ -3,22 +3,27 @@ import { PageLoadingShell } from "@/components/ui/page-loading-shell";
 export default function BrandLoading() {
   return (
     <PageLoadingShell>
-      <div className="flex flex-col flex-1">
-        <div className="h-56 bg-border/40 shrink-0" />
-        <div className="px-4 -mt-12 space-y-4 flex-1">
-          <div className="flex items-end gap-4">
-            <div className="w-20 h-20 rounded-2xl bg-border/50" />
-            <div className="flex-1 space-y-2 pb-1">
-              <div className="h-5 w-2/3 rounded-lg bg-border/40" />
-              <div className="h-3 w-1/2 rounded-lg bg-border/30" />
+      <div className="flex flex-col flex-1 px-4 pt-4 pb-8 gap-4">
+        <div className="h-72 rounded-3xl bg-border/30" />
+        <div className="h-5 w-2/3 rounded-lg bg-border/30" />
+        <div className="h-16 rounded-2xl bg-border/25" />
+        <div className="flex gap-2.5">
+          <div className="h-12 flex-1 rounded-full bg-border/25" />
+          <div className="h-12 flex-1 rounded-full bg-border/25" />
+        </div>
+        <div className="h-20 rounded-2xl bg-border/25" />
+        <div className="h-4 w-28 rounded-md bg-border/30" />
+        <div className="space-y-2">
+          <div className="h-3 w-full rounded bg-border/20" />
+          <div className="h-3 w-5/6 rounded bg-border/20" />
+        </div>
+        <div className="flex gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="w-[92px] space-y-2">
+              <div className="h-[92px] rounded-[18px] bg-border/25" />
+              <div className="h-3 w-full rounded bg-border/20" />
             </div>
-          </div>
-          <div className="flex gap-2">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-9 w-16 rounded-full bg-border/30" />
-            ))}
-          </div>
-          <div className="h-24 rounded-2xl bg-border/30" />
+          ))}
         </div>
       </div>
     </PageLoadingShell>
