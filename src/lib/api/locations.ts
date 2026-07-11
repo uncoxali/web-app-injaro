@@ -1,4 +1,5 @@
 import { authFetch } from "@/lib/auth-fetch";
+import { apiFetchJson } from "@/lib/api-fetch";
 import { normalizeIranCoordinates } from "@/lib/map-utils";
 import type { Location } from "@/store/map";
 
@@ -142,9 +143,7 @@ export async function getLocationDetail(
 }
 
 export async function getSponsors(): Promise<Sponsor[]> {
-  const res = await authFetch("/main/sponsor/list/");
-  if (!res.ok) throw new Error("Failed to fetch sponsors");
-  return res.json();
+  return apiFetchJson<Sponsor[]>("/main/sponsor/list/");
 }
 
 export async function reportNavigationClick(slug: string): Promise<void> {

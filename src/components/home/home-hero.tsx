@@ -1,9 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import type { LandingEvent } from "@/lib/api/landing";
 import type { TazehaItem } from "@/lib/api/tazeha";
 import { loginUrl } from "@/lib/auth-utils";
 import { toPersianDigits, cn } from "@/lib/utils";
@@ -16,15 +15,6 @@ import {
   getTazehaTitle,
 } from "@/components/tazeha/tazeha-format";
 import { useEnrichedTazehaItems } from "@/lib/queries/tazeha-enrichment";
-
-function landingToItem(event: LandingEvent): TazehaItem {
-  return {
-    event_slug: event.event_slug,
-    topic: event.topic,
-    thumbnail: event.thumbnail,
-    event_name: event.topic,
-  };
-}
 
 function HeroSlideImage({
   src,
@@ -74,7 +64,7 @@ function HeroGlassOverlay({ item }: { item: TazehaItem }) {
 }
 
 interface HomeHeroProps {
-  events: LandingEvent[];
+  events: TazehaItem[];
   showGuestCta?: boolean;
   showTodayBadge?: boolean;
   className?: string;
@@ -87,13 +77,12 @@ export function HomeHero({
   className,
 }: HomeHeroProps) {
   const [index, setIndex] = useState(0);
-  const tazehaItems = useMemo(() => events.map(landingToItem), [events]);
-  const { items: enrichedItems } = useEnrichedTazehaItems(tazehaItems, events.length > 0);
+  const { items: enrichedItems } = useEnrichedTazehaItems(events, events.length > 0);
 
   if (events.length === 0) return null;
 
   const event = events[index];
-  const enriched = enrichedItems[index] ?? landingToItem(event);
+  const enriched = enrichedItems[index] ?? event;
   const hasMultiple = events.length > 1;
 
   const goPrev = () => {
@@ -108,14 +97,14 @@ export function HomeHero({
     <div className={cn(className)}>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
-          key={event.event_slug}
+          key={event.event_slug ?? index}
           initial={{ opacity: 0, x: 24 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -24 }}
           transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
           className="relative"
         >
-          <Link href={`/events/${event.event_slug}`} className="block">
+          <Link href={`/events/${event.event_slug ?? ""}`} className="block">
             <div className="relative aspect-[5/6] overflow-hidden rounded-3xl bg-gray-100 shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:bg-gray-800">
               <HeroSlideImage
                 src={getTazehaImage(enriched)}
