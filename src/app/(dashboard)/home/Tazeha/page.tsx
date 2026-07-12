@@ -3,9 +3,9 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { type TazehaResponse, type TazehaItem } from "@/lib/api/tazeha";
-import { type LandingEvent, type LandingLocation } from "@/lib/api/landing";
+import { type LandingLocation } from "@/lib/api/landing";
 import type { Category } from "@/lib/api/categories";
-import { useLandingEvents, useLandingLocations } from "@/lib/queries/landing";
+import { useLandingLocations } from "@/lib/queries/landing";
 import { useCategories } from "@/lib/queries/categories";
 import { useTazeha } from "@/lib/queries/tazeha";
 import { ErrorState } from "@/components/ui/error-state";
@@ -33,15 +33,6 @@ function getImage(item: TazehaItem): string {
   return getTazehaImage(item);
 }
 
-function landingToItem(event: LandingEvent): TazehaItem {
-  return {
-    event_slug: event.event_slug,
-    topic: event.topic,
-    thumbnail: event.thumbnail,
-    event_name: event.topic,
-  };
-}
-
 function dedupeItems(items: TazehaItem[]): TazehaItem[] {
   const seen = new Set<string>();
   return items.filter((item) => {
@@ -61,13 +52,8 @@ const META_SECTION_KEYS = new Set([
 
 function collectItems(
   data: TazehaResponse,
-  guest: boolean,
   categories: Category[]
 ): TazehaItem[] {
-  if (guest) {
-    return dedupeItems(data.all_events ?? []);
-  }
-
   const merged: TazehaItem[] = [];
 
   for (const [key, value] of Object.entries(data)) {
@@ -102,10 +88,9 @@ function collectItems(
 
 function getFilterCategories(
   categories: Category[],
-  data: TazehaResponse | null,
-  guest: boolean
+  data: TazehaResponse | null
 ): Category[] {
-  if (guest || !data) return categories;
+  if (!data) return categories;
 
   const keysWithItems = new Set<string>();
   for (const [key, value] of Object.entries(data)) {
@@ -153,8 +138,7 @@ function ListSkeleton() {
 export default function TazehaPage() {
   const router = useRouter();
   const setMapSearchQuery = useMapStore((s) => s.setMapSearchQuery);
-  const [guest, setGuest] = useState(true);
-  const { data: landingEvents, isLoading: landingLoading } = useLandingEvents();
+  const authed = isAuthenticated();
   const { data: locations = [] } = useLandingLocations();
   const { data: categories = [] } = useCategories();
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
@@ -166,26 +150,16 @@ export default function TazehaPage() {
 
   const gregDate = selectedDate ? persianToGregorian(selectedDate) : undefined;
   const {
-    data: tazehaData,
-    isLoading: tazehaLoading,
-    isError: tazehaError,
+    data = null,
+    isLoading: loading,
+    isError: error,
     refetch: refetchTazeha,
-  } = useTazeha(gregDate, !guest);
-
-  const data: TazehaResponse | null = guest
-    ? landingEvents
-      ? { all_events: landingEvents.map(landingToItem) }
-      : null
-    : tazehaData ?? null;
-
-  const loading = guest ? landingLoading : tazehaLoading;
-  const error = guest ? false : tazehaError;
+  } = useTazeha(gregDate);
 
   useEffect(() => {
     const d = generateDays(21);
     setDays(d);
     setSelectedDate(d[0]?.date || "");
-    setGuest(!isAuthenticated());
   }, []);
 
   const handleDateChange = useCallback((date: string) => {
@@ -202,12 +176,12 @@ export default function TazehaPage() {
 
   const allItems = useMemo(() => {
     if (!data) return [];
-    return collectItems(data, guest, categories);
-  }, [data, guest, categories]);
+    return collectItems(data, categories);
+  }, [data, categories]);
 
   const filterCategories = useMemo(
-    () => getFilterCategories(categories, data, guest),
-    [categories, data, guest]
+    () => getFilterCategories(categories, data),
+    [categories, data]
   );
 
   const displayItems = useMemo(() => {
@@ -224,7 +198,7 @@ export default function TazehaPage() {
 
   const { items: listItems, isEnriching } = useEnrichedTazehaItems(
     displayItems,
-    !guest
+    authed
   );
 
   const handleSearchOpen = useCallback(() => setSearchOpen(true), []);
@@ -318,7 +292,7 @@ export default function TazehaPage() {
                   <TazehaListItem
                     key={item.event_slug || item.id || getSlug(item)}
                     item={item}
-                    descriptionPending={isEnriching && !guest}
+                    descriptionPending={isEnriching && authed}
                   />
                 )}
               />

@@ -129,7 +129,14 @@ export function normalizeTazehaItem(
     start_date: pickString(record, "start_date"),
     end_date: pickString(record, "end_date"),
     location_name:
-      pickString(record, "location_name", "venue_name", "place_name", "district") ||
+      pickString(
+        record,
+        "location_name",
+        "venue_name",
+        "place_name",
+        "district",
+        "hood"
+      ) ||
       pickNestedName(location) ||
       pickNestedName(brand) ||
       (event ? pickNestedName(event.location) : undefined),
@@ -137,7 +144,7 @@ export function normalizeTazehaItem(
       pickString(record, "brand_name") ||
       pickNestedName(brand) ||
       (event ? pickNestedName(event.brand) : undefined),
-    district: pickString(record, "district", "neighborhood", "area"),
+    district: pickString(record, "district", "neighborhood", "area", "hood"),
     location: location
       ? { name: pickNestedName(location) }
       : event?.location && typeof event.location === "object"
