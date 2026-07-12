@@ -1,15 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
-import { getTazeha, type TazehaResponse } from "@/lib/api/tazeha";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { getTazehaPage, type TazehaPageResult } from "@/lib/api/tazeha";
 
 export const tazehaKeys = {
   all: ["tazeha"] as const,
   byDate: (date: string) => ["tazeha", date] as const,
 };
 
-export function useTazeha(date?: string, enabled = true) {
-  return useQuery<TazehaResponse>({
+export function useInfiniteTazeha(date?: string, enabled = true) {
+  return useInfiniteQuery<TazehaPageResult>({
     queryKey: tazehaKeys.byDate(date ?? ""),
-    queryFn: () => getTazeha(date),
+    queryFn: ({ pageParam }) => getTazehaPage(date, pageParam as number),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.nextPage ?? undefined,
     enabled,
   });
 }

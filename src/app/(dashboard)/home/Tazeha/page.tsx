@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { type TazehaResponse, type TazehaItem } from "@/lib/api/tazeha";
+import { type TazehaItem } from "@/lib/api/tazeha";
 import { type LandingLocation } from "@/lib/api/landing";
 import type { Category } from "@/lib/api/categories";
 import { useLandingLocations } from "@/lib/queries/landing";
 import { useCategories } from "@/lib/queries/categories";
-import { useTazeha } from "@/lib/queries/tazeha";
+import { useInfiniteTazeha } from "@/lib/queries/tazeha";
 import { ErrorState } from "@/components/ui/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { HomeNavbar, HomeNavbarSpacer, HOME_NAVBAR_HEIGHT, HOME_NAVBAR_HEIGHT_EXPANDED } from "@/components/home/home-navbar";
@@ -50,60 +50,24 @@ const META_SECTION_KEYS = new Set([
   "all_events",
 ]);
 
-function collectItems(
-  data: TazehaResponse,
-  categories: Category[]
-): TazehaItem[] {
-  const merged: TazehaItem[] = [];
-
-  for (const [key, value] of Object.entries(data)) {
-    if (!Array.isArray(value) || META_SECTION_KEYS.has(key)) continue;
-
-    const category = categories.find((c) => c.name === key);
-    merged.push(
-      ...value.map((item) => ({
-        ...item,
-        category_section: item.category_section ?? key,
-        category_id: item.category_id ?? item.category ?? category?.id,
-        category: item.category ?? category?.id,
-      }))
-    );
-  }
-
-  for (const key of META_SECTION_KEYS) {
-    const value = data[key];
-    if (!Array.isArray(value) || value.length === 0) continue;
-    merged.push(...value);
-  }
-
-  return dedupeItems(
-    merged.map((item) => {
-      const fromLive = data.live_events?.some(
-        (live) => getSlug(live) === getSlug(item)
-      );
-      return fromLive ? { ...item, is_live: true } : item;
-    })
-  );
-}
-
 function getFilterCategories(
   categories: Category[],
-  data: TazehaResponse | null
+  items: TazehaItem[]
 ): Category[] {
-  if (!data) return categories;
+  const sectionNames = new Set<string>();
+  const categoryIds = new Set<number>();
 
-  const keysWithItems = new Set<string>();
-  for (const [key, value] of Object.entries(data)) {
-    if (
-      Array.isArray(value) &&
-      value.length > 0 &&
-      !META_SECTION_KEYS.has(key)
-    ) {
-      keysWithItems.add(key);
+  for (const item of items) {
+    if (item.category_section && !META_SECTION_KEYS.has(item.category_section)) {
+      sectionNames.add(item.category_section);
     }
+    const id = getTazehaCategoryId(item);
+    if (id != null) categoryIds.add(id);
   }
 
-  return categories.filter((c) => keysWithItems.has(c.name));
+  return categories.filter(
+    (c) => sectionNames.has(c.name) || categoryIds.has(c.id)
+  );
 }
 
 function ListSkeleton() {
@@ -150,11 +114,14 @@ export default function TazehaPage() {
 
   const gregDate = selectedDate ? persianToGregorian(selectedDate) : undefined;
   const {
-    data = null,
+    data,
     isLoading: loading,
     isError: error,
     refetch: refetchTazeha,
-  } = useTazeha(gregDate);
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteTazeha(gregDate);
 
   useEffect(() => {
     const d = generateDays(21);
@@ -175,13 +142,13 @@ export default function TazehaPage() {
   );
 
   const allItems = useMemo(() => {
-    if (!data) return [];
-    return collectItems(data, categories);
-  }, [data, categories]);
+    if (!data?.pages) return [];
+    return dedupeItems(data.pages.flatMap((page) => page.items));
+  }, [data]);
 
   const filterCategories = useMemo(
-    () => getFilterCategories(categories, data),
-    [categories, data]
+    () => getFilterCategories(categories, allItems),
+    [categories, allItems]
   );
 
   const displayItems = useMemo(() => {
@@ -200,6 +167,12 @@ export default function TazehaPage() {
     displayItems,
     authed
   );
+
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   const handleSearchOpen = useCallback(() => setSearchOpen(true), []);
   const handleSearchClose = useCallback(() => {
@@ -288,6 +261,9 @@ export default function TazehaPage() {
             <div className="overflow-hidden rounded-3xl bg-[#ececec] py-1 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
               <TazehaVirtualGrid
                 items={listItems}
+                hasNextPage={hasNextPage}
+                isFetchingNextPage={isFetchingNextPage}
+                onLoadMore={handleLoadMore}
                 renderCard={(item) => (
                   <TazehaListItem
                     key={item.event_slug || item.id || getSlug(item)}

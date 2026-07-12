@@ -43,8 +43,15 @@ export interface TazehaResponse {
 }
 
 interface TazehaPaginatedResponse {
+  count?: number;
   results?: unknown[];
   next?: string | null;
+}
+
+export interface TazehaPageResult {
+  items: TazehaItem[];
+  nextPage: number | null;
+  count: number;
 }
 
 function isPaginatedResponse(raw: unknown): raw is TazehaPaginatedResponse {
@@ -77,31 +84,39 @@ function dedupeTazehaItems(items: TazehaItem[]): TazehaItem[] {
   });
 }
 
-export async function getTazeha(date?: string): Promise<TazehaResponse> {
+function collectLegacyItems(response: TazehaResponse): TazehaItem[] {
   const merged: TazehaItem[] = [];
-  let page = 1;
+  for (const value of Object.values(response)) {
+    if (Array.isArray(value)) merged.push(...value);
+  }
+  return dedupeTazehaItems(merged);
+}
 
-  for (;;) {
-    const params = new URLSearchParams();
-    if (date) params.set("date", date);
-    if (page > 1) params.set("page", String(page));
+export async function getTazehaPage(
+  date?: string,
+  page = 1
+): Promise<TazehaPageResult> {
+  const params = new URLSearchParams();
+  if (date) params.set("date", date);
+  if (page > 1) params.set("page", String(page));
 
-    const qs = params.toString();
-    const path = qs ? `/main/tazeha/list/?${qs}` : `/main/tazeha/list/`;
-    const raw = await apiFetchJson<unknown>(path);
+  const qs = params.toString();
+  const path = qs ? `/main/tazeha/list/?${qs}` : `/main/tazeha/list/`;
+  const raw = await apiFetchJson<unknown>(path);
 
-    if (!isPaginatedResponse(raw)) {
-      return normalizeTazehaResponse(raw);
-    }
-
-    merged.push(
-      ...raw.results!.map((item) => normalizeTazehaItem(item))
-    );
-
-    const nextPage = nextPageFromUrl(raw.next);
-    if (!nextPage || nextPage <= page || page >= 20) break;
-    page = nextPage;
+  if (isPaginatedResponse(raw)) {
+    return {
+      items: raw.results!.map((item) => normalizeTazehaItem(item)),
+      nextPage: nextPageFromUrl(raw.next),
+      count: raw.count ?? raw.results!.length,
+    };
   }
 
-  return { all_events: dedupeTazehaItems(merged) };
+  const legacy = normalizeTazehaResponse(raw);
+  const items = collectLegacyItems(legacy);
+  return {
+    items: page === 1 ? items : [],
+    nextPage: null,
+    count: items.length,
+  };
 }
