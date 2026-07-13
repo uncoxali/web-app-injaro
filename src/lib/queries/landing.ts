@@ -15,14 +15,15 @@ export function useLandingEvents() {
   return useQuery<LandingEvent[]>({
     queryKey: landingKeys.events,
     queryFn: getLandingEvents,
-    retry: 2,
+    retry: false,
   });
 }
 
-export function useLandingLocations() {
+export function useLandingLocations(enabled = true) {
   return useQuery<LandingLocation[]>({
     queryKey: landingKeys.locations,
     queryFn: getLandingLocations,
-    retry: 2,
+    retry: false,
+    enabled,
   });
 }

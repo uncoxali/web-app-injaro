@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { Icon } from "@/components/ui/icon";
 
 export default function RulesPage() {
   const router = useRouter();
@@ -15,9 +16,7 @@ export default function RulesPage() {
             className="text-text-secondary hover:text-text-primary transition-colors"
             aria-label="بازگشت"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
+            <Icon name="chevronLeft" size={22} />
           </button>
           <h1 className="text-base font-bold text-text-primary">قوانین و مقررات</h1>
         </div>

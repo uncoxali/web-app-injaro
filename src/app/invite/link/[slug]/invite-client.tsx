@@ -9,6 +9,7 @@ import { authFetch } from "@/lib/auth-fetch";
 import { Spinner } from "@/components/ui/spinner";
 import { imgUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { ErrorState } from "@/components/ui/error-state";
 
 interface InviteData {
@@ -137,20 +138,7 @@ export function InviteClient({ invite: initialInvite, slug, fetchError: serverEr
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="48"
-                    height="48"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1"
-                    className="text-text-secondary/20"
-                  >
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21 15 16 10 5 21" />
-                  </svg>
+                  <Icon name="camera" size="xl" className="text-text-secondary/20" />
                 </div>
               )}
             </div>

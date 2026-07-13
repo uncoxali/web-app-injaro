@@ -23,6 +23,7 @@ import { ErrorState } from "@/components/ui/error-state";
 import { PERSIAN_MONTHS } from "@/lib/constants/enums";
 import { cn, toPersianDigits } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
+import { Icon } from "@/components/ui/icon";
 
 function formatPersianDateTime(iso?: string): string {
   if (!iso) return "";
@@ -196,9 +197,7 @@ export function EventDetailClient({
           aria-label="بازگشت"
           className="absolute top-4 inset-s-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-xs shadow-md flex items-center justify-center text-text-primary hover:bg-background transition-colors"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <Icon name="chevronLeft" size="md" className="scale-x-[-1]" />
         </button>
       </div>
 
@@ -218,12 +217,7 @@ export function EventDetailClient({
           {data.start_datetime && (
             <div className="flex items-center gap-2 text-sm text-text-secondary">
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
-                  <rect x="3" y="4" width="18" height="18" rx="2" />
-                  <line x1="16" y1="2" x2="16" y2="6" />
-                  <line x1="8" y1="2" x2="8" y2="6" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
+                <Icon name="calendar" size="sm" color="primary" />
               </div>
               <span className="font-medium">
                 {formatPersianDateTime(data.start_datetime)}
@@ -238,10 +232,7 @@ export function EventDetailClient({
               className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary transition-colors w-full text-right"
             >
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
+                <Icon name="mapPin" size="sm" color="primary" />
               </div>
               <span className="font-medium">{data.location.name}</span>
             </button>
@@ -252,42 +243,20 @@ export function EventDetailClient({
       <div className="sticky top-0 z-10 bg-background/60 backdrop-blur-2xl border-b border-border/40">
         <div className="flex gap-1.5 px-4 py-2.5">
           <ActionIcon active={saved} onClick={handleSave} tooltip={saved ? "حذف از ذخیره" : "ذخیره"}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill={saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth={saved ? 0 : 1.5}>
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-            </svg>
+            <Icon name="bookmark" size="md" active={saved} />
           </ActionIcon>
           <ActionIcon onClick={handleShare} tooltip="اشتراک‌گذاری">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="18" cy="5" r="3" />
-              <circle cx="6" cy="12" r="3" />
-              <circle cx="18" cy="19" r="3" />
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-            </svg>
+            <Icon name="share" size="md" />
           </ActionIcon>
           <ActionIcon onClick={() => data.GoogleCalendarLink && window.open(data.GoogleCalendarLink, "_blank")} tooltip="تقویم" disabled={!data.GoogleCalendarLink}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-              <polyline points="8 14 11 17 16 12" />
-            </svg>
+            <Icon name="calendar" size="md" />
           </ActionIcon>
           <ActionIcon onClick={handleNavigate} tooltip="مسیریابی">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
+            <Icon name="mapPin" size="md" />
           </ActionIcon>
           {data.need_ticket && (
             <ActionIcon onClick={() => setTicketQrOpen(true)} tooltip="بلیت" className="text-primary">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <rect x="3" y="3" width="7" height="7" />
-                <rect x="14" y="3" width="7" height="7" />
-                <rect x="3" y="14" width="7" height="7" />
-                <rect x="14" y="14" width="7" height="7" />
-              </svg>
+              <Icon name="qr" size="md" color="primary" />
             </ActionIcon>
           )}
         </div>
@@ -324,7 +293,7 @@ export function EventDetailClient({
                     key={org.id}
                     className="snap-start shrink-0 flex flex-col items-center gap-2 w-20"
                   >
-                    <div className="w-14 h-14 rounded-xl bg-white/50 border border-border/40 flex items-center justify-center overflow-hidden shadow-xs">
+                    <div className="w-14 h-14 rounded-xl bg-white/50 dark:bg-white/5 border border-border/40 flex items-center justify-center overflow-hidden shadow-xs">
                       {org.logo ? (
                         <OptimizedImage src={org.logo} alt={org.name} width={56} height={56} className="w-full h-full" />
                       ) : (
@@ -351,7 +320,7 @@ export function EventDetailClient({
                 {talks.map((talk, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-white/50 border border-border/30"
+                    className="flex items-center gap-3 p-3 rounded-xl bg-white/50 dark:bg-white/5 border border-border/30"
                   >
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                       <span className="text-sm font-bold text-primary">
@@ -371,7 +340,7 @@ export function EventDetailClient({
                       )}
                     </div>
                     {talk.time && (
-                      <span className="text-[10px] px-2 py-1 rounded-full bg-white/50 text-text-secondary border border-border/30 shrink-0 font-medium">
+                      <span className="text-[10px] px-2 py-1 rounded-full bg-white/50 dark:bg-white/5 text-text-secondary border border-border/30 shrink-0 font-medium">
                         {talk.time}
                       </span>
                     )}
@@ -395,17 +364,7 @@ export function EventDetailClient({
       <Modal open={ticketQrOpen} onClose={() => setTicketQrOpen(false)} title="بلیت رویداد">
         <div className="flex flex-col items-center py-6">
           <div className="w-52 h-52 rounded-xl bg-linear-to-br from-primary/4 to-surface border border-border flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="110" height="110" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-text-secondary/20">
-              <rect x="2" y="2" width="5" height="5" />
-              <rect x="17" y="2" width="5" height="5" />
-              <rect x="2" y="17" width="5" height="5" />
-              <rect x="12" y="12" width="5" height="5" />
-              <rect x="8" y="8" width="2" height="2" />
-              <rect x="14" y="8" width="2" height="2" />
-              <rect x="8" y="14" width="2" height="2" />
-              <rect x="19" y="12" width="3" height="2" />
-              <rect x="12" y="19" width="2" height="3" />
-            </svg>
+            <Icon name="qr" size={110} className="text-text-secondary/20" />
           </div>
           <p className="text-xs text-text-secondary mt-3">بلیت خود را اسکن کنید</p>
         </div>
@@ -424,10 +383,7 @@ export function EventDetailClient({
               onClick={() => setImagePopupOpen(false)}
               className="absolute top-4 inset-e-4 z-10 w-9 h-9 rounded-full bg-white/15 backdrop-blur-xs flex items-center justify-center text-white hover:bg-white/25 transition-colors"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              <Icon name="close" size={20} />
             </button>
             <div className="relative w-full h-[70vh] max-h-[80dvh]">
               <OptimizedImage
@@ -480,9 +436,7 @@ function GuestEventView({
           aria-label="بازگشت"
           className="absolute top-4 inset-s-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-xs shadow-md flex items-center justify-center text-text-primary"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <Icon name="chevronLeft" size="md" className="scale-x-[-1]" />
         </button>
         <OptimizedImage
           src={imageUrl}
@@ -508,13 +462,7 @@ function GuestEventView({
           onClick={onShare}
           className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary hover:opacity-80 transition-opacity"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <circle cx="18" cy="5" r="3" />
-            <circle cx="6" cy="12" r="3" />
-            <circle cx="18" cy="19" r="3" />
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-          </svg>
+          <Icon name="share" size="sm" />
           اشتراک‌گذاری
         </button>
       </div>
@@ -554,11 +502,7 @@ function GallerySection({
   if (!images || images.length === 0) {
     return (
       <div className="relative h-64 bg-linear-to-b from-primary/4 to-surface flex items-center justify-center">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-secondary/20">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <circle cx="8.5" cy="8.5" r="1.5" />
-          <polyline points="21 15 16 10 5 21" />
-        </svg>
+        <Icon name="camera" size={48} className="text-text-secondary/20" />
       </div>
     );
   }
@@ -657,11 +601,11 @@ function SaloonsAccordion({ saloons }: { saloons: EventDetail["saloons"] }) {
         return (
           <div
             key={i}
-            className="rounded-xl bg-white/50 border border-border/30 overflow-hidden"
+            className="rounded-xl bg-white/50 dark:bg-white/5 border border-border/30 overflow-hidden"
           >
             <button
               onClick={() => setOpenIndex(isOpen ? null : i)}
-              className="flex items-center justify-between w-full h-12 px-4 text-sm font-medium text-text-primary hover:bg-white/30 transition-colors"
+              className="flex items-center justify-between w-full h-12 px-4 text-sm font-medium text-text-primary hover:bg-white/30 dark:hover:bg-white/5 transition-colors"
             >
               <span>{saloon.name}</span>
               <motion.svg
@@ -725,9 +669,9 @@ function CompanyBoothCard({
   return (
     <button
       onClick={handleClick}
-      className="flex items-center gap-3 p-2.5 rounded-lg bg-white/40 hover:bg-white/60 transition-colors"
+      className="flex items-center gap-3 p-2.5 rounded-lg bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/10 transition-colors"
     >
-      <div className="w-9 h-9 rounded-lg bg-white/40 border border-border/40 flex items-center justify-center overflow-hidden shrink-0">
+      <div className="w-9 h-9 rounded-lg bg-white/40 dark:bg-white/5 border border-border/40 flex items-center justify-center overflow-hidden shrink-0">
         {company.logo ? (
           <OptimizedImage src={company.logo} alt="" width={36} height={36} className="w-full h-full" />
         ) : (
@@ -741,9 +685,7 @@ function CompanyBoothCard({
         )}
       </div>
       {company.link && (
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-secondary shrink-0">
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
+        <Icon name="chevronLeft" size="sm" className="shrink-0 text-text-secondary" />
       )}
     </button>
   );

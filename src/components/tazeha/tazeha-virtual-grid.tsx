@@ -9,6 +9,7 @@ const ROW_HEIGHT = 196;
 
 interface TazehaVirtualGridProps {
   items: TazehaItem[];
+  listKey: string;
   renderCard: (item: TazehaItem) => ReactNode;
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
@@ -17,6 +18,7 @@ interface TazehaVirtualGridProps {
 
 export function TazehaVirtualGrid({
   items,
+  listKey,
   renderCard,
   hasNextPage = false,
   isFetchingNextPage = false,
@@ -25,10 +27,29 @@ export function TazehaVirtualGrid({
   const listRef = useRef<HTMLDivElement>(null);
   const [scrollMargin, setScrollMargin] = useState(0);
   const loadMoreLockRef = useRef(false);
+  const allowLoadMoreRef = useRef(false);
+
+  useEffect(() => {
+    allowLoadMoreRef.current = false;
+    loadMoreLockRef.current = false;
+
+    const enableLoadMore = () => {
+      allowLoadMoreRef.current = true;
+    };
+
+    const timer = window.setTimeout(enableLoadMore, 400);
+    window.addEventListener("scroll", enableLoadMore, { once: true, passive: true });
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("scroll", enableLoadMore);
+    };
+  }, [listKey]);
 
   const tryLoadMore = useCallback(
     (lastVisibleIndex: number) => {
       if (
+        !allowLoadMoreRef.current ||
         !hasNextPage ||
         isFetchingNextPage ||
         !onLoadMore ||
@@ -59,7 +80,7 @@ export function TazehaVirtualGrid({
     if (listRef.current) {
       setScrollMargin(listRef.current.offsetTop);
     }
-  }, [items.length]);
+  }, [items.length, listKey]);
 
   useEffect(() => {
     if (!isFetchingNextPage) {

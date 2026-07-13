@@ -2,41 +2,21 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { useSubmitHomeEventTicket } from "@/lib/queries/home-events";
-
-function FieldIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="shrink-0 text-text-primary"
-      aria-hidden
-    >
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-      <circle cx="12" cy="10" r="3" />
-    </svg>
-  );
-}
 
 function FormLabel({ children }: { children: string }) {
   return (
     <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-text-primary">
-      <FieldIcon />
+      <Icon name="mapPin" size="sm" className="shrink-0 text-text-primary" />
       {children}
     </label>
   );
 }
 
 const inputClass =
-  "w-full rounded-2xl border border-white bg-[#e0e0e0] px-3 py-2.5 text-sm text-text-primary shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)] outline-none transition-colors focus:border-primary/40 focus:ring-1 focus:ring-primary/20";
+  "w-full rounded-2xl border border-white dark:border-border/40 bg-[#e0e0e0] dark:bg-background px-3 py-2.5 text-sm text-text-primary shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)] dark:shadow-none outline-none transition-colors focus:border-primary/40 focus:ring-1 focus:ring-primary/20";
 
 export function HomeEventTicketForm() {
   const { mutateAsync, isPending } = useSubmitHomeEventTicket();
@@ -86,27 +66,10 @@ export function HomeEventTicketForm() {
   };
 
   return (
-    <section className="rounded-3xl bg-[#ececec] px-4 py-5 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+    <section className="rounded-3xl bg-[#ececec] dark:bg-surface px-4 py-5 shadow-[0_4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.25)]">
       <div className="mb-4 flex justify-start">
         <div className="inline-flex items-center gap-1.5 rounded-full border border-primary bg-white px-3 py-1.5 text-sm font-bold text-text-primary shadow-sm">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-primary"
-            aria-hidden
-          >
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="16" y1="13" x2="8" y2="13" />
-            <line x1="16" y1="17" x2="8" y2="17" />
-          </svg>
+          <Icon name="invitation" size="sm" color="primary" />
           ثبت درخواست
         </div>
       </div>

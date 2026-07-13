@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { TazehaItem } from "@/lib/api/tazeha";
 import { loginUrl } from "@/lib/auth-utils";
 import { toPersianDigits, cn } from "@/lib/utils";
+import { Icon } from "@/components/ui/icon";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import {
   formatTazehaDateRange,
@@ -45,7 +46,7 @@ function HeroGlassOverlay({ item }: { item: TazehaItem }) {
   const footer = [dateRange, location].filter(Boolean).join(" · ");
 
   return (
-    <div className="absolute inset-x-3 bottom-3 z-10 rounded-2xl border border-white/70 bg-white/55 px-4 py-3.5 text-right shadow-[0_4px_24px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-xl backdrop-saturate-150 dark:bg-white/20">
+    <div className="absolute inset-x-3 bottom-3 z-10 rounded-2xl border border-white/70 bg-white/55 px-4 py-3.5 text-right shadow-[0_4px_24px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-xl backdrop-saturate-150 dark:border-white/15 dark:bg-black/40 dark:shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
       <h3 className="text-sm font-bold leading-snug text-text-primary line-clamp-1">
         {title}
       </h3>
@@ -68,6 +69,7 @@ interface HomeHeroProps {
   showGuestCta?: boolean;
   showTodayBadge?: boolean;
   className?: string;
+  enrich?: boolean;
 }
 
 export function HomeHero({
@@ -75,9 +77,13 @@ export function HomeHero({
   showGuestCta = false,
   showTodayBadge = false,
   className,
+  enrich = true,
 }: HomeHeroProps) {
   const [index, setIndex] = useState(0);
-  const { items: enrichedItems } = useEnrichedTazehaItems(events, events.length > 0);
+  const { items: enrichedItems } = useEnrichedTazehaItems(
+    events,
+    enrich && events.length > 0
+  );
 
   if (events.length === 0) return null;
 
@@ -114,23 +120,7 @@ export function HomeHero({
               <HeroGlassOverlay item={enriched} />
               {showTodayBadge && (
                 <div className="absolute top-3 right-3 z-20 flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-white shadow-[0_2px_8px_rgba(255,90,95,0.35)]">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden
-                  >
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
+                  <Icon name="calendar" size="sm" color="white" />
                   امروز
                 </div>
               )}
@@ -145,19 +135,7 @@ export function HomeHero({
                 aria-label="رویداد قبلی"
                 className="absolute top-1/2 left-3 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-primary shadow-sm backdrop-blur-xs transition-transform active:scale-90"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="15 18 9 12 15 6" />
-                </svg>
+                <Icon name="chevronLeft" size={20} color="primary" />
               </button>
               <button
                 type="button"
@@ -165,19 +143,7 @@ export function HomeHero({
                 aria-label="رویداد بعدی"
                 className="absolute top-1/2 right-3 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-primary shadow-sm backdrop-blur-xs transition-transform active:scale-90"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
+                <Icon name="chevronLeft" size={20} color="primary" className="scale-x-[-1]" />
               </button>
             </>
           )}

@@ -30,7 +30,7 @@ import { HomeRegisterEventCta } from "@/components/home/home-register-event-cta"
 import { HomeEventTicketForm } from "@/components/home/home-event-ticket-form";
 import { HomeCollaborationInfo } from "@/components/home/home-collaboration-info";
 import { HomeSponsorsSection } from "@/components/home/home-sponsors-section";
-import { useEnrichedTazehaItems } from "@/lib/queries/tazeha-enrichment";
+import { useEnrichedTazehaGroups } from "@/lib/queries/tazeha-enrichment";
 import type { TazehaItem } from "@/lib/api/tazeha";
 import { isAuthenticated } from "@/lib/auth-utils";
 
@@ -91,6 +91,10 @@ export default function HomePage() {
   const setFlyToTarget = useMapStore((s) => s.setFlyToTarget);
   const setSelectedLocation = useMapStore((s) => s.setSelectedLocation);
   const setSheetOpen = useMapStore((s) => s.setSheetOpen);
+  const [guest, setGuest] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const {
     data: pinnedEvents = [],
     isLoading: pinnedLoading,
@@ -120,7 +124,7 @@ export default function HomePage() {
     isLoading: locationsLoading,
     isError: locationsError,
     refetch: refetchLocations,
-  } = useLandingLocations();
+  } = useLandingLocations(searchOpen);
 
   const pinHeroEvents = useMemo(
     () => pinnedEvents.map(eventPinToTazehaItem),
@@ -138,10 +142,30 @@ export default function HomePage() {
       })),
     [latestEvents]
   );
-  const { items: enrichedLatestItems } = useEnrichedTazehaItems(
-    latestItems,
-    latestEvents.length > 0
+  const weekItems = useMemo<TazehaItem[]>(
+    () =>
+      weekEvents.map((event) => ({
+        event_slug: event.event_slug,
+        thumbnail: event.thumbnail,
+      })),
+    [weekEvents]
   );
+  const listEnrichGroups = useMemo(
+    () => ({
+      latest: latestItems,
+      week: weekItems,
+    }),
+    [latestItems, weekItems]
+  );
+  const shouldEnrichLists =
+    !latestLoading &&
+    !weekLoading &&
+    (latestItems.length > 0 || weekItems.length > 0);
+  const { groups: enrichedListGroups } = useEnrichedTazehaGroups(
+    listEnrichGroups,
+    shouldEnrichLists
+  );
+  const enrichedLatestItems = enrichedListGroups.latest;
   const latestSectionEvents = useMemo(
     () =>
       enrichedLatestItems.map((event) => ({
@@ -159,18 +183,7 @@ export default function HomePage() {
     () => todayEvents.map(eventPinToLandingEvent),
     [todayEvents]
   );
-  const weekItems = useMemo<TazehaItem[]>(
-    () =>
-      weekEvents.map((event) => ({
-        event_slug: event.event_slug,
-        thumbnail: event.thumbnail,
-      })),
-    [weekEvents]
-  );
-  const { items: enrichedWeekItems } = useEnrichedTazehaItems(
-    weekItems,
-    weekEvents.length > 0
-  );
+  const enrichedWeekItems = enrichedListGroups.week;
   const weekSectionEvents = useMemo(
     () =>
       enrichedWeekItems.map((event) => ({
@@ -189,7 +202,7 @@ export default function HomePage() {
     return Array.from(bySlug.values());
   }, [pinCards, latestSectionEvents, todayCards, weekSectionEvents]);
 
-  const loading = pinnedLoading || latestLoading || locationsLoading;
+  const loading = pinnedLoading || latestLoading;
   const eventsError = pinnedError && latestError && todayError && weekError;
   const error =
     !loading &&
@@ -197,10 +210,6 @@ export default function HomePage() {
     locations.length === 0 &&
     eventsError &&
     locationsError;
-  const [guest, setGuest] = useState(true);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) {
@@ -296,7 +305,7 @@ export default function HomePage() {
         </div>
         <div className="flex flex-col gap-5 px-5 pb-32">
           <HomeRegisterEventCta />
-          <HomeSponsorsSection />
+          <HomeSponsorsSection enabled={!loading} />
           <HomeCollaborationInfo />
           <HomeEventTicketForm />
         </div>
@@ -363,7 +372,7 @@ export default function HomePage() {
         </motion.div>
 
         <motion.div variants={fadeUp}>
-          <HomeSponsorsSection />
+          <HomeSponsorsSection enabled={!loading} />
         </motion.div>
 
         <motion.div variants={fadeUp}>

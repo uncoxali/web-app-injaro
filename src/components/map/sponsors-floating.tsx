@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { isAuthenticated } from "@/lib/auth-utils";
 import { useSponsors } from "@/lib/queries/sponsors";
 import type { Sponsor } from "@/lib/api/locations";
+import { Icon } from "@/components/ui/icon";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { cn } from "@/lib/utils";
 
@@ -60,18 +61,7 @@ function SponsorSlide({ sponsor }: { sponsor: Sponsor }) {
 
       {sponsor.link && (
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            className="-scale-x-100"
-          >
-            <path d="M5 12h14M12 5l7 7-7 7" />
-          </svg>
+          <Icon name="chevronLeft" size="sm" color="primary" className="scale-x-[-1]" />
         </div>
       )}
     </a>

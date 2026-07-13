@@ -1,19 +1,24 @@
 import { cn } from "@/lib/utils";
 
-function MapPattern() {
-  const bg = "#e8e8e8";
-  const stroke = "#c8c8c8";
-  const strokeSoft = "#d6d6d6";
+function MapPattern({ variant }: { variant: "light" | "dark" }) {
+  const isDark = variant === "dark";
+  const bg = isDark ? "#1e293b" : "#e8e8e8";
+  const stroke = isDark ? "#334155" : "#c8c8c8";
+  const strokeSoft = isDark ? "#475569" : "#d6d6d6";
+  const patternId = `profile-map-pattern-${variant}`;
 
   return (
     <svg
-      className="absolute inset-0 h-full w-full opacity-70"
+      className={cn(
+        "absolute inset-0 h-full w-full",
+        isDark ? "hidden opacity-[0.45] dark:block" : "opacity-70 dark:hidden"
+      )}
       xmlns="http://www.w3.org/2000/svg"
       preserveAspectRatio="xMidYMid slice"
     >
       <defs>
         <pattern
-          id="profile-map-pattern"
+          id={patternId}
           width="400"
           height="400"
           patternUnits="userSpaceOnUse"
@@ -93,7 +98,7 @@ function MapPattern() {
           />
         </pattern>
       </defs>
-      <rect width="100%" height="100%" fill="url(#profile-map-pattern)" />
+      <rect width="100%" height="100%" fill={`url(#${patternId})`} />
     </svg>
   );
 }
@@ -102,11 +107,10 @@ export function ProfileMapBackground() {
   return (
     <div
       aria-hidden
-      className={cn(
-        "pointer-events-none absolute inset-0 overflow-hidden bg-[#e8e8e8]"
-      )}
+      className="pointer-events-none absolute inset-0 overflow-hidden bg-[#e8e8e8] dark:bg-background"
     >
-      <MapPattern />
+      <MapPattern variant="light" />
+      <MapPattern variant="dark" />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 
 interface AuthLayoutProps {
@@ -14,18 +15,7 @@ export function AuthLayout({ children, title, subtitle, align = "start" }: AuthL
       <div className="w-full">
         <div className={cn("mb-8", align === "center" ? "text-center" : "text-start")}>
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#FF5A5F"
-              strokeWidth="1.5"
-            >
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
+            <Icon name="home" size="xl" color="primary" />
           </div>
           <h1 className="text-2xl font-bold text-text-primary">{title}</h1>
           {subtitle && (

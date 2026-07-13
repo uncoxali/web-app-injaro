@@ -3,6 +3,7 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import type { Sponsor } from "@/lib/api/locations";
 import { useSponsors } from "@/lib/queries/sponsors";
+import { Icon } from "@/components/ui/icon";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 
 function SponsorLogo({ sponsor }: { sponsor: Sponsor }) {
@@ -147,7 +148,7 @@ function SponsorCarousel({ sponsors }: { sponsors: Sponsor[] }) {
         {sponsors.map((sponsor, index) => (
           <div key={sponsor.id} className="flex shrink-0 items-stretch">
             {index > 0 && (
-              <div className="mx-1 w-px shrink-0 self-stretch bg-gray-300/70" aria-hidden />
+              <div className="mx-1 w-px shrink-0 self-stretch bg-gray-300/70 dark:bg-border/50" aria-hidden />
             )}
             <SponsorItem
               sponsor={sponsor}
@@ -165,41 +166,17 @@ function SponsorCarousel({ sponsors }: { sponsors: Sponsor[] }) {
             type="button"
             onClick={goPrev}
             aria-label="اسپانسر قبلی"
-            className="absolute top-[2.25rem] left-0 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-primary shadow-sm backdrop-blur-xs transition-transform active:scale-90"
+            className="absolute top-[2.25rem] left-0 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 dark:bg-surface/90 text-primary shadow-sm backdrop-blur-xs transition-transform active:scale-90"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
+            <Icon name="chevronLeft" size={20} color="primary" />
           </button>
           <button
             type="button"
             onClick={goNext}
             aria-label="اسپانسر بعدی"
-            className="absolute top-[2.25rem] right-0 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-primary shadow-sm backdrop-blur-xs transition-transform active:scale-90"
+            className="absolute top-[2.25rem] right-0 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 dark:bg-surface/90 text-primary shadow-sm backdrop-blur-xs transition-transform active:scale-90"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
+            <Icon name="chevronLeft" size={20} color="primary" className="scale-x-[-1]" />
           </button>
         </>
       )}
@@ -207,11 +184,11 @@ function SponsorCarousel({ sponsors }: { sponsors: Sponsor[] }) {
   );
 }
 
-export function HomeSponsorsSection() {
-  const { data: sponsors = [], isLoading, isError, refetch } = useSponsors();
+export function HomeSponsorsSection({ enabled = true }: { enabled?: boolean }) {
+  const { data: sponsors = [], isLoading, isError, refetch } = useSponsors(enabled);
 
   return (
-    <section className="rounded-3xl bg-[#ececec] px-4 py-5 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+    <section className="rounded-3xl bg-[#ececec] dark:bg-surface px-4 py-5 shadow-[0_4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.25)]">
       <h2 className="mb-3 text-base font-bold text-text-primary">
         مهمترین همکاری‌های گذشته
       </h2>

@@ -23,18 +23,19 @@ import { Modal } from "@/components/ui/modal";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ErrorState } from "@/components/ui/error-state";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { cn, toPersianDigits, imgUrl } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { ProfileMapBackground } from "@/components/profile/profile-map-background";
+import { Icon } from "@/components/ui/icon";
 import type { Category } from "@/lib/api/categories";
 
-const PROFILE_PRIMARY = "#ff5a5f";
-const PROFILE_TEXT = "#1f2937";
-const PROFILE_TEXT_MUTED = "#6b7280";
-const PROFILE_CARD_SHADOW =
-  "0 8px 28px rgba(0,0,0,0.09), 0 2px 8px rgba(0,0,0,0.04)";
-const PROFILE_STAT_SHADOW =
-  "0 6px 22px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04)";
+const profileCardClass =
+  "overflow-hidden rounded-[20px] bg-white dark:bg-surface shadow-[0_8px_28px_rgba(0,0,0,0.09),0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_28px_rgba(0,0,0,0.35),0_2px_8px_rgba(0,0,0,0.2)]";
+const profileStatClass =
+  "flex flex-col items-center gap-1 rounded-[18px] bg-white dark:bg-surface px-2 py-3.5 shadow-[0_6px_22px_rgba(0,0,0,0.08),0_2px_6px_rgba(0,0,0,0.04)] dark:shadow-[0_6px_22px_rgba(0,0,0,0.3)]";
+const pageShellClass =
+  "relative flex min-h-dvh flex-col bg-[#e8e8e8] dark:bg-background text-text-primary";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -139,43 +140,33 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="relative flex min-h-dvh flex-col bg-[#e8e8e8]">
+      <div className={pageShellClass}>
         <ProfileMapBackground />
         <div className="relative z-10 flex flex-col gap-4 px-4 pt-4 pb-6">
-          <div className="flex justify-end">
-            <div className="h-11 w-11 animate-pulse rounded-full bg-[#f0f0f0]" />
+          <div className="flex justify-end gap-2">
+            <div className="h-11 w-11 animate-pulse rounded-full bg-[#f0f0f0] dark:bg-surface" />
+            <div className="h-11 w-11 animate-pulse rounded-full bg-[#f0f0f0] dark:bg-surface" />
           </div>
-          <div
-            className="h-[104px] animate-pulse rounded-[20px] border bg-white"
-            style={{ borderColor: PROFILE_PRIMARY }}
-          />
+          <div className="h-[104px] animate-pulse rounded-[20px] border border-primary bg-white dark:bg-surface" />
           <div className="grid grid-cols-3 gap-2.5">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-[108px] animate-pulse rounded-[18px] bg-white"
-                style={{ boxShadow: PROFILE_STAT_SHADOW }}
-              />
+              <div key={i} className={cn("h-[108px] animate-pulse", profileStatClass)} />
             ))}
           </div>
-          <div
-            className="rounded-[20px] bg-white p-1"
-            style={{ boxShadow: PROFILE_CARD_SHADOW }}
-          >
-            <div className="h-14 animate-pulse border-b border-[#ececec]" />
+          <div className={cn("p-1", profileCardClass)}>
+            <div className="h-14 animate-pulse border-b border-border/50" />
             <div className="px-4 py-4">
-              <div className="mb-3 h-4 w-28 animate-pulse rounded bg-[#ececec] ms-auto" />
+              <div className="mb-3 h-4 w-28 animate-pulse rounded bg-border/40 ms-auto" />
               <div className="flex flex-wrap gap-2">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div
                     key={i}
-                    className="h-8 w-[72px] animate-pulse rounded-full"
-                    style={{ backgroundColor: `${PROFILE_PRIMARY}55` }}
+                    className="h-8 w-[72px] animate-pulse rounded-full bg-primary/30"
                   />
                 ))}
               </div>
             </div>
-            <div className="h-14 animate-pulse border-t border-[#ececec]" />
+            <div className="h-14 animate-pulse border-t border-border/50" />
           </div>
         </div>
       </div>
@@ -196,22 +187,20 @@ export default function ProfilePage() {
   );
 
   return (
-    <div className="relative flex min-h-dvh flex-col bg-[#e8e8e8] text-[#1f2937]">
+    <div className={pageShellClass}>
       <ProfileMapBackground />
 
       <div className="relative z-10 flex flex-col gap-4 px-4 pt-4 pb-6">
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-2">
+          <ThemeToggle />
           <button
             onClick={handleOpenNotif}
             aria-label="اعلان‌ها"
-            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-[#f0f0f0] transition-transform active:scale-95"
+            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-[#f0f0f0] dark:bg-surface transition-transform active:scale-95"
           >
-            <BellIcon />
+            <Icon name="bell" size={20} className="text-text-secondary" />
             {unreadCount > 0 && (
-              <span
-                className="absolute -top-0.5 -inset-e-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-white ring-2 ring-[#e8e8e8]"
-                style={{ backgroundColor: PROFILE_PRIMARY }}
-              >
+              <span className="absolute -top-0.5 -inset-e-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white ring-2 ring-[#e8e8e8] dark:ring-background">
                 {unreadCount > 9 ? "9+" : toPersianDigits(unreadCount)}
               </span>
             )}
@@ -222,16 +211,14 @@ export default function ProfilePage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-          className="flex items-center gap-3 rounded-[20px] border bg-white p-3"
-          style={{ borderColor: PROFILE_PRIMARY, boxShadow: PROFILE_CARD_SHADOW }}
+          className="flex items-center gap-3 rounded-[20px] border border-primary bg-white p-3 dark:bg-surface shadow-[0_8px_28px_rgba(0,0,0,0.09),0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_28px_rgba(0,0,0,0.35),0_2px_8px_rgba(0,0,0,0.2)]"
         >
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="relative shrink-0">
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingAvatar}
-                className="relative flex h-[68px] w-[68px] items-center justify-center overflow-hidden rounded-full shadow-[0_4px_14px_rgba(255,90,95,0.35)]"
-                style={{ backgroundColor: PROFILE_PRIMARY }}
+                className="relative flex h-[68px] w-[68px] items-center justify-center overflow-hidden rounded-full bg-primary shadow-[0_4px_14px_rgba(255,90,95,0.35)]"
               >
                 {profile?.avatar_url ? (
                   <OptimizedImage
@@ -252,24 +239,18 @@ export default function ProfilePage() {
               </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute -bottom-0.5 -inset-e-0.5 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#4b5563] text-white ring-2 ring-white"
+                className="absolute -bottom-0.5 -inset-e-0.5 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#4b5563] text-white ring-2 ring-white dark:ring-surface"
               >
-                <PlusIcon size={11} />
+                <Icon name="plus" size={14} color="white" />
               </button>
             </div>
 
             <div className="min-w-0 flex-1 text-right">
-              <h1
-                className="truncate text-[15px] font-bold leading-snug"
-                style={{ color: PROFILE_TEXT }}
-              >
+              <h1 className="truncate text-[15px] font-bold leading-snug text-text-primary">
                 {profile?.full_name || "کاربر"}
               </h1>
               {profile?.job ? (
-                <p
-                  className="mt-0.5 truncate text-xs"
-                  style={{ color: PROFILE_TEXT_MUTED }}
-                >
+                <p className="mt-0.5 truncate text-xs text-text-secondary">
                   {profile.job}
                 </p>
               ) : null}
@@ -278,13 +259,10 @@ export default function ProfilePage() {
 
           <button
             onClick={() => setShowQrModal(true)}
-            className="flex h-[76px] w-[68px] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[#d1d5db] bg-white"
+            className="flex h-[76px] w-[68px] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-border bg-white dark:border-border/50 dark:bg-surface"
           >
-            <QrIcon />
-            <span
-              className="text-[10px] font-medium leading-tight"
-              style={{ color: PROFILE_TEXT_MUTED }}
-            >
+            <Icon name="qr" size="lg" className="text-text-secondary" />
+            <span className="text-[10px] font-medium leading-tight text-text-secondary">
               کیوآرکد من
             </span>
           </button>
@@ -302,41 +280,37 @@ export default function ProfilePage() {
           <StatCard
             value={0}
             label="رویداد دیده شده"
-            icon={<ViewedEventsIcon />}
+            icon={<Icon name="viewedEvents" size={20} color="primary" />}
           />
           <StatCard
             value={0}
             label="رویداد پیش‌رو"
-            icon={<UpcomingEventsIcon />}
+            icon={<Icon name="upcomingEvents" size={20} color="primary" />}
           />
           <StatCard
             value={savedEvents.length}
             label="رویداد ذخیره شده"
-            icon={<SavedEventsIcon />}
+            icon={<Icon name="savedEvents" size={20} color="primary" />}
             onClick={() => router.push("/home/savedEvents")}
           />
         </div>
 
-        <div
-          className="overflow-hidden rounded-[20px] bg-white"
-          style={{ boxShadow: PROFILE_CARD_SHADOW }}
-        >
+        <div className={profileCardClass}>
           <MenuRow
             label="داده‌های کاربری"
-            icon={<UserDataIcon />}
+            icon={<Icon name="userData" size="lg" color="primary" />}
             onClick={() => router.push("/profile")}
           />
 
-          <div className="border-t border-[#ececec] px-4 py-4">
+          <div className="border-t border-border/50 px-4 py-4">
             <div className="mb-3 flex items-center justify-between">
               <button
                 type="button"
                 onClick={handleOpenInterests}
                 aria-label="افزودن علاقه‌مندی"
-                className="flex h-7 w-7 items-center justify-center"
-                style={{ color: PROFILE_PRIMARY }}
+                className="flex h-7 w-7 items-center justify-center text-primary"
               >
-                <PlusIcon size={18} />
+                <Icon name="plus" size="md" color="primary" />
               </button>
 
               <button
@@ -344,17 +318,11 @@ export default function ProfilePage() {
                 onClick={handleOpenInterests}
                 className="flex items-center gap-1.5"
               >
-                <span
-                  className="text-sm font-semibold"
-                  style={{ color: PROFILE_TEXT }}
-                >
+                <span className="text-sm font-semibold text-text-primary">
                   علاقه‌مندی‌ها
                 </span>
-                <span
-                  className="flex h-6 w-6 items-center justify-center"
-                  style={{ color: PROFILE_PRIMARY }}
-                >
-                  <PlusIcon size={18} />
+                <span className="flex h-6 w-6 items-center justify-center text-primary">
+                  <Icon name="plus" size="md" color="primary" />
                 </span>
               </button>
             </div>
@@ -364,8 +332,7 @@ export default function ProfilePage() {
                 Array.from({ length: 4 }).map((_, i) => (
                   <div
                     key={i}
-                    className="h-8 w-[72px] animate-pulse rounded-full"
-                    style={{ backgroundColor: `${PROFILE_PRIMARY}44` }}
+                    className="h-8 w-[72px] animate-pulse rounded-full bg-primary/30"
                   />
                 ))
               ) : userInterests.length > 0 ? (
@@ -375,11 +342,7 @@ export default function ProfilePage() {
               ) : (
                 <button
                   onClick={handleOpenInterests}
-                  className="w-full rounded-xl border border-dashed py-3 text-center text-xs transition-colors"
-                  style={{
-                    borderColor: `${PROFILE_PRIMARY}55`,
-                    color: PROFILE_TEXT_MUTED,
-                  }}
+                  className="w-full rounded-xl border border-dashed border-primary/40 py-3 text-center text-xs text-text-secondary transition-colors hover:border-primary/60 hover:text-primary"
                 >
                   علاقه‌مندی خود را اضافه کنید
                 </button>
@@ -387,10 +350,10 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="border-t border-[#ececec]">
+          <div className="border-t border-border/50">
             <MenuRow
               label="پشتیبانی و ارتباط با ما"
-              icon={<SupportIcon />}
+              icon={<Icon name="support" size="lg" color="primary" />}
               onClick={() => router.push("/home/profile/support")}
             />
           </div>
@@ -398,7 +361,7 @@ export default function ProfilePage() {
 
         <button
           onClick={() => setShowLogoutConfirm(true)}
-          className="mx-auto mt-1 text-xs text-[#9ca3af] transition-colors hover:text-[#ef4444]"
+          className="mx-auto mt-1 text-xs text-text-secondary/70 transition-colors hover:text-error"
         >
           خروج از حساب
         </button>
@@ -407,17 +370,7 @@ export default function ProfilePage() {
       <Modal open={showQrModal} onClose={() => setShowQrModal(false)} title="کیوآرکد من">
         <div className="flex flex-col items-center py-4">
           <div className="flex h-48 w-48 items-center justify-center rounded-xl border border-border bg-linear-to-br from-primary/4 to-surface">
-            <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-text-secondary/20">
-              <rect x="2" y="2" width="5" height="5" />
-              <rect x="17" y="2" width="5" height="5" />
-              <rect x="2" y="17" width="5" height="5" />
-              <rect x="12" y="12" width="5" height="5" />
-              <rect x="8" y="8" width="2" height="2" />
-              <rect x="14" y="8" width="2" height="2" />
-              <rect x="8" y="14" width="2" height="2" />
-              <rect x="19" y="12" width="3" height="2" />
-              <rect x="12" y="19" width="2" height="3" />
-            </svg>
+            <Icon name="qr" size={120} className="text-text-secondary/20" />
           </div>
           <p className="mt-3 text-xs text-text-secondary">این QR را به دیگران نشان دهید</p>
         </div>
@@ -434,7 +387,7 @@ export default function ProfilePage() {
           </div>
         ) : notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8">
-            <BellIcon className="mb-3 text-text-secondary/20" size={40} />
+            <Icon name="bell" size={40} className="mb-3 text-text-secondary/20" />
             <p className="text-sm text-text-secondary">اعلانی وجود ندارد</p>
           </div>
         ) : (
@@ -532,23 +485,17 @@ function StatCard({
     <Comp
       onClick={onClick}
       className={cn(
-        "flex flex-col items-center gap-1 rounded-[18px] bg-white px-2 py-3.5",
+        profileStatClass,
         onClick && "transition-transform active:scale-[0.98]"
       )}
-      style={{ boxShadow: PROFILE_STAT_SHADOW }}
     >
-      <span className="text-[22px] font-bold leading-none" style={{ color: PROFILE_TEXT }}>
+      <span className="text-[22px] font-bold leading-none text-text-primary">
         {toPersianDigits(value)}
       </span>
-      <span
-        className="text-center text-[10px] leading-tight"
-        style={{ color: PROFILE_TEXT_MUTED }}
-      >
+      <span className="text-center text-[10px] leading-tight text-text-secondary">
         {label}
       </span>
-      <div className="mt-1" style={{ color: PROFILE_PRIMARY }}>
-        {icon}
-      </div>
+      <div className="mt-1 text-primary">{icon}</div>
     </Comp>
   );
 }
@@ -565,20 +512,15 @@ function MenuRow({
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center justify-between px-4 py-4 transition-colors hover:bg-[#fafafa]"
+      className="flex w-full items-center justify-between px-4 py-4 transition-colors hover:bg-[#fafafa] dark:hover:bg-surface/80"
     >
       <div className="flex items-center gap-3">
-        <div
-          className="flex h-9 w-9 items-center justify-center"
-          style={{ color: PROFILE_PRIMARY }}
-        >
+        <div className="flex h-9 w-9 items-center justify-center text-primary">
           {icon}
         </div>
-        <span className="text-sm font-medium" style={{ color: PROFILE_TEXT }}>
-          {label}
-        </span>
+        <span className="text-sm font-medium text-text-primary">{label}</span>
       </div>
-      <ChevronIcon />
+      <Icon name="chevronLeft" size="sm" color="primary" />
     </button>
   );
 }
@@ -587,13 +529,7 @@ function InterestTag({ category }: { category: Category }) {
   const iconSrc = category.location_icon || category.icon;
 
   return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-white"
-      style={{
-        backgroundColor: PROFILE_PRIMARY,
-        boxShadow: "0 2px 8px rgba(255,90,95,0.35)",
-      }}
-    >
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-white shadow-[0_2px_8px_rgba(255,90,95,0.35)]">
       {iconSrc ? (
         <OptimizedImage
           src={imgUrl(iconSrc)}
@@ -603,7 +539,7 @@ function InterestTag({ category }: { category: Category }) {
           className="h-3.5 w-3.5 object-contain brightness-0 invert"
         />
       ) : (
-        <TagDotIcon className="text-white" />
+        <Icon name="plus" size="xs" color="white" />
       )}
       {category.name}
     </span>
@@ -611,110 +547,6 @@ function InterestTag({ category }: { category: Category }) {
 }
 
 function ProfileAvatarPlaceholder() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M6 21c0-3.3 2.7-6 6-6s6 2.7 6 6" />
-      <circle cx="9" cy="7" r="0.8" fill="white" stroke="none" />
-      <circle cx="15" cy="7" r="0.8" fill="white" stroke="none" />
-      <path d="M10 11c.5.5 1.5.5 2 0" strokeLinecap="round" />
-    </svg>
-  );
+  return <Icon name="user" size={36} color="white" variant="filled" />;
 }
 
-function BellIcon({ size = 20, className }: { size?: number; className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={cn("text-[#6b7280]", className)}>
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-  );
-}
-
-function PlusIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  );
-}
-
-function QrIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[#6b7280]">
-      <rect x="3" y="3" width="7" height="7" rx="1" />
-      <rect x="14" y="3" width="7" height="7" rx="1" />
-      <rect x="3" y="14" width="7" height="7" rx="1" />
-      <rect x="14" y="14" width="3" height="3" />
-      <rect x="18" y="18" width="3" height="3" />
-      <rect x="14" y="18" width="3" height="3" />
-      <rect x="18" y="14" width="3" height="3" />
-    </svg>
-  );
-}
-
-function ChevronIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: PROFILE_PRIMARY }}>
-      <polyline points="15 18 9 12 15 6" />
-    </svg>
-  );
-}
-
-function UserDataIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M6 21c0-3.3 2.7-6 6-6s6 2.7 6 6" />
-      <circle cx="9" cy="7" r="0.6" fill="currentColor" stroke="none" />
-      <circle cx="15" cy="7" r="0.6" fill="currentColor" stroke="none" />
-      <path d="M10 11c.5.5 1.5.5 2 0" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function SupportIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M3 11h2a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H3z" />
-      <path d="M21 11h-2a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2z" />
-      <path d="M5 11V7a7 7 0 0 1 14 0v4" />
-    </svg>
-  );
-}
-
-function ViewedEventsIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-      <path d="M9 12h6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function UpcomingEventsIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function SavedEventsIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-}
-
-function TagDotIcon({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <circle cx="12" cy="12" r="4" />
-    </svg>
-  );
-}

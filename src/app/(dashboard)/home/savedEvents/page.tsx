@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useSavedEvents } from "@/lib/queries/saved-events";
+import { Icon } from "@/components/ui/icon";
 import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -51,9 +52,7 @@ export default function SavedEventsPage() {
             className="text-text-secondary hover:text-text-primary transition-colors"
             aria-label="بازگشت"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
+            <Icon name="chevronLeft" size={22} className="scale-x-[-1]" />
           </button>
           <h1 className="text-base font-bold text-text-primary">رویدادهای ذخیره‌شده</h1>
           {events.length > 0 && (
@@ -65,19 +64,11 @@ export default function SavedEventsPage() {
         {events.length > 0 && (
           <div className="px-4 pb-3">
             <div className="relative">
-              <svg
+              <Icon
+                name="search"
+                size="sm"
                 className="absolute inset-s-3 top-1/2 -translate-y-1/2 text-text-secondary"
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
+              />
               <input
                 type="text"
                 placeholder="جستجو در ذخیره‌شده‌ها..."
@@ -90,10 +81,7 @@ export default function SavedEventsPage() {
                   onClick={() => setSearchQuery("")}
                   className="absolute inset-e-3 top-1/2 -translate-y-1/2 text-text-secondary/60 hover:text-text-secondary"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
+                  <Icon name="close" size="sm" />
                 </button>
               )}
             </div>
@@ -106,11 +94,7 @@ export default function SavedEventsPage() {
           <EmptyState
             title="رویدادی ذخیره نکردید"
             description="رویدادهای مورد علاقه خود را ذخیره کنید تا سریع به آن‌ها دسترسی داشته باشید"
-            icon={
-              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-text-secondary/20">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-              </svg>
-            }
+            icon={<Icon name="bookmark" size="xl" className="text-text-secondary/20" />}
           />
         ) : filteredEvents.length === 0 ? (
           <EmptyState

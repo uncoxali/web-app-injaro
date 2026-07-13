@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { type TazehaItem } from "@/lib/api/tazeha";
 import { type LandingLocation } from "@/lib/api/landing";
-import type { Category } from "@/lib/api/categories";
 import { useLandingLocations } from "@/lib/queries/landing";
 import { useCategories } from "@/lib/queries/categories";
 import { useInfiniteTazeha } from "@/lib/queries/tazeha";
@@ -17,7 +16,7 @@ import { DateSlider, generateDays, persianToGregorian, type DayOption } from "@/
 import { TazehaVirtualGrid } from "@/components/tazeha/tazeha-virtual-grid";
 import { TazehaListItem } from "@/components/tazeha/tazeha-list-item";
 import { TazehaCategoryFilters } from "@/components/tazeha/tazeha-category-filters";
-import { getTazehaCategoryId, getTazehaImage, getTazehaSlug, getTazehaTitle } from "@/components/tazeha/tazeha-format";
+import { getTazehaImage, getTazehaSlug, getTazehaTitle } from "@/components/tazeha/tazeha-format";
 import { useEnrichedTazehaItems } from "@/lib/queries/tazeha-enrichment";
 import { useMapStore } from "@/store/map";
 
@@ -43,33 +42,6 @@ function dedupeItems(items: TazehaItem[]): TazehaItem[] {
   });
 }
 
-const META_SECTION_KEYS = new Set([
-  "live_events",
-  "future_events",
-  "popular_events",
-  "all_events",
-]);
-
-function getFilterCategories(
-  categories: Category[],
-  items: TazehaItem[]
-): Category[] {
-  const sectionNames = new Set<string>();
-  const categoryIds = new Set<number>();
-
-  for (const item of items) {
-    if (item.category_section && !META_SECTION_KEYS.has(item.category_section)) {
-      sectionNames.add(item.category_section);
-    }
-    const id = getTazehaCategoryId(item);
-    if (id != null) categoryIds.add(id);
-  }
-
-  return categories.filter(
-    (c) => sectionNames.has(c.name) || categoryIds.has(c.id)
-  );
-}
-
 function ListSkeleton() {
   return (
     <div className="flex flex-col gap-3">
@@ -78,7 +50,7 @@ function ListSkeleton() {
           <div key={i} className="h-10 w-24 shrink-0 animate-pulse rounded-full bg-gray-200" />
         ))}
       </div>
-      <div className="overflow-hidden rounded-3xl bg-[#ececec] py-1 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+      <div className="overflow-hidden rounded-3xl bg-[#ececec] dark:bg-surface py-1 shadow-[0_4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.25)]">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i}>
             {i > 0 && <div className="mx-5 border-t border-black/8" />}
@@ -103,31 +75,39 @@ export default function TazehaPage() {
   const router = useRouter();
   const setMapSearchQuery = useMapStore((s) => s.setMapSearchQuery);
   const authed = isAuthenticated();
-  const { data: locations = [] } = useLandingLocations();
-  const { data: categories = [] } = useCategories();
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [selectedDate, setSelectedDate] = useState("");
   const [days, setDays] = useState<DayOption[]>([]);
+  const { data: locations = [] } = useLandingLocations(searchOpen);
+  const { data: categories = [] } = useCategories();
 
   const gregDate = selectedDate ? persianToGregorian(selectedDate) : undefined;
+  const listKey = `${gregDate ?? ""}:${selectedCategory ?? "all"}`;
   const {
     data,
     isLoading: loading,
+    isFetching,
     isError: error,
     refetch: refetchTazeha,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteTazeha(gregDate);
+  } = useInfiniteTazeha(gregDate, selectedCategory);
 
   useEffect(() => {
     const d = generateDays(21);
     setDays(d);
     setSelectedDate(d[0]?.date || "");
   }, []);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [selectedCategory, gregDate]);
+
+  const isFilterLoading = (loading || (isFetching && !isFetchingNextPage)) && !searchOpen;
 
   const handleDateChange = useCallback((date: string) => {
     setSelectedDate(date);
@@ -146,26 +126,9 @@ export default function TazehaPage() {
     return dedupeItems(data.pages.flatMap((page) => page.items));
   }, [data]);
 
-  const filterCategories = useMemo(
-    () => getFilterCategories(categories, allItems),
-    [categories, allItems]
-  );
-
-  const displayItems = useMemo(() => {
-    if (selectedCategory === null) return allItems;
-
-    const selected = categories.find((c) => c.id === selectedCategory);
-    if (!selected) return allItems;
-
-    return allItems.filter((item) => {
-      if (getTazehaCategoryId(item) === selectedCategory) return true;
-      return item.category_section === selected.name;
-    });
-  }, [allItems, selectedCategory, categories]);
-
   const { items: listItems, isEnriching } = useEnrichedTazehaItems(
-    displayItems,
-    authed
+    allItems,
+    authed && !loading && allItems.length > 0
   );
 
   const handleLoadMore = useCallback(() => {
@@ -217,12 +180,19 @@ export default function TazehaPage() {
           top: `calc(${searchOpen ? HOME_NAVBAR_HEIGHT_EXPANDED : HOME_NAVBAR_HEIGHT} + env(safe-area-inset-top))`,
         }}
       >
-        <div className="px-4 py-3">
-          {!searchOpen && !loading && days.length > 0 && (
+        <div className="flex flex-col gap-3 px-4 py-3">
+          {!searchOpen && !isFilterLoading && days.length > 0 && (
             <DateSlider
               days={days}
               selected={selectedDate}
               onSelect={handleDateChange}
+            />
+          )}
+          {!searchOpen && categories.length > 0 && (
+            <TazehaCategoryFilters
+              categories={categories}
+              selected={selectedCategory}
+              onSelect={setSelectedCategory}
             />
           )}
         </div>
@@ -236,13 +206,13 @@ export default function TazehaPage() {
             locations={searchResults.locations}
             onLocationClick={handleLocationSelect}
           />
-        ) : loading ? (
+        ) : isFilterLoading ? (
           <ListSkeleton />
         ) : error ? (
           <div className="flex flex-1 items-center justify-center py-16">
             <ErrorState onRetry={() => refetchTazeha()} />
           </div>
-        ) : displayItems.length === 0 ? (
+        ) : allItems.length === 0 ? (
           <div className="flex flex-1 items-center justify-center py-16">
             <EmptyState
               title="رویدادی یافت نشد"
@@ -251,16 +221,10 @@ export default function TazehaPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {filterCategories.length > 0 && (
-              <TazehaCategoryFilters
-                categories={filterCategories}
-                selected={selectedCategory}
-                onSelect={setSelectedCategory}
-              />
-            )}
-            <div className="overflow-hidden rounded-3xl bg-[#ececec] py-1 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+            <div className="overflow-hidden rounded-3xl bg-[#ececec] dark:bg-surface py-1 shadow-[0_4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.25)]">
               <TazehaVirtualGrid
                 items={listItems}
+                listKey={listKey}
                 hasNextPage={hasNextPage}
                 isFetchingNextPage={isFetchingNextPage}
                 onLoadMore={handleLoadMore}

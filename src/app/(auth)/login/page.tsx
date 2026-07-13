@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { AuthStepPanel } from "@/components/auth/auth-step-panel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { OTPInput } from "@/components/ui/otp-input";
 import { PersianDatePicker } from "@/components/persian-date-picker";
 import { Spinner } from "@/components/ui/spinner";
@@ -135,20 +136,7 @@ function UnifiedAuthPage() {
         aria-label="بازگشت"
         className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-border/30 bg-white/80 text-text-secondary shadow-sm backdrop-blur-sm transition-all hover:text-text-primary active:scale-95 pointer-events-auto"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden
-        >
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
+        <Icon name="chevronLeft" size={22} className="scale-x-[-1]" />
       </button>
 
       <div className="w-full max-w-[420px]">

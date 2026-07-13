@@ -5,30 +5,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { isAuthenticated, loginUrl } from "@/lib/auth-utils";
+import { Icon, type SemanticIconName } from "@/components/ui/icon";
 
-const navItems = [
-  {
-    label: "خانه",
-    href: "/home",
-    icon: HomeIcon,
-    exact: true,
-  },
-  {
-    label: "تازه‌ها",
-    href: "/home/Tazeha",
-    icon: FeedIcon,
-  },
-  {
-    label: "نقشه",
-    href: "/home/Injaro",
-    icon: MapPinIcon,
-  },
-  {
-    label: "پروفایل",
-    href: "/home/profile",
-    icon: "profile",
-    requiresAuth: true,
-  },
+const navItems: {
+  label: string;
+  href: string;
+  icon: SemanticIconName;
+  exact?: boolean;
+  requiresAuth?: boolean;
+}[] = [
+  { label: "خانه", href: "/home", icon: "home", exact: true },
+  { label: "تازه‌ها", href: "/home/Tazeha", icon: "feed" },
+  { label: "نقشه", href: "/home/Injaro", icon: "mapPin" },
+  { label: "پروفایل", href: "/home/profile", icon: "user", requiresAuth: true },
 ];
 
 function isNavActive(
@@ -81,95 +70,19 @@ export function BottomNav() {
                 isActive ? "text-primary" : "text-text-secondary"
               )}
             >
-              <div className="relative">
-                {item.icon === "profile" ? (
-                  <UserIcon active={isActive} />
-                ) : (
-                  <item.icon active={isActive} />
-                )}
-              </div>
+              <Icon name={item.icon} size={28} active={isActive} />
               <span
                 className={cn(
                   "text-[10px] font-medium transition-transform duration-200",
                   isActive ? "scale-100 font-semibold" : "scale-90"
                 )}
               >
-                {item.icon === "profile" && guest ? "ورود" : item.label}
+                {item.icon === "user" && guest ? "ورود" : item.label}
               </span>
             </Link>
           );
         })}
       </div>
     </nav>
-  );
-}
-
-function HomeIcon({ active }: { active: boolean }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill={active ? "currentColor" : "none"}
-      stroke="currentColor"
-      strokeWidth={active ? 0 : 1.5}
-    >
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      <polyline points="9 22 9 12 15 12 15 22" />
-    </svg>
-  );
-}
-
-function FeedIcon({ active }: { active: boolean }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill={active ? "currentColor" : "none"}
-      stroke="currentColor"
-      strokeWidth={active ? 0 : 1.5}
-    >
-      <rect x="3" y="3" width="7" height="7" rx="1" />
-      <rect x="14" y="3" width="7" height="7" rx="1" />
-      <rect x="3" y="14" width="7" height="7" rx="1" />
-      <rect x="14" y="14" width="7" height="7" rx="1" />
-    </svg>
-  );
-}
-
-function MapPinIcon({ active }: { active: boolean }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill={active ? "currentColor" : "none"}
-      stroke="currentColor"
-      strokeWidth={active ? 0 : 1.5}
-    >
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-      <circle cx="12" cy="10" r="3" />
-    </svg>
-  );
-}
-
-function UserIcon({ active }: { active: boolean }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill={active ? "currentColor" : "none"}
-      stroke="currentColor"
-      strokeWidth={active ? 0 : 1.5}
-    >
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
   );
 }

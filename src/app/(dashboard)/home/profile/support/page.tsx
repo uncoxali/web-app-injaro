@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { sendTicket } from "@/lib/api/profile";
 import { cn } from "@/lib/utils";
 
@@ -51,9 +52,7 @@ export default function SupportPage() {
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-xs border-b border-border/50">
         <div className="flex items-center gap-3 px-4 h-14">
           <button onClick={() => router.back()} className="text-text-secondary hover:text-text-primary transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
+            <Icon name="chevronLeft" size={22} className="scale-x-[-1]" />
           </button>
           <h1 className="text-base font-bold text-text-primary">پشتیبانی</h1>
         </div>

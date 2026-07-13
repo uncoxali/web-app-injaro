@@ -51,6 +51,7 @@ interface TazehaPaginatedResponse {
 export interface TazehaPageResult {
   items: TazehaItem[];
   nextPage: number | null;
+  nextUrl: string | null;
   count: number;
 }
 
@@ -92,22 +93,24 @@ function collectLegacyItems(response: TazehaResponse): TazehaItem[] {
   return dedupeTazehaItems(merged);
 }
 
-export async function getTazehaPage(
-  date?: string,
-  page = 1
-): Promise<TazehaPageResult> {
-  const params = new URLSearchParams();
-  if (date) params.set("date", date);
-  if (page > 1) params.set("page", String(page));
+function upstreamNextToProxyPath(next?: string | null): string | null {
+  if (!next) return null;
+  try {
+    const url = new URL(next);
+    return `/main/tazeha/list/${url.search}`;
+  } catch {
+    return null;
+  }
+}
 
-  const qs = params.toString();
-  const path = qs ? `/main/tazeha/list/?${qs}` : `/main/tazeha/list/`;
+async function fetchTazehaPath(path: string): Promise<TazehaPageResult> {
   const raw = await apiFetchJson<unknown>(path);
 
   if (isPaginatedResponse(raw)) {
     return {
       items: raw.results!.map((item) => normalizeTazehaItem(item)),
       nextPage: nextPageFromUrl(raw.next),
+      nextUrl: upstreamNextToProxyPath(raw.next),
       count: raw.count ?? raw.results!.length,
     };
   }
@@ -115,8 +118,34 @@ export async function getTazehaPage(
   const legacy = normalizeTazehaResponse(raw);
   const items = collectLegacyItems(legacy);
   return {
-    items: page === 1 ? items : [],
+    items,
     nextPage: null,
+    nextUrl: null,
     count: items.length,
   };
+}
+
+export async function getTazehaPage(
+  date?: string,
+  page = 1,
+  categoryId?: number | null
+): Promise<TazehaPageResult> {
+  const params = new URLSearchParams();
+  if (date) params.set("date", date);
+  if (categoryId != null) params.set("category", String(categoryId));
+  if (page > 1) params.set("page", String(page));
+
+  const qs = params.toString();
+  const path = qs ? `/main/tazeha/list/?${qs}` : `/main/tazeha/list/`;
+  const result = await fetchTazehaPath(path);
+
+  if (page > 1 && result.items.length === 0) {
+    return { ...result, nextPage: null, nextUrl: null };
+  }
+
+  return result;
+}
+
+export async function getTazehaPageByUrl(nextPath: string): Promise<TazehaPageResult> {
+  return fetchTazehaPath(nextPath);
 }

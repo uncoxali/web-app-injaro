@@ -4,6 +4,7 @@ import { useEffect, type RefObject } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { Icon } from "@/components/ui/icon";
 
 export const HOME_NAVBAR_HEIGHT = "4.75rem";
 export const HOME_NAVBAR_HEIGHT_EXPANDED = "6.75rem";
@@ -37,7 +38,7 @@ export function HomeNavbar({
   return (
     <header
       className={cn(
-        "fixed top-0 left-1/2 z-50 w-full max-w-[480px] -translate-x-1/2 bg-[#ececec] border-b border-black/[0.06]",
+        "fixed top-0 left-1/2 z-50 w-full max-w-[480px] -translate-x-1/2 bg-[#ececec] dark:bg-surface border-b border-black/[0.06] dark:border-border/40",
         className
       )}
       style={{ paddingTop: "env(safe-area-inset-top)" }}
@@ -76,18 +77,7 @@ export function HomeNavbar({
               aria-label="جستجو"
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-[3px] border-white bg-primary text-white shadow-[0_4px_14px_rgba(255,90,95,0.35)] transition-transform active:scale-95"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.25"
-              >
-                <circle cx="11" cy="11" r="7" />
-                <path d="M20 20l-3.5-3.5" />
-              </svg>
+              <Icon name="search" size={20} color="white" />
             </button>
           )}
         </div>
@@ -108,18 +98,7 @@ export function HomeNavbar({
                 aria-label="بستن جستجو"
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-secondary transition-colors hover:text-text-primary"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
+                <Icon name="close" size="md" />
               </button>
               <div className="relative min-w-0 flex-1">
                 <input
@@ -127,7 +106,7 @@ export function HomeNavbar({
                   value={searchQuery}
                   onChange={(e) => onSearchQueryChange(e.target.value)}
                   placeholder="جستجو در مکان‌ها و رویدادها..."
-                  className="h-10 w-full rounded-full border border-border/40 bg-white px-4 text-sm text-text-primary shadow-xs outline-hidden transition-colors placeholder:text-text-secondary/50 focus:border-primary/40"
+                  className="h-10 w-full rounded-full border border-border/40 bg-white dark:bg-background px-4 text-sm text-text-primary shadow-xs outline-hidden transition-colors placeholder:text-text-secondary/50 focus:border-primary/40"
                 />
                 {searchQuery && (
                   <button
@@ -136,18 +115,7 @@ export function HomeNavbar({
                     aria-label="پاک کردن"
                     className="absolute inset-y-0 left-3 flex items-center text-text-secondary/70"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
+                    <Icon name="close" size="sm" className="text-text-secondary/70" />
                   </button>
                 )}
               </div>

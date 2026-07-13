@@ -7,6 +7,7 @@ import { useMapStore } from "@/store/map";
 import { reportNavigationClick } from "@/lib/api/locations";
 import { isAuthenticated, loginUrl } from "@/lib/auth-utils";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { applyMarkersCameraTarget, getMarkersCameraTarget } from "@/lib/map-utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
@@ -199,36 +200,18 @@ export function LocationBottomSheet() {
                         aria-label="بستن"
                         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface text-text-secondary transition-colors hover:bg-border/60"
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <line x1="18" y1="6" x2="6" y2="18" />
-                          <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
+                        <Icon name="close" size="sm" />
                       </button>
                     </div>
 
                     {selectedLocation.address && (
                       <p className="mt-1.5 flex items-start gap-1.5 text-xs leading-relaxed text-text-secondary">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="13"
-                          height="13"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          className="mt-0.5 shrink-0 text-primary/70"
-                        >
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                          <circle cx="12" cy="10" r="3" />
-                        </svg>
+                        <Icon
+                          name="mapPin"
+                          size={13}
+                          color="primary"
+                          className="mt-0.5 shrink-0 opacity-70"
+                        />
                         <span className="line-clamp-2">
                           {selectedLocation.address}
                         </span>
@@ -266,18 +249,11 @@ export function LocationBottomSheet() {
                 <div className="flex flex-col gap-2.5">
                   <Button fullWidth size="lg" onClick={handleViewBrand}>
                     مشاهده پروفایل گالری
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      className="mr-1.5 -scale-x-100"
-                    >
-                      <path d="M5 12h14M12 5l7 7-7 7" />
-                    </svg>
+                    <Icon
+                      name="chevronLeft"
+                      size="sm"
+                      className="mr-1.5 scale-x-[-1]"
+                    />
                   </Button>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -286,19 +262,7 @@ export function LocationBottomSheet() {
                       onClick={handleNavigate}
                       className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-border/70 bg-background text-sm font-medium text-text-primary transition-colors hover:border-primary/30 hover:bg-primary/5"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        className="text-primary"
-                      >
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                        <circle cx="12" cy="10" r="3" />
-                      </svg>
+                      <Icon name="mapPin" size="sm" color="primary" />
                       مسیریابی
                     </button>
                     <button

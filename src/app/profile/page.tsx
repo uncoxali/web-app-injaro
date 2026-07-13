@@ -9,6 +9,7 @@ import { useProfile } from "@/lib/queries/profile";
 import { PersianDatePicker } from "@/components/persian-date-picker";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { ErrorState } from "@/components/ui/error-state";
 import { PROVINCES, JOBS } from "@/lib/constants/enums";
 import { cn } from "@/lib/utils";
@@ -115,9 +116,7 @@ export default function EditProfilePage() {
             onClick={() => router.back()}
             className="text-text-secondary hover:text-text-primary transition-colors"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
+            <Icon name="chevronLeft" size={22} className="scale-x-[-1]" />
           </button>
           <h1 className="text-base font-bold text-text-primary">داده‌های کاربری</h1>
         </div>

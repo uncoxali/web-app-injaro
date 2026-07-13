@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { Icon } from "@/components/ui/icon";
 
 interface ExpandableSearchBarProps {
   open: boolean;
@@ -43,9 +44,7 @@ export function ExpandableSearchBar({
           aria-label="بستن"
           className="text-text-secondary hover:text-text-primary transition-colors shrink-0"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
+          <Icon name="chevronLeft" size={20} />
         </button>
         <div className="relative flex-1">
           <input
@@ -63,10 +62,7 @@ export function ExpandableSearchBar({
               aria-label="پاک کردن"
               className="absolute left-2 top-1/2 -translate-y-1/2 text-text-secondary/60"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              <Icon name="close" size="sm" />
             </button>
           )}
         </div>
@@ -84,10 +80,7 @@ export function ExpandableSearchBar({
         className
       )}
     >
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <circle cx="11" cy="11" r="8" />
-        <path d="M21 21l-4.35-4.35" />
-      </svg>
+      <Icon name="search" size="md" />
     </button>
   );
 }

@@ -12,6 +12,7 @@ import { ErrorState } from "@/components/ui/error-state";
 import { PERSIAN_MONTHS } from "@/lib/constants/enums";
 import { cn, toPersianDigits, shareContent } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
+import { Icon } from "@/components/ui/icon";
 
 interface BrandDetailClientProps {
   initialData: LocationDetail | null;
@@ -93,9 +94,7 @@ export function BrandDetailClient({
           aria-label="بازگشت"
           className="absolute top-7 inset-s-7 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-background/85 text-text-primary shadow-md backdrop-blur-xs transition-colors hover:bg-background"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <Icon name="chevronLeft" size="md" className="scale-x-[-1]" />
         </button>
       </div>
 
@@ -123,7 +122,7 @@ export function BrandDetailClient({
             className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-primary bg-white text-sm font-semibold text-primary shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-transform active:scale-[0.98] dark:border-primary/50 dark:bg-surface"
           >
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white">
-              <MapPinIcon size={14} />
+              <Icon name="mapPin" size={18} color="white" variant="filled" />
             </span>
             مسیریابی
           </button>
@@ -167,7 +166,7 @@ export function BrandDetailClient({
             <OptimizedImage src={data.qr_code} alt="QR" width={192} height={192} className="h-48 w-48 rounded-xl" />
           ) : (
             <div className="flex h-48 w-48 items-center justify-center rounded-xl border border-border bg-linear-to-br from-primary/4 to-surface">
-              <QrPlaceholder />
+              <Icon name="qr" size={100} className="text-text-secondary/20" />
             </div>
           )}
           <p className="mt-3 text-xs text-text-secondary">اسکن کنید تا برند را مشاهده کنید</p>
@@ -240,7 +239,7 @@ function BrandGallery({
       </div>
 
       {logo ? (
-        <div className="absolute top-3 inset-s-3 z-10 flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white/90 p-1 shadow-md">
+        <div className="absolute top-3 inset-s-3 z-10 flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white/90 dark:bg-surface/90 p-1 shadow-md">
           <OptimizedImage src={logo} alt="" width={32} height={32} className="h-full w-full object-contain" />
         </div>
       ) : null}
@@ -283,48 +282,27 @@ function BrandActionBar({
       label: "پسندیدم",
       disabled: true,
       icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-        </svg>
+        <Icon name="heart" size={20} variant="outline" />
       ),
     },
     {
       key: "share",
       label: "اشتراک گذاری",
       onClick: onShare,
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <circle cx="18" cy="5" r="3" />
-          <circle cx="6" cy="12" r="3" />
-          <circle cx="18" cy="19" r="3" />
-          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-        </svg>
-      ),
+      icon: <Icon name="share" size={20} />,
     },
     {
       key: "save",
       label: "ذخیره سازی",
       onClick: onSave,
       active: saved,
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill={saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth={saved ? 0 : 1.5}>
-          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-        </svg>
-      ),
+      icon: <Icon name="bookmark" size={20} active={saved} />,
     },
     {
       key: "qr",
       label: "کیوآرکد",
       onClick: onQr,
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <rect x="3" y="3" width="7" height="7" rx="1" />
-          <rect x="14" y="3" width="7" height="7" rx="1" />
-          <rect x="3" y="14" width="7" height="7" rx="1" />
-          <rect x="14" y="14" width="3" height="3" />
-        </svg>
-      ),
+      icon: <Icon name="qr" size={20} />,
     },
   ];
 
@@ -369,28 +347,17 @@ function BrandInfoStrip({
       key: "address",
       label: address || "آدرس ثبت نشده",
       onClick: onAddressClick,
-      icon: <MapPinIcon size={18} />,
+      icon: <Icon name="mapPin" size="md" color="primary" />,
     },
     {
       key: "category",
       label: category || "دسته‌بندی نامشخص",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
-          <rect x="3" y="3" width="7" height="7" rx="1" />
-          <rect x="14" y="3" width="7" height="7" rx="1" />
-          <rect x="3" y="14" width="7" height="7" rx="1" />
-          <rect x="14" y="14" width="7" height="7" rx="1" />
-        </svg>
-      ),
+      icon: <Icon name="feed" size="md" color="primary" />,
     },
     {
       key: "phone",
       label: phone || "تماس ثبت نشده",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
-          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-        </svg>
-      ),
+      icon: <Icon name="phone" size="md" color="primary" />,
     },
   ];
 
@@ -549,7 +516,7 @@ function BrandEventsCarousel({
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center text-text-secondary/20">
-                    <ImagePlaceholder />
+                    <Icon name="camera" size={28} className="text-text-secondary/40" />
                   </div>
                 )}
                 <div className="absolute inset-x-2 bottom-2 rounded-xl bg-white/85 px-2 py-1.5 backdrop-blur-sm dark:bg-surface/90">
@@ -600,43 +567,12 @@ function CarouselArrow({
         className
       )}
     >
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-        {direction === "prev" ? (
-          <polyline points="15 18 9 12 15 6" />
-        ) : (
-          <polyline points="9 18 15 12 9 6" />
-        )}
-      </svg>
+      <Icon
+        name="chevronLeft"
+        size="sm"
+        color="white"
+        className={direction === "next" ? "scale-x-[-1]" : undefined}
+      />
     </button>
-  );
-}
-
-function MapPinIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-      <circle cx="12" cy="10" r="3" />
-    </svg>
-  );
-}
-
-function QrPlaceholder() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-text-secondary/20">
-      <rect x="2" y="2" width="5" height="5" />
-      <rect x="17" y="2" width="5" height="5" />
-      <rect x="2" y="17" width="5" height="5" />
-      <rect x="12" y="12" width="5" height="5" />
-    </svg>
-  );
-}
-
-function ImagePlaceholder() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <circle cx="8.5" cy="8.5" r="1.5" />
-      <polyline points="21 15 16 10 5 21" />
-    </svg>
   );
 }

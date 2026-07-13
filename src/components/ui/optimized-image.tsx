@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { Icon } from "@/components/ui/icon";
 import { cn, imgUrl } from "@/lib/utils";
 
 interface OptimizedImageProps {
@@ -22,20 +23,7 @@ function ImagePlaceholder({ className }: { className?: string }) {
         className
       )}
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1"
-        className="text-gray-300 dark:text-gray-600"
-      >
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-        <circle cx="8.5" cy="8.5" r="1.5" />
-        <path d="M21 15l-5-5L5 21" />
-      </svg>
+      <Icon name="camera" size="md" className="text-gray-300 dark:text-gray-600" />
     </div>
   );
 }
