@@ -1,6 +1,7 @@
 import { toJalaali } from "jalaali-js";
 import { toPersianDigits } from "@/lib/utils";
 import type { EventDetail } from "@/lib/api/events";
+import type { Category } from "@/lib/api/categories";
 import type { TazehaItem } from "@/lib/api/tazeha";
 
 const PERSIAN_MONTHS = [
@@ -40,6 +41,24 @@ export function getTazehaTitle(item: TazehaItem): string {
 
 export function getTazehaImage(item: TazehaItem): string {
   return item.thumbnail || item.image_url || "";
+}
+
+export function getTazehaCategoryName(item: TazehaItem): string {
+  return item.category_name?.trim() || item.category_section?.trim() || "";
+}
+
+export function filterTazehaByCategory(
+  items: TazehaItem[],
+  categoryId: number | null,
+  categories: Category[]
+): TazehaItem[] {
+  if (categoryId == null) return items;
+
+  const category = categories.find((entry) => entry.id === categoryId);
+  if (!category) return items;
+
+  const target = category.name.trim();
+  return items.filter((item) => getTazehaCategoryName(item) === target);
 }
 
 export function formatTazehaDateRange(item: TazehaItem): string {

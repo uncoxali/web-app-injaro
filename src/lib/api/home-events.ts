@@ -6,20 +6,121 @@ import type { TazehaItem } from "@/lib/api/tazeha";
 export type HomeEventPin = EventPin & { event_slug: string };
 export type HomeLatestEvent = LatestEvent & { event_slug: string };
 
-export function getHomePinnedEvents(): Promise<HomeEventPin[]> {
-  return apiFetchJson<HomeEventPin[]>("/main/home/event/pin/");
+function pickString(
+  raw: Record<string, unknown>,
+  ...keys: string[]
+): string | undefined {
+  for (const key of keys) {
+    const value = raw[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return undefined;
 }
 
-export function getHomeLatestEvents(): Promise<HomeLatestEvent[]> {
-  return apiFetchJson<HomeLatestEvent[]>("/main/home/event/latest/");
+function normalizeHomeEventPin(raw: unknown): HomeEventPin | null {
+  if (!raw || typeof raw !== "object") return null;
+
+  const record = raw as Record<string, unknown>;
+  const event_slug = pickString(record, "event_slug", "slug");
+  if (!event_slug) return null;
+
+  return {
+    event_slug,
+    topic: pickString(record, "topic", "event_name", "title") ?? event_slug,
+    thumbnail: pickString(record, "thumbnail", "image", "image_url"),
+    statement: pickString(record, "statement", "description"),
+    start_datetime: pickString(record, "start_datetime", "start_date"),
+    finish_datetime: pickString(record, "finish_datetime", "finish_date", "end_date"),
+  };
 }
 
-export function getHomeTodayEvents(): Promise<HomeEventPin[]> {
-  return apiFetchJson<HomeEventPin[]>("/main/home/event/today/");
+function normalizeHomeLatestEvent(raw: unknown): HomeLatestEvent | null {
+  if (!raw || typeof raw !== "object") return null;
+
+  const record = raw as Record<string, unknown>;
+  const event_slug = pickString(record, "event_slug", "slug");
+  if (!event_slug) return null;
+
+  return {
+    event_slug,
+    thumbnail: pickString(record, "thumbnail", "image", "image_url"),
+  };
 }
 
-export function getHomeWeekEvents(): Promise<HomeLatestEvent[]> {
-  return apiFetchJson<HomeLatestEvent[]>("/main/home/event/week/");
+function normalizeHomeEventPinList(data: unknown): HomeEventPin[] {
+  if (Array.isArray(data)) {
+    return data
+      .map(normalizeHomeEventPin)
+      .filter((item): item is HomeEventPin => item !== null);
+  }
+
+  if (!data || typeof data !== "object") return [];
+
+  const record = data as Record<string, unknown>;
+  if (Array.isArray(record.results)) {
+    return normalizeHomeEventPinList(record.results);
+  }
+  if (Array.isArray(record.data)) {
+    return normalizeHomeEventPinList(record.data);
+  }
+
+  const merged: HomeEventPin[] = [];
+  for (const value of Object.values(record)) {
+    if (Array.isArray(value)) {
+      merged.push(...normalizeHomeEventPinList(value));
+    }
+  }
+
+  return merged;
+}
+
+function normalizeHomeLatestEventList(data: unknown): HomeLatestEvent[] {
+  if (Array.isArray(data)) {
+    return data
+      .map(normalizeHomeLatestEvent)
+      .filter((item): item is HomeLatestEvent => item !== null);
+  }
+
+  if (!data || typeof data !== "object") return [];
+
+  const record = data as Record<string, unknown>;
+  if (Array.isArray(record.results)) {
+    return normalizeHomeLatestEventList(record.results);
+  }
+  if (Array.isArray(record.data)) {
+    return normalizeHomeLatestEventList(record.data);
+  }
+
+  const merged: HomeLatestEvent[] = [];
+  for (const value of Object.values(record)) {
+    if (Array.isArray(value)) {
+      merged.push(...normalizeHomeLatestEventList(value));
+    }
+  }
+
+  return merged;
+}
+
+export async function getHomePinnedEvents(): Promise<HomeEventPin[]> {
+  const data = await apiFetchJson<unknown>("/main/home/event/pin/");
+  return normalizeHomeEventPinList(data);
+}
+
+export async function getHomeLatestEvents(): Promise<HomeLatestEvent[]> {
+  const data = await apiFetchJson<unknown>("/main/home/event/latest/");
+  return normalizeHomeLatestEventList(data);
+}
+
+export async function getHomeTodayEvents(): Promise<HomeEventPin[]> {
+  const data = await apiFetchJson<unknown>("/main/home/event/today/");
+  return normalizeHomeEventPinList(data);
+}
+
+export async function getHomeWeekEvents(): Promise<HomeLatestEvent[]> {
+  const data = await apiFetchJson<unknown>("/main/home/event/week/");
+  return normalizeHomeLatestEventList(data);
 }
 
 export function eventPinToTazehaItem(event: HomeEventPin): TazehaItem {

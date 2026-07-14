@@ -29,6 +29,8 @@ export interface TazehaItem {
   location?: TazehaLocationRef;
   category?: number;
   category_id?: number;
+  /** Persian category label from API, e.g. "معماری" */
+  category_name?: string;
   /** Response bucket key from /main/tazeha/list/ (usually category name) */
   category_section?: string;
   is_live?: boolean;
@@ -97,14 +99,36 @@ function upstreamNextToProxyPath(next?: string | null): string | null {
   if (!next) return null;
   try {
     const url = new URL(next);
-    return `/main/tazeha/list/${url.search}`;
+    return `/main/tazeha/list/${url.search || ""}`;
   } catch {
+    if (next.startsWith("?")) return `/main/tazeha/list/${next}`;
     return null;
   }
 }
 
-async function fetchTazehaPath(path: string): Promise<TazehaPageResult> {
-  const raw = await apiFetchJson<unknown>(path);
+function appendTazehaFilters(
+  path: string,
+  date?: string,
+  categoryId?: number | null
+): string {
+  const [pathname, qs = ""] = path.split("?");
+  const params = new URLSearchParams(qs);
+
+  if (date) params.set("date", date);
+  if (categoryId != null) params.set("category", String(categoryId));
+
+  const nextQs = params.toString();
+  return nextQs ? `${pathname}?${nextQs}` : pathname;
+}
+
+async function fetchTazehaPath(
+  path: string,
+  date?: string,
+  categoryId?: number | null
+): Promise<TazehaPageResult> {
+  const raw = await apiFetchJson<unknown>(
+    appendTazehaFilters(path, date, categoryId)
+  );
 
   if (isPaginatedResponse(raw)) {
     return {
@@ -126,6 +150,7 @@ async function fetchTazehaPath(path: string): Promise<TazehaPageResult> {
 }
 
 export async function getTazehaPage(
+  /** Jalali date: YYYY-MM-DD */
   date?: string,
   page = 1,
   categoryId?: number | null
@@ -137,7 +162,7 @@ export async function getTazehaPage(
 
   const qs = params.toString();
   const path = qs ? `/main/tazeha/list/?${qs}` : `/main/tazeha/list/`;
-  const result = await fetchTazehaPath(path);
+  const result = await fetchTazehaPath(path, date, categoryId);
 
   if (page > 1 && result.items.length === 0) {
     return { ...result, nextPage: null, nextUrl: null };
@@ -146,6 +171,10 @@ export async function getTazehaPage(
   return result;
 }
 
-export async function getTazehaPageByUrl(nextPath: string): Promise<TazehaPageResult> {
-  return fetchTazehaPath(nextPath);
+export async function getTazehaPageByUrl(
+  nextPath: string,
+  date?: string,
+  categoryId?: number | null
+): Promise<TazehaPageResult> {
+  return fetchTazehaPath(nextPath, date, categoryId);
 }

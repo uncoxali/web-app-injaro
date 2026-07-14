@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -99,10 +99,20 @@ export default function ProfilePage() {
   const handleSaveInterests = useCallback(async () => {
     setSavingInterests(true);
     try {
-      await updateProfile({ interests: Array.from(selectedInterests) });
-      updateProfileCache((prev) =>
-        prev ? { ...prev, interests: Array.from(selectedInterests) } : prev
+      const interestIds = Array.from(selectedInterests);
+      const updated = await updateProfile({ interests: interestIds });
+      const selectedCategories = categories.filter((cat) =>
+        interestIds.includes(cat.id)
       );
+
+      updateProfileCache(() => ({
+        ...updated,
+        interests: interestIds,
+        favorit_categories:
+          selectedCategories.length > 0
+            ? selectedCategories
+            : updated.favorit_categories,
+      }));
       toast.success("علاقه‌مندی‌ها ذخیره شد");
       setShowInterestsModal(false);
     } catch {
@@ -110,7 +120,7 @@ export default function ProfilePage() {
     } finally {
       setSavingInterests(false);
     }
-  }, [selectedInterests, updateProfileCache]);
+  }, [categories, selectedInterests, updateProfileCache]);
 
   const handleLogout = useCallback(() => {
     setLogoutLoading(true);
@@ -137,6 +147,24 @@ export default function ProfilePage() {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }, [updateProfileCache]);
+
+  const userInterests = useMemo(() => {
+    const ids = profile?.interests ?? [];
+    const fromProfile = profile?.favorit_categories ?? [];
+
+    const resolved = ids
+      .map((id) => {
+        return (
+          categories.find((cat) => cat.id === id) ??
+          fromProfile.find((cat) => cat.id === id)
+        );
+      })
+      .filter((cat): cat is Category => Boolean(cat));
+
+    if (resolved.length > 0) return resolved;
+    return fromProfile;
+  }, [categories, profile?.favorit_categories, profile?.interests]);
+  const hasInterests = userInterests.length > 0;
 
   if (loading) {
     return (
@@ -182,9 +210,6 @@ export default function ProfilePage() {
   }
 
   const unreadCount = profile?.unread_notifications || 0;
-  const userInterests = categories.filter((cat) =>
-    profile?.interests?.includes(cat.id)
-  );
 
   return (
     <div className={pageShellClass}>
@@ -303,32 +328,32 @@ export default function ProfilePage() {
           />
 
           <div className="border-t border-border/50 px-4 py-4">
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-4 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={handleOpenInterests}
+                className="flex items-center gap-2.5"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary bg-white dark:bg-surface">
+                  <Icon name="plus" size="sm" color="primary" />
+                </span>
+                <span className="text-sm font-semibold text-text-primary">
+                  علاقه‌مندی‌ها
+                </span>
+              </button>
+
               <button
                 type="button"
                 onClick={handleOpenInterests}
                 aria-label="افزودن علاقه‌مندی"
-                className="flex h-7 w-7 items-center justify-center text-primary"
+                className="flex h-8 w-8 items-center justify-center text-primary transition-transform active:scale-95"
               >
                 <Icon name="plus" size="md" color="primary" />
               </button>
-
-              <button
-                type="button"
-                onClick={handleOpenInterests}
-                className="flex items-center gap-1.5"
-              >
-                <span className="text-sm font-semibold text-text-primary">
-                  علاقه‌مندی‌ها
-                </span>
-                <span className="flex h-6 w-6 items-center justify-center text-primary">
-                  <Icon name="plus" size="md" color="primary" />
-                </span>
-              </button>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {categoriesLoading ? (
+            <div className="flex flex-wrap gap-2.5">
+              {categoriesLoading && !hasInterests ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <div
                     key={i}
@@ -437,12 +462,13 @@ export default function ProfilePage() {
                   });
                 }}
                 className={cn(
-                  "rounded-xl border px-3 py-2 text-sm font-medium transition-all",
+                  "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-all",
                   isSelected
                     ? "border-primary bg-primary/8 text-primary shadow-xs shadow-primary/10"
                     : "border-border/60 text-text-secondary hover:border-primary/30 hover:bg-primary/2"
                 )}
               >
+                <CategoryIcon category={cat} selected={isSelected} />
                 {cat.name}
               </button>
             );
@@ -525,22 +551,62 @@ function MenuRow({
   );
 }
 
-function InterestTag({ category }: { category: Category }) {
-  const iconSrc = category.location_icon || category.icon;
+function CategoryIcon({
+  category,
+  selected = false,
+  inverted = false,
+}: {
+  category: Category;
+  selected?: boolean;
+  inverted?: boolean;
+}) {
+  const iconSrc =
+    category.location_icon ||
+    (typeof category.icon === "string" && category.icon.startsWith("http")
+      ? category.icon
+      : undefined);
+
+  const iconContent = iconSrc ? (
+    <OptimizedImage
+      src={imgUrl(iconSrc)}
+      alt=""
+      width={20}
+      height={20}
+      className={cn(
+        "h-5 w-5 object-contain",
+        inverted && "brightness-0 invert"
+      )}
+    />
+  ) : category.icon ? (
+    <span className="text-base leading-none">{category.icon}</span>
+  ) : (
+    <Icon name="feed" size="xs" color={inverted ? "white" : "primary"} />
+  );
+
+  if (inverted) {
+    return (
+      <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+        {iconContent}
+      </span>
+    );
+  }
 
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-white shadow-[0_2px_8px_rgba(255,90,95,0.35)]">
-      {iconSrc ? (
-        <OptimizedImage
-          src={imgUrl(iconSrc)}
-          alt=""
-          width={14}
-          height={14}
-          className="h-3.5 w-3.5 object-contain brightness-0 invert"
-        />
-      ) : (
-        <Icon name="plus" size="xs" color="white" />
+    <span
+      className={cn(
+        "inline-flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full",
+        selected ? "bg-primary/10" : "bg-border/40"
       )}
+    >
+      {iconContent}
+    </span>
+  );
+}
+
+function InterestTag({ category }: { category: Category }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-[0_2px_8px_rgba(255,90,95,0.35)]">
+      <CategoryIcon category={category} inverted />
       {category.name}
     </span>
   );

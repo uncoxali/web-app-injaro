@@ -20,14 +20,12 @@ export function useInfiniteTazeha(
     queryKey: tazehaKeys.list(date ?? "", categoryId),
     queryFn: ({ pageParam }) => {
       if (typeof pageParam === "string") {
-        return getTazehaPageByUrl(pageParam);
+        return getTazehaPageByUrl(pageParam, date, categoryId);
       }
       return getTazehaPage(date, pageParam as number, categoryId);
     },
     initialPageParam: 1 as number | string,
     getNextPageParam: (lastPage: TazehaPageResult, allPages: TazehaPageResult[]) => {
-      if (!lastPage.nextUrl) return undefined;
-
       const loadedCount = allPages.reduce(
         (total, page) => total + page.items.length,
         0
@@ -36,7 +34,9 @@ export function useInfiniteTazeha(
         return undefined;
       }
 
-      return lastPage.nextUrl;
+      if (lastPage.nextUrl) return lastPage.nextUrl;
+      if (lastPage.nextPage) return lastPage.nextPage;
+      return undefined;
     },
     enabled,
   });

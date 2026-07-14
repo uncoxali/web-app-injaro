@@ -82,6 +82,8 @@ export function normalizeTazehaItem(
         )
       : undefined);
 
+  const categoryRaw = record.category;
+
   return {
     id: pickNumber(record, "id"),
     event_slug:
@@ -150,8 +152,16 @@ export function normalizeTazehaItem(
       : event?.location && typeof event.location === "object"
         ? { name: pickNestedName(event.location) }
         : undefined,
-    category: pickNumber(record, "category", "category_id"),
-    category_id: pickNumber(record, "category_id", "category"),
+    category:
+      typeof categoryRaw === "number" && !Number.isNaN(categoryRaw)
+        ? categoryRaw
+        : pickNumber(record, "category_id"),
+    category_id: pickNumber(record, "category_id"),
+    category_name:
+      (typeof categoryRaw === "string" && categoryRaw.trim()
+        ? categoryRaw.trim()
+        : undefined) ||
+      pickString(record, "category_name", "category_label"),
     category_section: sectionKey,
     is_live: record.is_live === true || record.is_open === true,
   };

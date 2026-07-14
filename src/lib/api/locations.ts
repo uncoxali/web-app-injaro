@@ -29,6 +29,9 @@ export interface LocationDetail extends Location {
   events?: BrandEvent[];
   kenar?: KenarItem[];
   qr_code?: string;
+  is_saved?: boolean;
+  is_liked?: boolean;
+  likes?: number;
 }
 
 export function normalizeLocationDetail(raw: Record<string, unknown>): LocationDetail {
@@ -42,6 +45,9 @@ export function normalizeLocationDetail(raw: Record<string, unknown>): LocationD
     banner,
     background_image: banner,
     events: events as BrandEvent[],
+    is_saved: typeof raw.is_saved === "boolean" ? raw.is_saved : undefined,
+    is_liked: typeof raw.is_liked === "boolean" ? raw.is_liked : undefined,
+    likes: typeof raw.likes === "number" ? raw.likes : undefined,
   };
 }
 
@@ -140,6 +146,36 @@ export async function getLocationDetail(
   if (!res.ok) throw new Error("Failed to fetch location detail");
   const data = await res.json();
   return normalizeLocationDetail(data);
+}
+
+async function postLocationAction(
+  slug: string,
+  action: "save" | "like"
+): Promise<Response> {
+  const paths = [
+    `/main/location/${slug}/${action}/`,
+    `/main/v2/location/${slug}/${action}/`,
+  ];
+
+  let lastRes: Response | null = null;
+  for (const path of paths) {
+    const res = await authFetch(path, { method: "POST" });
+    if (res.ok) return res;
+    lastRes = res;
+    if (res.status !== 404) break;
+  }
+
+  throw new Error(
+    `Failed to toggle ${action} location (${lastRes?.status ?? 0})`
+  );
+}
+
+export async function toggleSaveLocation(slug: string): Promise<void> {
+  await postLocationAction(slug, "save");
+}
+
+export async function toggleLikeLocation(slug: string): Promise<void> {
+  await postLocationAction(slug, "like");
 }
 
 export async function getSponsors(): Promise<Sponsor[]> {

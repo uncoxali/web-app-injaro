@@ -12,11 +12,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { HomeNavbar, HomeNavbarSpacer, HOME_NAVBAR_HEIGHT, HOME_NAVBAR_HEIGHT_EXPANDED } from "@/components/home/home-navbar";
 import { UnifiedSearchResults, type SearchLocationResult } from "@/components/search/unified-search-results";
 import { isAuthenticated } from "@/lib/auth-utils";
-import { DateSlider, generateDays, persianToGregorian, type DayOption } from "@/components/tazeha/date-slider";
+import { DateSlider, generateDays, type DayOption } from "@/components/tazeha/date-slider";
 import { TazehaVirtualGrid } from "@/components/tazeha/tazeha-virtual-grid";
 import { TazehaListItem } from "@/components/tazeha/tazeha-list-item";
 import { TazehaCategoryFilters } from "@/components/tazeha/tazeha-category-filters";
-import { getTazehaImage, getTazehaSlug, getTazehaTitle } from "@/components/tazeha/tazeha-format";
+import { getTazehaImage, getTazehaSlug, getTazehaTitle, filterTazehaByCategory } from "@/components/tazeha/tazeha-format";
 import { useEnrichedTazehaItems } from "@/lib/queries/tazeha-enrichment";
 import { useMapStore } from "@/store/map";
 
@@ -79,13 +79,17 @@ export default function TazehaPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const initialDaysRef = useRef<DayOption[] | null>(null);
+  if (!initialDaysRef.current) {
+    initialDaysRef.current = generateDays(21);
+  }
+  const days = initialDaysRef.current;
   const [selectedDate, setSelectedDate] = useState("");
-  const [days, setDays] = useState<DayOption[]>([]);
   const { data: locations = [] } = useLandingLocations(searchOpen);
   const { data: categories = [] } = useCategories();
 
-  const gregDate = selectedDate ? persianToGregorian(selectedDate) : undefined;
-  const listKey = `${gregDate ?? ""}:${selectedCategory ?? "all"}`;
+  const filterDate = selectedDate || undefined;
+  const listKey = `${selectedDate || "all"}:${selectedCategory ?? "all"}`;
   const {
     data,
     isLoading: loading,
@@ -95,19 +99,30 @@ export default function TazehaPage() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteTazeha(gregDate, selectedCategory);
-
-  useEffect(() => {
-    const d = generateDays(21);
-    setDays(d);
-    setSelectedDate(d[0]?.date || "");
-  }, []);
+  } = useInfiniteTazeha(filterDate);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
-  }, [selectedCategory, gregDate]);
+  }, [selectedCategory, filterDate]);
 
-  const isFilterLoading = (loading || (isFetching && !isFetchingNextPage)) && !searchOpen;
+  useEffect(() => {
+    if (!hasNextPage || isFetchingNextPage || loading) return;
+    const loaded =
+      data?.pages.reduce((total, page) => total + page.items.length, 0) ?? 0;
+    const total = data?.pages[data.pages.length - 1]?.count ?? 0;
+    const needsFullList = selectedCategory != null || !filterDate;
+    if (needsFullList && total > loaded) {
+      void fetchNextPage();
+    }
+  }, [data, fetchNextPage, filterDate, hasNextPage, isFetchingNextPage, loading, selectedCategory]);
+
+  const hasListData = Boolean(data?.pages?.some((page) => page.items.length > 0));
+  const isCategoryLoading =
+    selectedCategory != null && (loading || isFetchingNextPage || hasNextPage);
+  const isListLoading =
+    !searchOpen &&
+    !isFetchingNextPage &&
+    (loading || (isFetching && !hasListData) || isCategoryLoading);
 
   const handleDateChange = useCallback((date: string) => {
     setSelectedDate(date);
@@ -126,9 +141,14 @@ export default function TazehaPage() {
     return dedupeItems(data.pages.flatMap((page) => page.items));
   }, [data]);
 
+  const filteredItems = useMemo(
+    () => filterTazehaByCategory(allItems, selectedCategory, categories),
+    [allItems, selectedCategory, categories]
+  );
+
   const { items: listItems, isEnriching } = useEnrichedTazehaItems(
-    allItems,
-    authed && !loading && allItems.length > 0
+    filteredItems,
+    authed && !loading && filteredItems.length > 0
   );
 
   const handleLoadMore = useCallback(() => {
@@ -149,7 +169,7 @@ export default function TazehaPage() {
     }
     const q = searchQuery.trim().toLowerCase();
     return {
-      events: allItems
+      events: filteredItems
         .filter((item) => getTitle(item).toLowerCase().includes(q))
         .map((item) => ({
           slug: getSlug(item),
@@ -160,7 +180,7 @@ export default function TazehaPage() {
         .filter((loc) => loc.name.toLowerCase().includes(q))
         .map((loc) => ({ slug: loc.slug, name: loc.name, logo: loc.logo })),
     };
-  }, [searchQuery, allItems, locations]);
+  }, [searchQuery, filteredItems, locations]);
 
   return (
     <div className="flex min-h-dvh flex-col overflow-x-hidden">
@@ -181,11 +201,12 @@ export default function TazehaPage() {
         }}
       >
         <div className="flex flex-col gap-3 px-4 py-3">
-          {!searchOpen && !isFilterLoading && days.length > 0 && (
+          {!searchOpen && days.length > 0 && (
             <DateSlider
               days={days}
               selected={selectedDate}
               onSelect={handleDateChange}
+              showAllOption
             />
           )}
           {!searchOpen && categories.length > 0 && (
@@ -206,17 +227,21 @@ export default function TazehaPage() {
             locations={searchResults.locations}
             onLocationClick={handleLocationSelect}
           />
-        ) : isFilterLoading ? (
+        ) : isListLoading ? (
           <ListSkeleton />
         ) : error ? (
           <div className="flex flex-1 items-center justify-center py-16">
             <ErrorState onRetry={() => refetchTazeha()} />
           </div>
-        ) : allItems.length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <div className="flex flex-1 items-center justify-center py-16">
             <EmptyState
               title="رویدادی یافت نشد"
-              description="در حال حاضر رویدادی برای نمایش وجود ندارد."
+              description={
+                selectedCategory != null
+                  ? "در این دسته‌بندی رویدادی برای نمایش وجود ندارد."
+                  : "در حال حاضر رویدادی برای نمایش وجود ندارد."
+              }
             />
           </div>
         ) : (
@@ -225,7 +250,7 @@ export default function TazehaPage() {
               <TazehaVirtualGrid
                 items={listItems}
                 listKey={listKey}
-                hasNextPage={hasNextPage}
+                hasNextPage={selectedCategory == null && hasNextPage}
                 isFetchingNextPage={isFetchingNextPage}
                 onLoadMore={handleLoadMore}
                 renderCard={(item) => (

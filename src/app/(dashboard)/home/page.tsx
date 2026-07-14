@@ -26,10 +26,7 @@ import { useMapStore } from "@/store/map";
 import { HomeNavbar, HomeNavbarSpacer } from "@/components/home/home-navbar";
 import { HomeHero } from "@/components/home/home-hero";
 import { HomeEventsSection } from "@/components/home/home-events-section";
-import { HomeRegisterEventCta } from "@/components/home/home-register-event-cta";
-import { HomeEventTicketForm } from "@/components/home/home-event-ticket-form";
-import { HomeCollaborationInfo } from "@/components/home/home-collaboration-info";
-import { HomeSponsorsSection } from "@/components/home/home-sponsors-section";
+import { HomeRegisterEventBanner } from "@/components/home/home-register-event-banner";
 import { useEnrichedTazehaGroups } from "@/lib/queries/tazeha-enrichment";
 import type { TazehaItem } from "@/lib/api/tazeha";
 import { isAuthenticated } from "@/lib/auth-utils";
@@ -304,10 +301,7 @@ export default function HomePage() {
           <EmptyState title="خوش آمدید" description="به زودی رویدادها اضافه می‌شوند" />
         </div>
         <div className="flex flex-col gap-5 px-5 pb-32">
-          <HomeRegisterEventCta />
-          <HomeSponsorsSection enabled={!loading} />
-          <HomeCollaborationInfo />
-          <HomeEventTicketForm />
+          <HomeRegisterEventBanner />
         </div>
       </div>
     );
@@ -368,19 +362,7 @@ export default function HomePage() {
         </motion.div>
 
         <motion.div variants={fadeUp}>
-          <HomeRegisterEventCta />
-        </motion.div>
-
-        <motion.div variants={fadeUp}>
-          <HomeSponsorsSection enabled={!loading} />
-        </motion.div>
-
-        <motion.div variants={fadeUp}>
-          <HomeCollaborationInfo />
-        </motion.div>
-
-        <motion.div variants={fadeUp}>
-          <HomeEventTicketForm />
+          <HomeRegisterEventBanner />
         </motion.div>
       </motion.div>
     </div>

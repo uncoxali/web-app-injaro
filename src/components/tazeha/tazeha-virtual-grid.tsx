@@ -5,7 +5,7 @@ import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import type { TazehaItem } from "@/lib/api/tazeha";
 import { Spinner } from "@/components/ui/spinner";
 
-const ROW_HEIGHT = 196;
+const ROW_HEIGHT = 240;
 
 interface TazehaVirtualGridProps {
   items: TazehaItem[];

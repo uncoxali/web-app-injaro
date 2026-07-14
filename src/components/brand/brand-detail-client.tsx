@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { toJalaali } from "jalaali-js";
-import { getLocationDetail, type LocationDetail, type KenarItem } from "@/lib/api/locations";
+import { getLocationDetail, toggleLikeLocation, toggleSaveLocation, type LocationDetail, type KenarItem } from "@/lib/api/locations";
 import { useCategories } from "@/lib/queries/categories";
 import { Modal } from "@/components/ui/modal";
 import { Spinner } from "@/components/ui/spinner";
@@ -28,18 +28,39 @@ export function BrandDetailClient({
   const [data, setData] = useState<LocationDetail | null>(initialData);
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(Boolean(initialData?.is_saved));
+  const [liked, setLiked] = useState(Boolean(initialData?.is_liked));
   const [showQr, setShowQr] = useState(false);
   const eventsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (initialData) return;
+    let cancelled = false;
 
     getLocationDetail(slug)
-      .then(setData)
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
+      .then((detail) => {
+        if (cancelled) return;
+        setData(detail);
+        setSaved(Boolean(detail.is_saved));
+        setLiked(Boolean(detail.is_liked));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        if (!initialData) setError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [slug, initialData]);
+
+  useEffect(() => {
+    if (!data) return;
+    setSaved(Boolean(data.is_saved));
+    setLiked(Boolean(data.is_liked));
+  }, [data?.is_saved, data?.is_liked]);
 
   const handleShare = useCallback(async () => {
     const result = await shareContent({ title: data?.name });
@@ -54,10 +75,49 @@ export function BrandDetailClient({
     window.open(url, "_blank");
   }, [data]);
 
-  const handleSave = useCallback(() => {
-    setSaved((prev) => !prev);
-    toast.success(saved ? "از ذخیره خارج شد" : "برند ذخیره شد");
-  }, [saved]);
+  const handleSave = useCallback(async () => {
+    const wasSaved = saved;
+    setSaved(!wasSaved);
+    try {
+      await toggleSaveLocation(slug);
+      const detail = await getLocationDetail(slug);
+      setData(detail);
+      const nextSaved =
+        typeof detail.is_saved === "boolean" ? detail.is_saved : !wasSaved;
+      setSaved(nextSaved);
+      toast.success(nextSaved ? "برند ذخیره شد" : "از ذخیره خارج شد");
+    } catch (err) {
+      setSaved(wasSaved);
+      const status = err instanceof Error ? err.message.match(/\((\d+)\)/)?.[1] : null;
+      if (status === "404" || status === "405") {
+        toast.error("ذخیره‌سازی برند هنوز روی سرور فعال نیست");
+      } else {
+        toast.error("خطا در ذخیره‌سازی");
+      }
+    }
+  }, [saved, slug]);
+
+  const handleLike = useCallback(async () => {
+    const wasLiked = liked;
+    setLiked(!wasLiked);
+    try {
+      await toggleLikeLocation(slug);
+      const detail = await getLocationDetail(slug);
+      setData(detail);
+      const nextLiked =
+        typeof detail.is_liked === "boolean" ? detail.is_liked : !wasLiked;
+      setLiked(nextLiked);
+      toast.success(nextLiked ? "برند پسندیده شد" : "پسند برداشته شد");
+    } catch (err) {
+      setLiked(wasLiked);
+      const status = err instanceof Error ? err.message.match(/\((\d+)\)/)?.[1] : null;
+      if (status === "404" || status === "405") {
+        toast.error("لایک برند هنوز روی سرور فعال نیست");
+      } else {
+        toast.error("خطا در ثبت پسند");
+      }
+    }
+  }, [liked, slug]);
 
   const scrollToEvents = useCallback(() => {
     eventsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -105,7 +165,9 @@ export function BrandDetailClient({
 
         <BrandActionBar
           saved={saved}
+          liked={liked}
           onSave={handleSave}
+          onLike={handleLike}
           onShare={handleShare}
           onQr={() => setShowQr(true)}
         />
@@ -267,12 +329,16 @@ function BrandGallery({
 
 function BrandActionBar({
   saved,
+  liked,
   onSave,
+  onLike,
   onShare,
   onQr,
 }: {
   saved: boolean;
+  liked: boolean;
   onSave: () => void;
+  onLike: () => void;
   onShare: () => void;
   onQr: () => void;
 }) {
@@ -280,29 +346,28 @@ function BrandActionBar({
     {
       key: "like",
       label: "پسندیدم",
-      disabled: true,
-      icon: (
-        <Icon name="heart" size={20} variant="outline" />
-      ),
+      onClick: onLike,
+      active: liked,
+      icon: <Icon name="heart" size={24} active={liked} />,
     },
     {
       key: "share",
       label: "اشتراک گذاری",
       onClick: onShare,
-      icon: <Icon name="share" size={20} />,
+      icon: <Icon name="share" size={24} />,
     },
     {
       key: "save",
       label: "ذخیره سازی",
       onClick: onSave,
       active: saved,
-      icon: <Icon name="bookmark" size={20} active={saved} />,
+      icon: <Icon name="bookmark" size={24} active={saved} />,
     },
     {
       key: "qr",
       label: "کیوآرکد",
       onClick: onQr,
-      icon: <Icon name="qr" size={20} />,
+      icon: <Icon name="qr" size={24} />,
     },
   ];
 
@@ -313,12 +378,9 @@ function BrandActionBar({
           <button
             type="button"
             onClick={item.onClick}
-            disabled={item.disabled || !item.onClick}
             className={cn(
-              "flex flex-1 flex-col items-center justify-center gap-1 px-1 py-3 transition-colors",
-              item.active ? "text-primary" : "text-text-secondary",
-              (item.disabled || !item.onClick) && "opacity-40",
-              item.onClick && !item.disabled && "hover:text-primary"
+              "flex flex-1 flex-col items-center justify-center gap-1.5 px-1 py-3.5 transition-colors hover:text-primary",
+              item.active ? "text-primary" : "text-text-secondary"
             )}
           >
             {item.icon}

@@ -25,6 +25,7 @@ const WEEKDAYS = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارش
 export interface DayOption {
   label: string;
   date: string;
+  gregorianDate: string;
   monthName: string;
   dayName: string;
   shortDayName: string;
@@ -38,6 +39,7 @@ interface DateSliderProps {
   days: DayOption[];
   selected: string;
   onSelect: (date: string) => void;
+  showAllOption?: boolean;
 }
 
 function toGDateString(gy: number, gm: number, gd: number): string {
@@ -57,6 +59,7 @@ export function generateDays(count = 21): DayOption[] {
     return {
       label: toPersianDigits(j.jd),
       date: `${j.jy}-${String(j.jm).padStart(2, '0')}-${String(j.jd).padStart(2, '0')}`,
+      gregorianDate: toGDateString(d.getFullYear(), d.getMonth() + 1, d.getDate()),
       monthName: PERSIAN_MONTHS[j.jm - 1],
       dayName: i === 0 ? 'امروز' : WEEKDAYS[weekdayIdx],
       shortDayName: WEEKDAYS[weekdayIdx],
@@ -74,6 +77,17 @@ export function persianToGregorian(dateStr: string): string {
   const [jy, jm, jd] = parts.map(Number);
   const g = toGregorian(jy, jm, jd);
   return toGDateString(g.gy, g.gm, g.gd);
+}
+
+export function getGregorianDateForDay(
+  days: DayOption[],
+  selectedDate: string
+): string | undefined {
+  const day = days.find((entry) => entry.date === selectedDate);
+  if (day) return day.gregorianDate;
+  if (!selectedDate) return undefined;
+  const converted = persianToGregorian(selectedDate);
+  return converted || undefined;
 }
 
 function scrollChildToCenter(container: HTMLDivElement, child: HTMLElement) {
@@ -98,10 +112,11 @@ function weekdayLabel(day: DayOption): string {
   return WEEKDAYS[new Date(day.gy, day.gm - 1, day.gd).getDay()];
 }
 
-export function DateSlider({ days, selected, onSelect }: DateSliderProps) {
+export function DateSlider({ days, selected, onSelect, showAllOption = false }: DateSliderProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const selectedIdx = days.findIndex((d) => d.date === selected);
+  const allSelected = showAllOption && !selected;
 
   useEffect(() => {
     const el = itemRefs.current[selectedIdx];
@@ -111,12 +126,21 @@ export function DateSlider({ days, selected, onSelect }: DateSliderProps) {
   }, [selected, selectedIdx]);
 
   const goPrev = useCallback(() => {
-    if (selectedIdx > 0) onSelect(days[selectedIdx - 1].date);
-  }, [days, onSelect, selectedIdx]);
+    if (allSelected) return;
+    if (selectedIdx <= 0) {
+      if (showAllOption) onSelect("");
+      return;
+    }
+    onSelect(days[selectedIdx - 1].date);
+  }, [allSelected, days, onSelect, selectedIdx, showAllOption]);
 
   const goNext = useCallback(() => {
+    if (allSelected) {
+      onSelect(days[0]?.date ?? "");
+      return;
+    }
     if (selectedIdx < days.length - 1) onSelect(days[selectedIdx + 1].date);
-  }, [days, onSelect, selectedIdx]);
+  }, [allSelected, days, onSelect, selectedIdx]);
 
   return (
     <div className='rounded-3xl bg-[#ececec] dark:bg-surface px-3 pt-4 pb-4 shadow-[0_4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.25)]'>
@@ -130,7 +154,7 @@ export function DateSlider({ days, selected, onSelect }: DateSliderProps) {
           <button
             type='button'
             onClick={goPrev}
-            disabled={selectedIdx <= 0}
+            disabled={allSelected}
             aria-label='روز قبل'
             className='flex h-10 w-7 shrink-0 items-center justify-center text-primary transition-opacity disabled:opacity-25 active:scale-90'
           >
@@ -143,6 +167,32 @@ export function DateSlider({ days, selected, onSelect }: DateSliderProps) {
           className='flex min-w-0 flex-1 items-start justify-start gap-1 overflow-x-auto scrollbar-none py-0.5 snap-x snap-mandatory scroll-smooth'
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
+          {showAllOption && (
+            <button
+              type='button'
+              onClick={() => onSelect('')}
+              className='flex w-[3.25rem] shrink-0 snap-center flex-col items-center gap-1.5 active:scale-95 transition-transform'
+            >
+              <div
+                className={cn(
+                  'flex h-10 w-10 items-center justify-center rounded-full text-[11px] font-bold transition-colors duration-200',
+                  allSelected
+                    ? 'bg-primary text-white shadow-[0_2px_8px_rgba(255,90,95,0.35)]'
+                    : 'bg-[#d4d4d4] text-text-primary',
+                )}
+              >
+                همه
+              </div>
+              <span
+                className={cn(
+                  'max-w-full truncate text-center text-[10px] font-medium leading-tight',
+                  allSelected ? 'text-text-primary' : 'text-text-secondary',
+                )}
+              >
+                رویدادها
+              </span>
+            </button>
+          )}
           {days.map((day, i) => {
             const isActive = selected === day.date;
             return (
@@ -182,7 +232,7 @@ export function DateSlider({ days, selected, onSelect }: DateSliderProps) {
           <button
             type='button'
             onClick={goNext}
-            disabled={selectedIdx >= days.length - 1}
+            disabled={!allSelected && selectedIdx >= days.length - 1}
             aria-label='روز بعد'
             className='flex h-10 w-7 shrink-0 items-center justify-center text-primary transition-opacity disabled:opacity-25 active:scale-90'
           >
