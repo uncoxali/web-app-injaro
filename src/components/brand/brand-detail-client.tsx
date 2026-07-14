@@ -30,6 +30,7 @@ export function BrandDetailClient({
   const [error, setError] = useState(false);
   const [saved, setSaved] = useState(Boolean(initialData?.is_saved));
   const [liked, setLiked] = useState(Boolean(initialData?.is_liked));
+  const [likes, setLikes] = useState(initialData?.likes ?? 0);
   const [showQr, setShowQr] = useState(false);
   const eventsRef = useRef<HTMLDivElement>(null);
 
@@ -42,6 +43,7 @@ export function BrandDetailClient({
         setData(detail);
         setSaved(Boolean(detail.is_saved));
         setLiked(Boolean(detail.is_liked));
+        if (typeof detail.likes === "number") setLikes(detail.likes);
       })
       .catch(() => {
         if (cancelled) return;
@@ -99,7 +101,9 @@ export function BrandDetailClient({
 
   const handleLike = useCallback(async () => {
     const wasLiked = liked;
+    const prevLikes = likes;
     setLiked(!wasLiked);
+    setLikes((count) => Math.max(0, count + (wasLiked ? -1 : 1)));
     try {
       await toggleLikeLocation(slug);
       const detail = await getLocationDetail(slug);
@@ -107,9 +111,11 @@ export function BrandDetailClient({
       const nextLiked =
         typeof detail.is_liked === "boolean" ? detail.is_liked : !wasLiked;
       setLiked(nextLiked);
+      if (typeof detail.likes === "number") setLikes(detail.likes);
       toast.success(nextLiked ? "برند پسندیده شد" : "پسند برداشته شد");
     } catch (err) {
       setLiked(wasLiked);
+      setLikes(prevLikes);
       const status = err instanceof Error ? err.message.match(/\((\d+)\)/)?.[1] : null;
       if (status === "404" || status === "405") {
         toast.error("لایک برند هنوز روی سرور فعال نیست");
@@ -117,7 +123,7 @@ export function BrandDetailClient({
         toast.error("خطا در ثبت پسند");
       }
     }
-  }, [liked, slug]);
+  }, [liked, likes, slug]);
 
   const scrollToEvents = useCallback(() => {
     eventsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -146,31 +152,31 @@ export function BrandDetailClient({
   const bannerImages = data.banner ? [{ url: data.banner, alt: data.name }] : [];
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    <div className="flex min-h-dvh flex-col bg-[#ececec] dark:bg-background">
       <div className="relative px-4 pt-4">
-        <BrandGallery images={bannerImages} logo={data.logo} name={data.name} />
         <button
           onClick={() => router.back()}
           aria-label="بازگشت"
-          className="absolute top-7 inset-s-7 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-background/85 text-text-primary shadow-md backdrop-blur-xs transition-colors hover:bg-background"
+          className="absolute top-7 inset-s-7 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-border/30 bg-white text-primary shadow-md transition-colors hover:bg-white/90 dark:bg-surface"
         >
-          <Icon name="chevronLeft" size="md" className="scale-x-[-1]" />
+          <Icon name="chevronLeft" size="md" color="primary" className="scale-x-[-1]" />
         </button>
+
+        <div className="overflow-hidden rounded-3xl bg-white shadow-[0_4px_24px_rgba(0,0,0,0.07)] dark:border dark:border-border/30 dark:bg-surface">
+          <BrandGallery images={bannerImages} logo={data.logo} name={data.name} />
+          <BrandActionBar
+            likes={likes}
+            saved={saved}
+            liked={liked}
+            onSave={handleSave}
+            onLike={handleLike}
+            onShare={handleShare}
+            onQr={() => setShowQr(true)}
+          />
+        </div>
       </div>
 
-      <div className="px-4 pt-3">
-        <h1 className="mb-1 text-lg font-bold leading-snug text-text-primary">
-          {data.name}
-        </h1>
-
-        <BrandActionBar
-          saved={saved}
-          liked={liked}
-          onSave={handleSave}
-          onLike={handleLike}
-          onShare={handleShare}
-          onQr={() => setShowQr(true)}
-        />
+      <div className="px-4 pt-4">
 
         <div className="mt-4 flex gap-2.5">
           <button
@@ -183,8 +189,8 @@ export function BrandDetailClient({
             onClick={handleNavigate}
             className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-primary bg-white text-sm font-semibold text-primary shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-transform active:scale-[0.98] dark:border-primary/50 dark:bg-surface"
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white">
-              <Icon name="mapPin" size={18} color="white" variant="filled" />
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+              <Icon name="navigation" size={20} color="white" />
             </span>
             مسیریابی
           </button>
@@ -196,21 +202,23 @@ export function BrandDetailClient({
           phone={data.phone}
           onAddressClick={handleNavigate}
         />
+
+        <section className="mt-6">
+          <SectionTitle>درباره این برند</SectionTitle>
+          {data.description ? (
+            <p className="text-sm leading-relaxed text-text-secondary">
+              {data.description}
+            </p>
+          ) : (
+            <p className="text-sm leading-relaxed text-text-secondary/70">
+              اطلاعاتی برای این برند ثبت نشده است.
+            </p>
+          )}
+          <BrandContactLinks data={data} />
+        </section>
       </div>
 
       <div className="flex-1 space-y-6 px-4 pt-6 pb-8">
-        {(data.description || data.website || data.instagram || data.phone) && (
-          <section>
-            <SectionTitle>درباره برند</SectionTitle>
-            {data.description ? (
-              <p className="text-sm leading-relaxed text-text-secondary">
-                {data.description}
-              </p>
-            ) : null}
-            <BrandContactLinks data={data} />
-          </section>
-        )}
-
         {kenar.length > 0 && (
           <KenarCardsSection items={kenar} />
         )}
@@ -268,7 +276,7 @@ function BrandGallery({
 
   if (images.length === 0) {
     return (
-      <div className="relative flex h-72 items-center justify-center overflow-hidden rounded-3xl bg-linear-to-b from-primary/4 to-surface">
+      <div className="relative flex h-72 items-center justify-center bg-linear-to-b from-primary/4 to-surface">
         {logo ? (
           <OptimizedImage src={logo} alt={name} width={80} height={80} className="h-20 w-20 rounded-2xl object-cover" />
         ) : (
@@ -279,7 +287,7 @@ function BrandGallery({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-3xl">
+    <div className="relative">
       <div
         ref={scrollRef}
         onScroll={handleScroll}
@@ -301,7 +309,7 @@ function BrandGallery({
       </div>
 
       {logo ? (
-        <div className="absolute top-3 inset-s-3 z-10 flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white/90 dark:bg-surface/90 p-1 shadow-md">
+        <div className="absolute top-3 inset-s-3 z-10 flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white/90 p-1 shadow-md dark:bg-surface/90">
           <OptimizedImage src={logo} alt="" width={32} height={32} className="h-full w-full object-contain" />
         </div>
       ) : null}
@@ -328,6 +336,7 @@ function BrandGallery({
 }
 
 function BrandActionBar({
+  likes,
   saved,
   liked,
   onSave,
@@ -335,6 +344,7 @@ function BrandActionBar({
   onShare,
   onQr,
 }: {
+  likes: number;
   saved: boolean;
   liked: boolean;
   onSave: () => void;
@@ -345,7 +355,7 @@ function BrandActionBar({
   const items = [
     {
       key: "like",
-      label: "پسندیدم",
+      label: toPersianDigits(likes),
       onClick: onLike,
       active: liked,
       icon: <Icon name="heart" size={24} active={liked} />,
@@ -372,7 +382,7 @@ function BrandActionBar({
   ];
 
   return (
-    <div className="mt-3 flex items-stretch rounded-2xl border border-border/20 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:border-border/30 dark:bg-surface">
+    <div className="flex items-stretch border-t border-border/15">
       {items.map((item, index) => (
         <div key={item.key} className="flex flex-1 items-stretch">
           <button
@@ -386,7 +396,7 @@ function BrandActionBar({
             {item.icon}
             <span className="text-[10px] font-medium leading-tight">{item.label}</span>
           </button>
-          {index < items.length - 1 && <div className="w-px self-center bg-border/30" />}
+          {index < items.length - 1 && <div className="w-px self-stretch bg-border/20" />}
         </div>
       ))}
     </div>
@@ -493,16 +503,16 @@ function KenarCardsSection({ items }: { items: KenarItem[] }) {
 
   return (
     <section>
-      <SectionTitle>نزدیک به شما</SectionTitle>
-      <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-none">
+      <SectionTitle>برگزارکنندگان</SectionTitle>
+      <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
         {items.map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => item.link && router.push(item.link)}
-            className="flex w-[92px] shrink-0 flex-col items-center gap-2"
+            className="flex w-[88px] shrink-0 flex-col items-center gap-2"
           >
-            <div className="flex h-[92px] w-[92px] items-center justify-center overflow-hidden rounded-[18px] bg-white p-3 shadow-[0_6px_24px_rgba(0,0,0,0.08)] dark:border dark:border-border/30 dark:bg-surface">
+            <div className="flex h-[88px] w-[88px] items-center justify-center overflow-hidden rounded-2xl border border-border/20 bg-white p-3 shadow-[0_2px_12px_rgba(0,0,0,0.05)] dark:bg-surface">
               {item.image ? (
                 <OptimizedImage
                   src={item.image}
