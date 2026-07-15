@@ -1,18 +1,7 @@
 services:
   landing:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-/api}
-        API_PROXY_TARGET: ${API_PROXY_TARGET:-https://api.injaro.info}
-        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://app.injaro.info}
-        NEXT_PUBLIC_LANDING_URL: ${NEXT_PUBLIC_LANDING_URL:-https://injaro.info}
-        NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: ${NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN:-}
-        NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID:-}
-    image: injaro-landing:latest
+    image: injaro/injaro-landing:${TAG:-main}
     container_name: injaro-landing
-    restart: unless-stopped
     ports:
       - "${PORT:-5000}:5000"
     environment:
@@ -25,9 +14,7 @@ services:
       NEXT_PUBLIC_LANDING_URL: ${NEXT_PUBLIC_LANDING_URL:-https://injaro.info}
       NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: ${NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN:-}
       NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID:-}
-    env_file:
-      - path: .env
-        required: false
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:5000/"]
       interval: 30s
