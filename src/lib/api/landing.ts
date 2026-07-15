@@ -7,6 +7,7 @@ export interface LandingEvent {
   event_slug: string;
   thumbnail?: string;
   topic: string;
+  location_slug?: string;
 }
 
 export interface LandingLocation {

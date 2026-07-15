@@ -1,8 +1,8 @@
 import { toJalaali } from "jalaali-js";
 import { toPersianDigits } from "@/lib/utils";
-import type { EventDetail } from "@/lib/api/events";
+import type { EventDetail, EventLocation } from "@/lib/api/events";
 import type { Category } from "@/lib/api/categories";
-import type { TazehaItem } from "@/lib/api/tazeha";
+import type { TazehaItem, TazehaLocationRef } from "@/lib/api/tazeha";
 
 const PERSIAN_MONTHS = [
   "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
@@ -94,6 +94,36 @@ export function getTazehaLocation(item: TazehaItem): string {
   );
 }
 
+export function normalizeEventLocationSlug(
+  location?: EventLocation | string | TazehaLocationRef | null
+): string | undefined {
+  if (!location) return undefined;
+  if (typeof location === "string") return location.trim() || undefined;
+  if ("slug" in location && typeof location.slug === "string" && location.slug.trim()) {
+    return location.slug.trim();
+  }
+  return undefined;
+}
+
+export function getEventBrandSlug(
+  item: Pick<TazehaItem, "location" | "location_slug"> & {
+    location?: TazehaItem["location"] | string;
+  }
+): string | undefined {
+  return (
+    item.location_slug?.trim() ||
+    normalizeEventLocationSlug(item.location) ||
+    undefined
+  );
+}
+
+export function getEventBrandHref(
+  item: Pick<TazehaItem, "event_slug" | "location" | "location_slug">
+): string | null {
+  const brandSlug = getEventBrandSlug(item);
+  return brandSlug ? `/brands/${brandSlug}` : null;
+}
+
 export function getTazehaCategoryId(item: TazehaItem): number | undefined {
   const id = item.category_id ?? item.category;
   return typeof id === "number" ? id : undefined;
@@ -103,17 +133,26 @@ export function mergeTazehaWithEventDetail(
   item: TazehaItem,
   detail: EventDetail
 ): TazehaItem {
+  const locationSlug = normalizeEventLocationSlug(detail.location);
+  const locationName =
+    typeof detail.location === "object" && detail.location?.name
+      ? detail.location.name
+      : item.location?.name;
+
   return {
     ...item,
     statement: item.statement || detail.statement,
     main_organizers: item.main_organizers || detail.main_organizers,
     start_datetime: item.start_datetime || detail.start_datetime,
     finish_datetime: item.finish_datetime || detail.finish_datetime,
-    location_name: item.location_name || detail.location?.name,
-    location: item.location?.name
-      ? item.location
-      : detail.location
-        ? { name: detail.location.name }
+    location_slug: item.location_slug || locationSlug,
+    location_name: item.location_name || locationName,
+    location:
+      locationSlug || locationName
+        ? {
+            name: locationName,
+            slug: locationSlug,
+          }
         : item.location,
   };
 }

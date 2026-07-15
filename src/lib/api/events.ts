@@ -49,13 +49,24 @@ export interface EventDetail {
   main_organizers?: string;
   side_organizers?: SideOrganizer[];
   statement?: string;
-  location?: EventLocation;
+  location?: EventLocation | string;
   saloons?: EventSaloon[];
   conversation_panel?: TalkItem[];
   is_vip?: boolean;
   need_ticket?: boolean;
   GoogleMapLink?: string;
   GoogleCalendarLink?: string;
+  is_going?: boolean;
+  is_liked?: boolean;
+  is_saved?: boolean;
+  likes?: number;
+}
+
+export interface EventInteractionState {
+  is_going?: boolean;
+  is_liked?: boolean;
+  is_saved?: boolean;
+  likes?: number;
 }
 
 export async function getEventDetail(slug: string): Promise<EventDetail> {
@@ -74,11 +85,59 @@ export async function getPublicEventDetail(slug: string): Promise<EventDetail | 
   }
 }
 
-export async function toggleSaveEvent(): Promise<void> {
-  const res = await authFetch("/main/event/save/", {
+export async function getEventInteractionState(
+  eventSlug: string
+): Promise<EventInteractionState> {
+  const res = await authFetch(`/main/v2/event/${eventSlug}/`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch event state (${res.status})`);
+  }
+  const data = await res.json();
+  return parseEventInteractionState(data);
+}
+
+export function parseEventInteractionState(data: unknown): EventInteractionState {
+  if (!data || typeof data !== "object") return {};
+
+  const record = data as Record<string, unknown>;
+  return {
+    is_going: typeof record.is_going === "boolean" ? record.is_going : undefined,
+    is_liked: typeof record.is_liked === "boolean" ? record.is_liked : undefined,
+    is_saved: typeof record.is_saved === "boolean" ? record.is_saved : undefined,
+    likes: typeof record.likes === "number" ? record.likes : undefined,
+  };
+}
+
+async function postEventAction(
+  eventSlug: string,
+  action: "going" | "like" | "save"
+): Promise<EventInteractionState> {
+  const res = await authFetch(`/main/event/${eventSlug}/${action}/`, {
     method: "POST",
   });
-  if (!res.ok) throw new Error("Failed to toggle save event");
+  if (!res.ok) {
+    throw new Error(`Failed to toggle event ${action} (${res.status})`);
+  }
+
+  const text = await res.text();
+  if (!text.trim()) return {};
+  try {
+    return parseEventInteractionState(JSON.parse(text));
+  } catch {
+    return {};
+  }
+}
+
+export async function toggleGoingEvent(eventSlug: string): Promise<EventInteractionState> {
+  return postEventAction(eventSlug, "going");
+}
+
+export async function toggleLikeEvent(eventSlug: string): Promise<EventInteractionState> {
+  return postEventAction(eventSlug, "like");
+}
+
+export async function toggleSaveEvent(eventSlug: string): Promise<EventInteractionState> {
+  return postEventAction(eventSlug, "save");
 }
 
 export interface InviteInfo {
@@ -112,10 +171,104 @@ export interface SavedEvent {
   topic: string;
   thumbnail?: string;
   event_slug: string;
+  location_slug?: string;
+  location_name?: string;
 }
 
-export async function getSavedEvents(): Promise<SavedEvent[]> {
-  const res = await authFetch("/accounts/saved/event/");
-  if (!res.ok) throw new Error("Failed to fetch saved events");
-  return res.json();
+export type ProfileEventItem = SavedEvent;
+
+function pickString(
+  raw: Record<string, unknown>,
+  ...keys: string[]
+): string | undefined {
+  for (const key of keys) {
+    const value = raw[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return undefined;
+}
+
+function normalizeProfileEventItem(
+  raw: unknown,
+  index: number
+): ProfileEventItem | null {
+  if (!raw || typeof raw !== "object") return null;
+
+  const record = raw as Record<string, unknown>;
+  const nested =
+    record.event && typeof record.event === "object"
+      ? (record.event as Record<string, unknown>)
+      : null;
+  const source = nested ?? record;
+
+  const event_slug = pickString(source, "event_slug", "slug");
+  if (!event_slug) return null;
+
+  const topic =
+    pickString(source, "topic", "event_name", "title") ?? event_slug;
+  const thumbnail = pickString(source, "thumbnail", "image", "image_url");
+
+  let location_slug: string | undefined;
+  let location_name: string | undefined;
+  const location = source.location;
+
+  if (typeof location === "string") {
+    location_slug = location;
+  } else if (location && typeof location === "object") {
+    const locationRecord = location as Record<string, unknown>;
+    location_slug = pickString(locationRecord, "slug");
+    location_name = pickString(locationRecord, "name");
+  }
+
+  location_name =
+    location_name || pickString(source, "location_name", "hood", "brand_name");
+
+  return {
+    slug: pickString(record, "slug") ?? event_slug,
+    event_slug,
+    topic,
+    thumbnail,
+    location_slug,
+    location_name,
+  };
+}
+
+function normalizeProfileEventList(data: unknown): ProfileEventItem[] {
+  if (!Array.isArray(data)) return [];
+
+  const seen = new Set<string>();
+  const items: ProfileEventItem[] = [];
+
+  for (let i = 0; i < data.length; i++) {
+    const item = normalizeProfileEventItem(data[i], i);
+    if (!item || seen.has(item.event_slug)) continue;
+    seen.add(item.event_slug);
+    items.push(item);
+  }
+
+  return items;
+}
+
+export async function getSavedEvents(): Promise<ProfileEventItem[]> {
+  const paths = ["/accounts/save/list/", "/accounts/saved/event/"];
+
+  for (const path of paths) {
+    const res = await authFetch(path);
+    if (res.ok) {
+      const data = await res.json();
+      return normalizeProfileEventList(data);
+    }
+    if (res.status !== 404) break;
+  }
+
+  throw new Error("Failed to fetch saved events");
+}
+
+export async function getGoingEvents(): Promise<ProfileEventItem[]> {
+  const res = await authFetch("/accounts/profile/events/going/");
+  if (!res.ok) throw new Error("Failed to fetch going events");
+  const data = await res.json();
+  return normalizeProfileEventList(data);
 }

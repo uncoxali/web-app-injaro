@@ -22,6 +22,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { PERSIAN_MONTHS } from "@/lib/constants/enums";
 import { cn, toPersianDigits } from "@/lib/utils";
+import { normalizeEventLocationSlug } from "@/components/tazeha/tazeha-format";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Icon } from "@/components/ui/icon";
 
@@ -54,7 +55,7 @@ export function EventDetailClient({
   const [isGuest, setIsGuest] = useState(false);
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(Boolean(initialData?.is_saved));
 
   const [ticketQrOpen, setTicketQrOpen] = useState(false);
   const [imagePopupOpen, setImagePopupOpen] = useState(false);
@@ -103,7 +104,7 @@ export function EventDetailClient({
       return;
     }
     try {
-      await toggleSaveEvent();
+      await toggleSaveEvent(slug);
       setSaved((p) => !p);
       toast.success(saved ? "از ذخیره خارج شد" : "رویداد ذخیره شد");
     } catch {
@@ -125,9 +126,10 @@ export function EventDetailClient({
       window.open(data.GoogleMapLink, "_blank");
       return;
     }
-    if (data?.location?.slug) {
-      reportNavigationClick(data.location.slug);
-      router.push(`/brands/${data.location.slug}`);
+    const locationSlug = normalizeEventLocationSlug(data?.location);
+    if (locationSlug) {
+      reportNavigationClick(locationSlug);
+      router.push(`/brands/${locationSlug}`);
     }
   }, [data, router]);
 
@@ -234,7 +236,11 @@ export function EventDetailClient({
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                 <Icon name="mapPin" size="sm" color="primary" />
               </div>
-              <span className="font-medium">{data.location.name}</span>
+              <span className="font-medium">
+                {typeof data.location === "string"
+                  ? data.location
+                  : data.location.name}
+              </span>
             </button>
           )}
         </div>

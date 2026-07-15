@@ -1,11 +1,20 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { toJalaali } from "jalaali-js";
-import { getLocationDetail, toggleLikeLocation, toggleSaveLocation, type LocationDetail, type KenarItem } from "@/lib/api/locations";
+import { getLocationDetail, type LocationDetail, type KenarItem, type BrandEvent } from "@/lib/api/locations";
+import {
+  getEventInteractionState,
+  toggleGoingEvent,
+  toggleLikeEvent,
+  toggleSaveEvent,
+  type EventInteractionState,
+} from "@/lib/api/events";
 import { useCategories } from "@/lib/queries/categories";
+import { goingEventsKeys, savedEventsKeys } from "@/lib/queries/saved-events";
 import { Modal } from "@/components/ui/modal";
 import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/ui/error-state";
@@ -24,15 +33,81 @@ export function BrandDetailClient({
   slug,
 }: BrandDetailClientProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const eventFromQuery = searchParams.get("event");
   const { data: categories = [] } = useCategories();
   const [data, setData] = useState<LocationDetail | null>(initialData);
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState(false);
-  const [saved, setSaved] = useState(Boolean(initialData?.is_saved));
-  const [liked, setLiked] = useState(Boolean(initialData?.is_liked));
-  const [likes, setLikes] = useState(initialData?.likes ?? 0);
+  const [going, setGoing] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [likes, setLikes] = useState(0);
+  const [actionPending, setActionPending] = useState<
+    "going" | "like" | "save" | null
+  >(null);
   const [showQr, setShowQr] = useState(false);
   const eventsRef = useRef<HTMLDivElement>(null);
+
+  const featuredEvent = useMemo(
+    () => pickFeaturedEvent(data?.events, eventFromQuery),
+    [data?.events, eventFromQuery]
+  );
+  const featuredEventSlug = featuredEvent?.event_slug;
+
+  const applyInteractionState = useCallback(
+    (
+      state: EventInteractionState,
+      fallback?: EventInteractionState
+    ) => {
+      if (typeof state.is_going === "boolean") {
+        setGoing(state.is_going);
+      } else if (typeof fallback?.is_going === "boolean") {
+        setGoing(fallback.is_going);
+      }
+
+      if (typeof state.is_saved === "boolean") {
+        setSaved(state.is_saved);
+      } else if (typeof fallback?.is_saved === "boolean") {
+        setSaved(fallback.is_saved);
+      }
+
+      if (typeof state.is_liked === "boolean") {
+        setLiked(state.is_liked);
+      } else if (typeof fallback?.is_liked === "boolean") {
+        setLiked(fallback.is_liked);
+      }
+
+      if (typeof state.likes === "number") {
+        setLikes(state.likes);
+      } else if (typeof fallback?.likes === "number") {
+        setLikes(fallback.likes);
+      }
+    },
+    []
+  );
+
+  const refreshPageData = useCallback(async (
+    interactionFallback?: EventInteractionState
+  ) => {
+    const [locationDetail, eventState] = await Promise.all([
+      getLocationDetail(slug),
+      featuredEventSlug
+        ? getEventInteractionState(featuredEventSlug)
+        : Promise.resolve(null),
+    ]);
+
+    setData(locationDetail);
+    if (eventState) {
+      applyInteractionState(eventState, interactionFallback);
+    }
+
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: savedEventsKeys.all }),
+      queryClient.invalidateQueries({ queryKey: goingEventsKeys.all }),
+    ]);
+  }, [slug, featuredEventSlug, applyInteractionState, queryClient]);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,9 +116,6 @@ export function BrandDetailClient({
       .then((detail) => {
         if (cancelled) return;
         setData(detail);
-        setSaved(Boolean(detail.is_saved));
-        setLiked(Boolean(detail.is_liked));
-        if (typeof detail.likes === "number") setLikes(detail.likes);
       })
       .catch(() => {
         if (cancelled) return;
@@ -59,10 +131,99 @@ export function BrandDetailClient({
   }, [slug, initialData]);
 
   useEffect(() => {
-    if (!data) return;
-    setSaved(Boolean(data.is_saved));
-    setLiked(Boolean(data.is_liked));
-  }, [data?.is_saved, data?.is_liked]);
+    if (!featuredEventSlug) {
+      setGoing(false);
+      setSaved(false);
+      setLiked(false);
+      setLikes(0);
+      return;
+    }
+
+    let cancelled = false;
+
+    getEventInteractionState(featuredEventSlug)
+      .then((state) => {
+        if (cancelled) return;
+        applyInteractionState(state);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setGoing(false);
+        setSaved(false);
+        setLiked(false);
+        setLikes(0);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [featuredEventSlug, applyInteractionState]);
+
+  const handleSave = useCallback(async () => {
+    if (!featuredEventSlug || actionPending) return;
+    const wasSaved = saved;
+    const nextSaved = !wasSaved;
+    setActionPending("save");
+    setSaved(nextSaved);
+    try {
+      const result = await toggleSaveEvent(featuredEventSlug);
+      applyInteractionState(result, { is_saved: nextSaved });
+      await refreshPageData({ is_saved: nextSaved });
+      toast.success(nextSaved ? "رویداد ذخیره شد" : "از ذخیره خارج شد");
+    } catch {
+      setSaved(wasSaved);
+      toast.error("خطا در ذخیره‌سازی");
+    } finally {
+      setActionPending(null);
+    }
+  }, [saved, featuredEventSlug, actionPending, applyInteractionState, refreshPageData]);
+
+  const handleLike = useCallback(async () => {
+    if (!featuredEventSlug || actionPending) return;
+    const wasLiked = liked;
+    const prevLikes = likes;
+    const nextLiked = !wasLiked;
+    setActionPending("like");
+    setLiked(nextLiked);
+    setLikes((count) => Math.max(0, count + (wasLiked ? -1 : 1)));
+    try {
+      const result = await toggleLikeEvent(featuredEventSlug);
+      applyInteractionState(result, {
+        is_liked: nextLiked,
+        likes: Math.max(0, prevLikes + (wasLiked ? -1 : 1)),
+      });
+      await refreshPageData({
+        is_liked: nextLiked,
+        likes: Math.max(0, prevLikes + (wasLiked ? -1 : 1)),
+      });
+      toast.success(nextLiked ? "رویداد پسندیده شد" : "پسند برداشته شد");
+    } catch {
+      setLiked(wasLiked);
+      setLikes(prevLikes);
+      toast.error("خطا در ثبت پسند");
+    } finally {
+      setActionPending(null);
+    }
+  }, [liked, likes, featuredEventSlug, actionPending, applyInteractionState, refreshPageData]);
+
+  const handleGoing = useCallback(async () => {
+    if (!featuredEventSlug || actionPending) return;
+    const wasGoing = going;
+    const nextGoing = !wasGoing;
+    setActionPending("going");
+    setGoing(nextGoing);
+    try {
+      const result = await toggleGoingEvent(featuredEventSlug);
+      applyInteractionState(result, { is_going: nextGoing });
+      await refreshPageData({ is_going: nextGoing });
+      toast.success(nextGoing ? "شرکت شما ثبت شد" : "شرکت لغو شد");
+    } catch {
+      setGoing(wasGoing);
+      toast.error("خطا در ثبت شرکت");
+    } finally {
+      setActionPending(null);
+    }
+  }, [going, featuredEventSlug, actionPending, applyInteractionState, refreshPageData]);
 
   const handleShare = useCallback(async () => {
     const result = await shareContent({ title: data?.name });
@@ -76,58 +237,6 @@ export function BrandDetailClient({
     const url = `https://www.google.com/maps/dir/?api=1&destination=${data.latitude},${data.longitude}`;
     window.open(url, "_blank");
   }, [data]);
-
-  const handleSave = useCallback(async () => {
-    const wasSaved = saved;
-    setSaved(!wasSaved);
-    try {
-      await toggleSaveLocation(slug);
-      const detail = await getLocationDetail(slug);
-      setData(detail);
-      const nextSaved =
-        typeof detail.is_saved === "boolean" ? detail.is_saved : !wasSaved;
-      setSaved(nextSaved);
-      toast.success(nextSaved ? "برند ذخیره شد" : "از ذخیره خارج شد");
-    } catch (err) {
-      setSaved(wasSaved);
-      const status = err instanceof Error ? err.message.match(/\((\d+)\)/)?.[1] : null;
-      if (status === "404" || status === "405") {
-        toast.error("ذخیره‌سازی برند هنوز روی سرور فعال نیست");
-      } else {
-        toast.error("خطا در ذخیره‌سازی");
-      }
-    }
-  }, [saved, slug]);
-
-  const handleLike = useCallback(async () => {
-    const wasLiked = liked;
-    const prevLikes = likes;
-    setLiked(!wasLiked);
-    setLikes((count) => Math.max(0, count + (wasLiked ? -1 : 1)));
-    try {
-      await toggleLikeLocation(slug);
-      const detail = await getLocationDetail(slug);
-      setData(detail);
-      const nextLiked =
-        typeof detail.is_liked === "boolean" ? detail.is_liked : !wasLiked;
-      setLiked(nextLiked);
-      if (typeof detail.likes === "number") setLikes(detail.likes);
-      toast.success(nextLiked ? "برند پسندیده شد" : "پسند برداشته شد");
-    } catch (err) {
-      setLiked(wasLiked);
-      setLikes(prevLikes);
-      const status = err instanceof Error ? err.message.match(/\((\d+)\)/)?.[1] : null;
-      if (status === "404" || status === "405") {
-        toast.error("لایک برند هنوز روی سرور فعال نیست");
-      } else {
-        toast.error("خطا در ثبت پسند");
-      }
-    }
-  }, [liked, likes, slug]);
-
-  const scrollToEvents = useCallback(() => {
-    eventsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
 
   if (loading) {
     return (
@@ -168,6 +277,7 @@ export function BrandDetailClient({
             likes={likes}
             saved={saved}
             liked={liked}
+            eventActionsDisabled={!featuredEventSlug}
             onSave={handleSave}
             onLike={handleLike}
             onShare={handleShare}
@@ -180,10 +290,20 @@ export function BrandDetailClient({
 
         <div className="mt-4 flex gap-2.5">
           <button
-            onClick={scrollToEvents}
-            className="flex h-12 flex-1 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white shadow-[0_6px_20px_rgba(255,90,95,0.35)] transition-transform active:scale-[0.98]"
+            onClick={handleGoing}
+            disabled={!featuredEventSlug || actionPending === "going"}
+            className={cn(
+              "flex h-12 flex-1 items-center justify-center rounded-full text-sm font-semibold shadow-[0_6px_20px_rgba(255,90,95,0.35)] transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
+              going
+                ? "border border-primary bg-white text-primary"
+                : "bg-primary text-white"
+            )}
           >
-            مشاهده رویدادها
+            {actionPending === "going"
+              ? "در حال ثبت..."
+              : going
+                ? "شرکت کرده"
+                : "شرکت می‌کنم"}
           </button>
           <button
             onClick={handleNavigate}
@@ -244,6 +364,18 @@ export function BrandDetailClient({
       </Modal>
     </div>
   );
+}
+
+function pickFeaturedEvent(
+  events?: BrandEvent[],
+  preferredSlug?: string | null
+): BrandEvent | null {
+  if (!events?.length) return null;
+  if (preferredSlug) {
+    const match = events.find((event) => event.event_slug === preferredSlug);
+    if (match) return match;
+  }
+  return events.find((event) => event.is_live) ?? events[0];
 }
 
 function BrandGallery({
@@ -339,6 +471,7 @@ function BrandActionBar({
   likes,
   saved,
   liked,
+  eventActionsDisabled,
   onSave,
   onLike,
   onShare,
@@ -347,6 +480,7 @@ function BrandActionBar({
   likes: number;
   saved: boolean;
   liked: boolean;
+  eventActionsDisabled?: boolean;
   onSave: () => void;
   onLike: () => void;
   onShare: () => void;
@@ -358,6 +492,7 @@ function BrandActionBar({
       label: toPersianDigits(likes),
       onClick: onLike,
       active: liked,
+      disabled: eventActionsDisabled,
       icon: <Icon name="heart" size={24} active={liked} />,
     },
     {
@@ -371,6 +506,7 @@ function BrandActionBar({
       label: "ذخیره سازی",
       onClick: onSave,
       active: saved,
+      disabled: eventActionsDisabled,
       icon: <Icon name="bookmark" size={24} active={saved} />,
     },
     {
@@ -388,8 +524,9 @@ function BrandActionBar({
           <button
             type="button"
             onClick={item.onClick}
+            disabled={item.disabled}
             className={cn(
-              "flex flex-1 flex-col items-center justify-center gap-1.5 px-1 py-3.5 transition-colors hover:text-primary",
+              "flex flex-1 flex-col items-center justify-center gap-1.5 px-1 py-3.5 transition-colors hover:text-primary disabled:cursor-not-allowed disabled:opacity-40",
               item.active ? "text-primary" : "text-text-secondary"
             )}
           >

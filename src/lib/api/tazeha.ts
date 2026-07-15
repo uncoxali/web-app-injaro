@@ -6,6 +6,7 @@ import {
 
 export interface TazehaLocationRef {
   name?: string;
+  slug?: string;
 }
 
 export interface TazehaItem {
@@ -24,6 +25,7 @@ export interface TazehaItem {
   start_date?: string;
   end_date?: string;
   location_name?: string;
+  location_slug?: string;
   brand_name?: string;
   district?: string;
   location?: TazehaLocationRef;

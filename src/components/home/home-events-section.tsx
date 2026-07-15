@@ -3,6 +3,7 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import type { LandingEvent } from "@/lib/api/landing";
+import { EventBrandLink } from "@/components/home/event-brand-link";
 import { Icon } from "@/components/ui/icon";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 
@@ -125,12 +126,13 @@ export function HomeEventsSection({
           style={{ WebkitOverflowScrolling: "touch" }}
         >
           {events.map((event, i) => (
-            <Link
+            <EventBrandLink
               key={event.event_slug}
               ref={(el) => {
                 itemRefs.current[i] = el;
               }}
-              href={`/events/${event.event_slug}`}
+              eventSlug={event.event_slug}
+              locationSlug={event.location_slug}
               className="shrink-0 snap-center"
             >
               <div
@@ -138,7 +140,7 @@ export function HomeEventsSection({
               >
                 <EventCardImage src={event.thumbnail} alt={event.topic} />
               </div>
-            </Link>
+            </EventBrandLink>
           ))}
         </div>
 

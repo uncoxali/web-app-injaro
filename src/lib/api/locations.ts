@@ -8,6 +8,8 @@ export interface BrandEvent {
   topic: string;
   thumbnail?: string;
   start_datetime?: string;
+  finish_datetime?: string;
+  is_live?: boolean;
 }
 
 export interface KenarItem {

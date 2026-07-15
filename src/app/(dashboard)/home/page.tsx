@@ -169,6 +169,7 @@ export default function HomePage() {
         event_slug: event.event_slug ?? "",
         thumbnail: event.thumbnail,
         topic: event.topic || event.event_name || event.event_slug || "",
+        location_slug: event.location_slug || event.location?.slug,
       })),
     [enrichedLatestItems]
   );
@@ -187,6 +188,7 @@ export default function HomePage() {
         event_slug: event.event_slug ?? "",
         thumbnail: event.thumbnail,
         topic: event.topic || event.event_name || event.event_slug || "",
+        location_slug: event.location_slug || event.location?.slug,
       })),
     [enrichedWeekItems]
   );

@@ -8,12 +8,14 @@ import { loginUrl } from "@/lib/auth-utils";
 import { toPersianDigits, cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";
 import { OptimizedImage } from "@/components/ui/optimized-image";
+import { EventBrandLink } from "@/components/home/event-brand-link";
 import {
   formatTazehaDateRange,
   getTazehaDescription,
   getTazehaImage,
   getTazehaLocation,
   getTazehaTitle,
+  getEventBrandSlug,
 } from "@/components/tazeha/tazeha-format";
 import { useEnrichedTazehaItems } from "@/lib/queries/tazeha-enrichment";
 
@@ -110,7 +112,11 @@ export function HomeHero({
           transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
           className="relative"
         >
-          <Link href={`/events/${event.event_slug ?? ""}`} className="block">
+          <EventBrandLink
+            eventSlug={event.event_slug}
+            locationSlug={getEventBrandSlug(enriched)}
+            className="block"
+          >
             <div className="relative aspect-[5/6] overflow-hidden rounded-3xl bg-gray-100 shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:bg-gray-800">
               <HeroSlideImage
                 src={getTazehaImage(enriched)}
@@ -125,7 +131,7 @@ export function HomeHero({
                 </div>
               )}
             </div>
-          </Link>
+          </EventBrandLink>
 
           {hasMultiple && (
             <>

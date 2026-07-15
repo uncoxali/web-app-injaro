@@ -16,7 +16,11 @@ import {
 } from "@/lib/api/profile";
 import { useProfile, profileKeys } from "@/lib/queries/profile";
 import { useCategories } from "@/lib/queries/categories";
-import { useSavedEvents } from "@/lib/queries/saved-events";
+import { useSavedEvents, useGoingEvents } from "@/lib/queries/saved-events";
+import {
+  ProfileEventsSection,
+  type ProfileEventsTab,
+} from "@/components/profile/profile-events-section";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -49,7 +53,10 @@ export default function ProfilePage() {
     refetch: fetchProfile,
   } = useProfile();
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
-  const { data: savedEvents = [] } = useSavedEvents();
+  const { data: savedEvents = [], isLoading: savedLoading } = useSavedEvents();
+  const { data: goingEvents = [], isLoading: goingLoading } = useGoingEvents();
+
+  const [activeEventsTab, setActiveEventsTab] = useState<ProfileEventsTab | null>("saved");
 
   const [showQrModal, setShowQrModal] = useState(false);
   const [showNotifSheet, setShowNotifSheet] = useState(false);
@@ -301,24 +308,14 @@ export default function ProfilePage() {
           className="hidden"
         />
 
-        <div className="grid grid-cols-3 gap-2.5">
-          <StatCard
-            value={0}
-            label="رویداد دیده شده"
-            icon={<Icon name="viewedEvents" size={20} color="primary" />}
-          />
-          <StatCard
-            value={0}
-            label="رویداد پیش‌رو"
-            icon={<Icon name="upcomingEvents" size={20} color="primary" />}
-          />
-          <StatCard
-            value={savedEvents.length}
-            label="رویداد ذخیره شده"
-            icon={<Icon name="savedEvents" size={20} color="primary" />}
-            onClick={() => router.push("/home/savedEvents")}
-          />
-        </div>
+        <ProfileEventsSection
+          activeTab={activeEventsTab}
+          onTabChange={setActiveEventsTab}
+          savedEvents={savedEvents}
+          goingEvents={goingEvents}
+          savedLoading={savedLoading}
+          goingLoading={goingLoading}
+        />
 
         <div className={profileCardClass}>
           <MenuRow
@@ -492,37 +489,6 @@ export default function ProfilePage() {
         loading={logoutLoading}
       />
     </div>
-  );
-}
-
-function StatCard({
-  value,
-  label,
-  icon,
-  onClick,
-}: {
-  value: number;
-  label: string;
-  icon: React.ReactNode;
-  onClick?: () => void;
-}) {
-  const Comp = onClick ? "button" : "div";
-  return (
-    <Comp
-      onClick={onClick}
-      className={cn(
-        profileStatClass,
-        onClick && "transition-transform active:scale-[0.98]"
-      )}
-    >
-      <span className="text-[22px] font-bold leading-none text-text-primary">
-        {toPersianDigits(value)}
-      </span>
-      <span className="text-center text-[10px] leading-tight text-text-secondary">
-        {label}
-      </span>
-      <div className="mt-1 text-primary">{icon}</div>
-    </Comp>
   );
 }
 

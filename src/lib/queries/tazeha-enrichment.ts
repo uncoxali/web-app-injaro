@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { getEventDetail } from "@/lib/api/events";
+import { getEventDetail, getPublicEventDetail } from "@/lib/api/events";
+import { isAuthenticated } from "@/lib/auth-utils";
 import type { TazehaItem } from "@/lib/api/tazeha";
 import {
   getTazehaDescription,
@@ -66,7 +67,7 @@ function dedupeItemsForEnrichment(items: TazehaItem[]): TazehaItem[] {
 function enrichItemsWithDetails(
   items: TazehaItem[],
   slugsToEnrich: string[],
-  detailsBySlug: Map<string, Awaited<ReturnType<typeof getEventDetail>>>
+  detailsBySlug: Map<string, Awaited<ReturnType<typeof fetchEventDetailForEnrichment>>>
 ): TazehaItem[] {
   if (slugsToEnrich.length === 0 || detailsBySlug.size === 0) {
     return items;
@@ -80,6 +81,19 @@ function enrichItemsWithDetails(
   });
 }
 
+async function fetchEventDetailForEnrichment(slug: string) {
+  if (isAuthenticated()) {
+    try {
+      const detail = await getEventDetail(slug);
+      return detail;
+    } catch {
+      // Fall back to public detail for slug resolution.
+    }
+  }
+
+  return getPublicEventDetail(slug);
+}
+
 export function useEnrichedTazehaItems(items: TazehaItem[], enabled: boolean) {
   const slugsToEnrich = useMemo(
     () => (enabled ? collectSlugsToEnrich(items) : []),
@@ -89,7 +103,7 @@ export function useEnrichedTazehaItems(items: TazehaItem[], enabled: boolean) {
   const detailQueries = useQueries({
     queries: slugsToEnrich.map((slug) => ({
       queryKey: ["eventDetail", slug] as const,
-      queryFn: () => withEnrichConcurrency(() => getEventDetail(slug)),
+      queryFn: () => withEnrichConcurrency(() => fetchEventDetailForEnrichment(slug)),
       staleTime: 10 * 60 * 1000,
       enabled,
     })),
