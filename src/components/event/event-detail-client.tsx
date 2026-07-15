@@ -1,43 +1,32 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { toJalaali } from "jalaali-js";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
   getEventDetail,
   getPublicEventDetail,
-  toggleSaveEvent,
   type EventDetail,
 } from "@/lib/api/events";
 import { getLandingEventBySlug, type LandingEvent } from "@/lib/api/landing";
 import { landingKeys } from "@/lib/queries/landing";
 import { isAuthenticated, loginUrl } from "@/lib/auth-utils";
-import { reportNavigationClick } from "@/lib/api/locations";
-import { Modal } from "@/components/ui/modal";
+import {
+  getLocationDetail,
+  reportNavigationClick,
+  type BrandEvent,
+  type LocationDetail,
+} from "@/lib/api/locations";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { PERSIAN_MONTHS } from "@/lib/constants/enums";
-import { cn, toPersianDigits } from "@/lib/utils";
+import { toPersianDigits } from "@/lib/utils";
 import { normalizeEventLocationSlug } from "@/components/tazeha/tazeha-format";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Icon } from "@/components/ui/icon";
-
-function formatPersianDateTime(iso?: string): string {
-  if (!iso) return "";
-  const [datePart, timePart] = iso.split("T");
-  if (!datePart) return "";
-  const [year, month, day] = datePart.split("-");
-  const monthName = PERSIAN_MONTHS[parseInt(month) - 1] || "";
-  const time = timePart ? timePart.slice(0, 5) : "";
-  const dayPersian = toPersianDigits(parseInt(day));
-  const yearPersian = toPersianDigits(parseInt(year));
-  const timePersian = time ? toPersianDigits(time) : "";
-  return `${dayPersian} ${monthName} ${yearPersian}${timePersian ? `، ساعت ${timePersian}` : ""}`;
-}
 
 interface EventDetailClientProps {
   initialData: EventDetail | null;
@@ -51,15 +40,11 @@ export function EventDetailClient({
   const router = useRouter();
   const queryClient = useQueryClient();
   const [data, setData] = useState<EventDetail | null>(initialData);
+  const [locationDetail, setLocationDetail] = useState<LocationDetail | null>(null);
   const [guestEvent, setGuestEvent] = useState<LandingEvent | null>(null);
   const [isGuest, setIsGuest] = useState(false);
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState(false);
-  const [saved, setSaved] = useState(Boolean(initialData?.is_saved));
-
-  const [ticketQrOpen, setTicketQrOpen] = useState(false);
-  const [imagePopupOpen, setImagePopupOpen] = useState(false);
-  const [popupImageIndex, setPopupImageIndex] = useState(0);
 
   useEffect(() => {
     if (initialData) return;
@@ -94,53 +79,51 @@ export function EventDetailClient({
     load();
   }, [slug, initialData, queryClient]);
 
+  useEffect(() => {
+    const locSlug = normalizeEventLocationSlug(data?.location);
+    if (!locSlug || isGuest) return;
+
+    let cancelled = false;
+    getLocationDetail(locSlug)
+      .then((detail) => {
+        if (!cancelled) setLocationDetail(detail);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data?.location, isGuest]);
+
+  const pastEvents = useMemo(() => {
+    const events = locationDetail?.events || [];
+    return events.filter((event) => event.event_slug !== slug);
+  }, [locationDetail?.events, slug]);
+
   const handleParticipate = useCallback(() => {
     router.push(loginUrl(`/events/${slug}`));
   }, [router, slug]);
-
-  const handleSave = useCallback(async () => {
-    if (isGuest) {
-      router.push(loginUrl(`/events/${slug}`));
-      return;
-    }
-    try {
-      await toggleSaveEvent(slug);
-      setSaved((p) => !p);
-      toast.success(saved ? "از ذخیره خارج شد" : "رویداد ذخیره شد");
-    } catch {
-      toast.error("خطا");
-    }
-  }, [saved, isGuest, router, slug]);
-
-  const handleShare = useCallback(() => {
-    const url = window.location.href;
-    if (navigator.share) {
-      navigator.share({ title: data?.topic, url });
-    } else {
-      navigator.clipboard.writeText(url).then(() => toast.success("لینک کپی شد"));
-    }
-  }, [data]);
 
   const handleNavigate = useCallback(() => {
     if (data?.GoogleMapLink) {
       window.open(data.GoogleMapLink, "_blank");
       return;
     }
+    if (locationDetail) {
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${locationDetail.latitude},${locationDetail.longitude}`;
+      window.open(url, "_blank");
+      reportNavigationClick(locationDetail.slug);
+      return;
+    }
     const locationSlug = normalizeEventLocationSlug(data?.location);
     if (locationSlug) {
       reportNavigationClick(locationSlug);
-      router.push(`/brands/${locationSlug}`);
     }
-  }, [data, router]);
-
-  const handleOpenImage = useCallback((index: number) => {
-    setPopupImageIndex(index);
-    setImagePopupOpen(true);
-  }, []);
+  }, [data, locationDetail]);
 
   if (loading) {
     return (
-      <div className="flex min-h-dvh items-center justify-center">
+      <div className="flex min-h-dvh items-center justify-center bg-[#ececec] dark:bg-background">
         <Spinner size="lg" />
       </div>
     );
@@ -148,7 +131,7 @@ export function EventDetailClient({
 
   if (error || (!data && !guestEvent)) {
     return (
-      <div className="flex min-h-dvh items-center justify-center">
+      <div className="flex min-h-dvh items-center justify-center bg-[#ececec] dark:bg-background">
         <ErrorState onRetry={() => window.location.reload()} />
       </div>
     );
@@ -174,251 +157,356 @@ export function EventDetailClient({
 
   if (!data) {
     return (
-      <div className="flex min-h-dvh items-center justify-center">
+      <div className="flex min-h-dvh items-center justify-center bg-[#ececec] dark:bg-background">
         <ErrorState onRetry={() => window.location.reload()} />
       </div>
     );
   }
 
-  const images = data.images && data.images.length > 0
-    ? data.images
-    : data.thumbnail
-      ? [{ url: data.thumbnail }]
-      : [];
-  const statementLong = (data.statement?.length || 0) > 200;
-  const sideOrgs = data.side_organizers || [];
-  const talks = data.conversation_panel || [];
-  const saloons = data.saloons || [];
+  const locationName =
+    locationDetail?.name ||
+    (typeof data.location === "object" ? data.location.name : "") ||
+    "";
+  const address =
+    locationDetail?.address ||
+    (typeof data.location === "string" ? data.location : locationDetail?.address);
+  const bannerImage =
+    locationDetail?.banner ||
+    data.thumbnail ||
+    data.images?.[0]?.url;
+  const eventImage =
+    data.images?.[0]?.url || data.thumbnail || bannerImage;
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <div className="relative">
-        <GallerySection images={images} onOpenImage={handleOpenImage} />
+    <div className="flex min-h-dvh flex-col bg-[#ececec] pb-8 dark:bg-background">
+      <EventLocationHeader
+        bannerImage={bannerImage}
+        logo={locationDetail?.logo}
+        locationName={locationName}
+        subtitle={data.topic}
+        address={address}
+        subwayStation={locationDetail?.subway_station}
+        busStation={locationDetail?.bus_station}
+        parking={locationDetail?.parking}
+        onBack={() => router.back()}
+        onNavigate={handleNavigate}
+      />
+
+      <div className="space-y-6 px-4 pb-8 pt-6">
+        <section className="space-y-4">
+          <SectionDivider title="آخرین رویداد" />
+          <LatestEventCard
+            image={eventImage}
+            logo={locationDetail?.logo}
+            topic={data.topic}
+            startDatetime={data.start_datetime}
+            finishDatetime={data.finish_datetime}
+            isLive={locationDetail?.events?.find((event) => event.event_slug === slug)?.is_live}
+          />
+        </section>
+
+        {pastEvents.length > 0 ? (
+          <section className="space-y-4">
+            <SectionDivider title="رویدادهای گذشته" />
+            <PastEventsGrid events={pastEvents} />
+          </section>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function EventLocationHeader({
+  bannerImage,
+  logo,
+  locationName,
+  subtitle,
+  address,
+  subwayStation,
+  busStation,
+  parking,
+  onBack,
+  onNavigate,
+}: {
+  bannerImage?: string;
+  logo?: string;
+  locationName: string;
+  subtitle?: string;
+  address?: string;
+  subwayStation?: string;
+  busStation?: string;
+  parking?: string;
+  onBack: () => void;
+  onNavigate: () => void;
+}) {
+  const hasFacilities = Boolean(subwayStation || busStation || parking);
+
+  return (
+    <div className="overflow-hidden">
+      <div className="relative h-56 w-full overflow-hidden bg-linear-to-br from-primary/8 via-[#ececec] to-primary/5 dark:via-background">
+        {bannerImage ? (
+          <OptimizedImage
+            src={bannerImage}
+            alt={locationName}
+            fill
+            priority
+            sizes="(max-width: 480px) 100vw, 480px"
+            className="object-cover"
+          />
+        ) : null}
+
+        <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-white/60 bg-white/78 px-4 py-3 shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-md dark:border-border/20 dark:bg-surface/85">
+          <div className="flex items-center gap-3">
+            {logo ? (
+              <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white shadow-[0_2px_10px_rgba(0,0,0,0.08)]">
+                <OptimizedImage
+                  src={logo}
+                  alt={locationName}
+                  width={52}
+                  height={52}
+                  className="h-full w-full object-contain p-1.5"
+                />
+              </div>
+            ) : null}
+            <div className="min-w-0 flex-1 text-right">
+              <h1 className="text-[15px] font-bold leading-snug text-text-primary">
+                {locationName || subtitle}
+              </h1>
+              {locationName && subtitle ? (
+                <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-text-secondary/80">
+                  {subtitle}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
         <button
-          onClick={() => router.back()}
-          aria-label="بازگشت"
-          className="absolute top-4 inset-s-4 z-20 w-9 h-9 rounded-full bg-background/85 backdrop-blur-xs shadow-md flex items-center justify-center text-text-primary hover:bg-background transition-colors"
+          type="button"
+          dir="ltr"
+          onClick={onNavigate}
+          className="absolute top-3 left-3 z-10 flex h-10 items-center gap-2 rounded-full bg-primary ps-4 pe-1.5 text-sm font-semibold text-white shadow-[0_6px_20px_rgba(255,90,95,0.35)] transition-transform active:scale-[0.98]"
         >
-          <Icon name="chevronLeft" size="md" className="scale-x-[-1]" />
+          مسیریابی
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white">
+            <Icon name="navigation" size={16} color="primary" />
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="بازگشت"
+          className="absolute top-3 right-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-white/90 text-primary shadow-md transition-colors hover:bg-white dark:border-border/30 dark:bg-surface/90"
+        >
+          <Icon name="chevronLeft" size="md" color="primary" className="scale-x-[-1]" />
         </button>
       </div>
 
-      <div className="px-4 pt-4 pb-3">
-        <div className="bg-white/60 dark:bg-white/3 backdrop-blur-xl border border-border/15 shadow-xs rounded-2xl p-4 space-y-3">
-          <div className="flex items-start gap-2">
-            <h1 className="text-xl font-bold text-text-primary flex-1 leading-snug">
-              {data.topic}
-            </h1>
-            {data.is_vip && (
-              <Badge variant="warning" size="sm" className="shrink-0">
-                VIP
-              </Badge>
-            )}
-          </div>
-
-          {data.start_datetime && (
-            <div className="flex items-center gap-2 text-sm text-text-secondary">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <Icon name="calendar" size="sm" color="primary" />
-              </div>
-              <span className="font-medium">
-                {formatPersianDateTime(data.start_datetime)}
-                {data.finish_datetime && ` — ${formatPersianDateTime(data.finish_datetime)}`}
+      {(address || hasFacilities) ? (
+        <div className="space-y-3 px-4 py-4">
+          {address ? (
+            <p className="flex items-start gap-2 text-[13px] leading-relaxed text-text-secondary">
+              <Icon name="mapPin" size="sm" color="primary" className="mt-0.5 shrink-0" />
+              <span>
+                <span className="font-semibold text-text-primary">آدرس: </span>
+                {address}
               </span>
-            </div>
-          )}
+            </p>
+          ) : null}
 
-          {data.location && (
-            <button
-              onClick={handleNavigate}
-              className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary transition-colors w-full text-right"
-            >
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <Icon name="mapPin" size="sm" color="primary" />
-              </div>
-              <span className="font-medium">
-                {typeof data.location === "string"
-                  ? data.location
-                  : data.location.name}
-              </span>
-            </button>
-          )}
+          {hasFacilities ? (
+            <div className="flex flex-nowrap items-center justify-start gap-2 overflow-x-auto scrollbar-none">
+              {subwayStation ? (
+                <FacilityTag icon="metro" label={subwayStation} />
+              ) : null}
+              {busStation ? (
+                <FacilityTag icon="bus" label={busStation} />
+              ) : null}
+              {parking ? (
+                <FacilityTag icon="parking" label={parking} />
+              ) : null}
+            </div>
+          ) : null}
         </div>
-      </div>
-
-      <div className="sticky top-0 z-10 bg-background/60 backdrop-blur-2xl border-b border-border/40">
-        <div className="flex gap-1.5 px-4 py-2.5">
-          <ActionIcon active={saved} onClick={handleSave} tooltip={saved ? "حذف از ذخیره" : "ذخیره"}>
-            <Icon name="bookmark" size="md" active={saved} />
-          </ActionIcon>
-          <ActionIcon onClick={handleShare} tooltip="اشتراک‌گذاری">
-            <Icon name="share" size="md" />
-          </ActionIcon>
-          <ActionIcon onClick={() => data.GoogleCalendarLink && window.open(data.GoogleCalendarLink, "_blank")} tooltip="تقویم" disabled={!data.GoogleCalendarLink}>
-            <Icon name="calendar" size="md" />
-          </ActionIcon>
-          <ActionIcon onClick={handleNavigate} tooltip="مسیریابی">
-            <Icon name="mapPin" size="md" />
-          </ActionIcon>
-          {data.need_ticket && (
-            <ActionIcon onClick={() => setTicketQrOpen(true)} tooltip="بلیت" className="text-primary">
-              <Icon name="qr" size="md" color="primary" />
-            </ActionIcon>
-          )}
-        </div>
-      </div>
-
-      <div className="flex-1 px-4 pt-5 pb-8 space-y-5">
-        {data.statement && (
-          <section>
-            <SectionTitle>درباره رویداد</SectionTitle>
-            <div className="bg-white/60 dark:bg-white/3 backdrop-blur-xl border border-border/15 shadow-xs rounded-2xl p-4">
-              <StatementBlock text={data.statement} />
-            </div>
-          </section>
-        )}
-
-        {data.main_organizers && (
-          <section>
-            <SectionTitle>برگزارکنندگان</SectionTitle>
-            <div className="bg-white/60 dark:bg-white/3 backdrop-blur-xl border border-border/15 shadow-xs rounded-2xl p-4">
-              <p className="text-sm text-text-secondary leading-relaxed">
-                {data.main_organizers}
-              </p>
-            </div>
-          </section>
-        )}
-
-        {sideOrgs.length > 0 && (
-          <section>
-            <SectionTitle>برگزارکنندگان فرعی</SectionTitle>
-            <div className="bg-white/60 dark:bg-white/3 backdrop-blur-xl border border-border/15 shadow-xs rounded-2xl p-4">
-              <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory scrollbar-none">
-                {sideOrgs.map((org) => (
-                  <div
-                    key={org.id}
-                    className="snap-start shrink-0 flex flex-col items-center gap-2 w-20"
-                  >
-                    <div className="w-14 h-14 rounded-xl bg-white/50 dark:bg-white/5 border border-border/40 flex items-center justify-center overflow-hidden shadow-xs">
-                      {org.logo ? (
-                        <OptimizedImage src={org.logo} alt={org.name} width={56} height={56} className="w-full h-full" />
-                      ) : (
-                        <span className="text-lg font-bold text-text-secondary/40">
-                          {org.name.slice(0, 1)}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-text-secondary text-center line-clamp-2 leading-snug">
-                      {org.name}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {talks.length > 0 && (
-          <section>
-            <SectionTitle>سخنرانان / پنل گفتگو</SectionTitle>
-            <div className="bg-white/60 dark:bg-white/3 backdrop-blur-xl border border-border/15 shadow-xs rounded-2xl p-4">
-              <div className="flex flex-col gap-2">
-                {talks.map((talk, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-white/50 dark:bg-white/5 border border-border/30"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <span className="text-sm font-bold text-primary">
-                        {talk.name?.slice(0, 1) || "?"}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      {talk.name && (
-                        <p className="text-sm font-medium text-text-primary">
-                          {talk.name}
-                        </p>
-                      )}
-                      {talk.title && (
-                        <p className="text-xs text-text-secondary mt-0.5">
-                          {talk.title}
-                        </p>
-                      )}
-                    </div>
-                    {talk.time && (
-                      <span className="text-[10px] px-2 py-1 rounded-full bg-white/50 dark:bg-white/5 text-text-secondary border border-border/30 shrink-0 font-medium">
-                        {talk.time}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {saloons.length > 0 && (
-          <section>
-            <SectionTitle>سالن‌ها و غرفه‌ها</SectionTitle>
-            <div className="bg-white/60 dark:bg-white/3 backdrop-blur-xl border border-border/15 shadow-xs rounded-2xl p-4">
-              <SaloonsAccordion saloons={saloons} />
-            </div>
-          </section>
-        )}
-      </div>
-
-      <Modal open={ticketQrOpen} onClose={() => setTicketQrOpen(false)} title="بلیت رویداد">
-        <div className="flex flex-col items-center py-6">
-          <div className="w-52 h-52 rounded-xl bg-linear-to-br from-primary/4 to-surface border border-border flex items-center justify-center">
-            <Icon name="qr" size={110} className="text-text-secondary/20" />
-          </div>
-          <p className="text-xs text-text-secondary mt-3">بلیت خود را اسکن کنید</p>
-        </div>
-      </Modal>
-
-      <AnimatePresence>
-        {imagePopupOpen && images.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-            onClick={() => setImagePopupOpen(false)}
-          >
-            <button
-              onClick={() => setImagePopupOpen(false)}
-              className="absolute top-4 inset-e-4 z-10 w-9 h-9 rounded-full bg-white/15 backdrop-blur-xs flex items-center justify-center text-white hover:bg-white/25 transition-colors"
-            >
-              <Icon name="close" size={20} />
-            </button>
-            <div className="relative w-full h-[70vh] max-h-[80dvh]">
-              <OptimizedImage
-                src={images[popupImageIndex]?.url}
-                alt={images[popupImageIndex]?.alt || ""}
-                fill
-                sizes="100vw"
-                className="object-contain px-4"
-              />
-            </div>
-            {images.length > 1 && (
-              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
-                {images.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={(e) => { e.stopPropagation(); setPopupImageIndex(i); }}
-                    className={cn(
-                      "w-2 h-2 rounded-full transition-all",
-                      i === popupImageIndex ? "bg-white w-4" : "bg-white/40"
-                    )}
-                  />
-                ))}
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      ) : null}
     </div>
   );
+}
+
+function FacilityTag({
+  icon,
+  label,
+}: {
+  icon: "metro" | "bus" | "parking";
+  label: string;
+}) {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/50 bg-white px-3 py-1.5 text-xs font-medium whitespace-nowrap text-text-secondary dark:bg-surface">
+      <Icon name={icon} size="sm" color="primary" />
+      {label}
+    </span>
+  );
+}
+
+function SectionDivider({ title }: { title: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <h2 className="shrink-0 text-sm font-bold text-text-primary">{title}</h2>
+      <div className="h-px min-w-0 flex-1 bg-border/55" />
+    </div>
+  );
+}
+
+function LatestEventCard({
+  image,
+  logo,
+  topic,
+  startDatetime,
+  finishDatetime,
+  isLive,
+}: {
+  image?: string;
+  logo?: string;
+  topic: string;
+  startDatetime?: string;
+  finishDatetime?: string;
+  isLive?: boolean;
+}) {
+  const timeLabel = startDatetime
+    ? formatEventTimeRange(startDatetime, finishDatetime)
+    : "";
+
+  return (
+    <article className="overflow-hidden rounded-[28px] border border-border/35 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.07)] dark:bg-surface">
+      <div className="relative aspect-3/4 overflow-hidden bg-surface">
+        {image ? (
+          <OptimizedImage
+            src={image}
+            alt={topic}
+            fill
+            sizes="(max-width: 480px) 100vw, 480px"
+            className="object-cover"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <Icon name="camera" size={48} className="text-text-secondary/20" />
+          </div>
+        )}
+
+        {logo ? (
+          <div className="absolute top-4 inset-s-4 flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-white/90 p-1 shadow-sm">
+            <OptimizedImage
+              src={logo}
+              alt=""
+              width={36}
+              height={36}
+              className="h-full w-full object-contain"
+            />
+          </div>
+        ) : null}
+
+        {isLive ? (
+          <span className="absolute top-4 inset-e-4 h-5 w-5 rounded-full border-[3px] border-white bg-teal-400 shadow-md" />
+        ) : null}
+
+        <div className="absolute inset-x-4 bottom-4">
+          <div className="rounded-full border border-white/50 bg-white/82 px-4 py-3 shadow-[0_2px_12px_rgba(0,0,0,0.08)] backdrop-blur-md dark:bg-surface/90">
+            <p className="text-right text-[11px] leading-relaxed text-text-primary">
+              <span className="font-semibold">موضوع: </span>
+              {topic}
+            </p>
+            {timeLabel ? (
+              <p className="mt-0.5 text-right text-[11px] leading-relaxed text-text-secondary">
+                {timeLabel}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function PastEventsGrid({ events }: { events: BrandEvent[] }) {
+  const router = useRouter();
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {events.map((event) => (
+        <button
+          key={event.event_slug}
+          type="button"
+          onClick={() => router.push(`/events/${event.event_slug}`)}
+          className="group overflow-hidden rounded-[22px] border border-border/30 bg-white text-right shadow-[0_4px_18px_rgba(0,0,0,0.06)] transition-transform active:scale-[0.98] dark:bg-surface"
+        >
+          <div className="relative aspect-3/4 overflow-hidden bg-surface">
+            {event.thumbnail ? (
+              <OptimizedImage
+                src={event.thumbnail}
+                alt={event.topic}
+                fill
+                sizes="50vw"
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <Icon name="camera" size={28} className="text-text-secondary/30" />
+              </div>
+            )}
+            <div className="absolute inset-x-0 bottom-3 flex justify-center px-2">
+              <div className="max-w-[92%] rounded-full border border-white/50 bg-white/85 px-3 py-1.5 shadow-sm backdrop-blur-sm dark:bg-surface/90">
+                <p className="line-clamp-1 text-center text-[10px] font-medium leading-snug text-text-primary">
+                  {event.topic}
+                </p>
+              </div>
+            </div>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function extractTime(iso: string): string {
+  const match = iso.match(/T(\d{2}):(\d{2})/);
+  return match ? `${match[1]}:${match[2]}` : "";
+}
+
+function formatEventTimeRange(start?: string, finish?: string): string {
+  if (!start) return "";
+  const startDate = new Date(start);
+  if (isNaN(startDate.getTime())) return "";
+
+  const startJ = toJalaali(
+    startDate.getFullYear(),
+    startDate.getMonth() + 1,
+    startDate.getDate()
+  );
+  const timeFrom = extractTime(start);
+
+  if (!finish) {
+    return `زمان: ${toPersianDigits(startJ.jd)} ${PERSIAN_MONTHS[startJ.jm - 1]} ${toPersianDigits(startJ.jy)}${timeFrom ? ` از ${toPersianDigits(timeFrom)}` : ""}`;
+  }
+
+  const finishDate = new Date(finish);
+  if (isNaN(finishDate.getTime())) {
+    return `زمان: ${toPersianDigits(startJ.jd)} ${PERSIAN_MONTHS[startJ.jm - 1]} ${toPersianDigits(startJ.jy)}`;
+  }
+
+  const finishJ = toJalaali(
+    finishDate.getFullYear(),
+    finishDate.getMonth() + 1,
+    finishDate.getDate()
+  );
+  const timeTo = extractTime(finish);
+
+  const sameMonth = startJ.jm === finishJ.jm && startJ.jy === finishJ.jy;
+  if (sameMonth && startJ.jd !== finishJ.jd) {
+    return `زمان: ${toPersianDigits(startJ.jd)} تا ${toPersianDigits(finishJ.jd)} ${PERSIAN_MONTHS[finishJ.jm - 1]} ${toPersianDigits(finishJ.jy)}${timeFrom && timeTo ? ` از ${toPersianDigits(timeFrom)} تا ${toPersianDigits(timeTo)}` : ""}`;
+  }
+
+  return `زمان: ${toPersianDigits(startJ.jd)} ${PERSIAN_MONTHS[startJ.jm - 1]} ${toPersianDigits(startJ.jy)}${timeFrom && timeTo ? ` از ${toPersianDigits(timeFrom)} تا ${toPersianDigits(timeTo)}` : ""}`;
 }
 
 function GuestEventView({
@@ -485,247 +573,5 @@ function GuestEventView({
         </p>
       </div>
     </div>
-  );
-}
-
-function GallerySection({
-  images,
-  onOpenImage,
-}: {
-  images: EventDetail["images"];
-  onOpenImage: (index: number) => void;
-}) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const idx = Math.round(el.scrollLeft / el.clientWidth);
-    setActiveIndex(Math.min(idx, (images?.length || 1) - 1));
-  }, [images]);
-
-  if (!images || images.length === 0) {
-    return (
-      <div className="relative h-64 bg-linear-to-b from-primary/4 to-surface flex items-center justify-center">
-        <Icon name="camera" size={48} className="text-text-secondary/20" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative">
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth scrollbar-none"
-        style={{ scrollSnapType: "x mandatory" }}
-      >
-        {images.map((img, i) => (
-          <button
-            key={i}
-            onClick={() => onOpenImage(i)}
-            className="snap-start shrink-0 w-full h-64 overflow-hidden relative"
-          >
-            <OptimizedImage
-              src={img.url}
-              alt={img.alt || ""}
-              fill
-              priority={i === 0}
-              sizes="(max-width: 480px) 100vw, 480px"
-            />
-            <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent pointer-events-none" />
-          </button>
-        ))}
-      </div>
-      {images.length > 1 && (
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-          {images.map((_, i) => (
-            <div
-              key={i}
-              className={cn(
-                "h-2 rounded-full transition-all",
-                i === activeIndex
-                  ? "bg-white w-5"
-                  : "bg-white/50 w-2"
-              )}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-2 mb-3">
-      <div className="w-1 h-4 rounded-full bg-primary/60" />
-      <h2 className="text-sm font-bold text-text-primary">
-        {children}
-      </h2>
-    </div>
-  );
-}
-
-function StatementBlock({ text }: { text: string }) {
-  const [expanded, setExpanded] = useState(false);
-  const long = text.length > 200;
-
-  return (
-    <div>
-      <p
-        className={cn(
-          "text-sm text-text-secondary leading-relaxed whitespace-pre-line",
-          !expanded && long && "line-clamp-4"
-        )}
-      >
-        {text}
-      </p>
-      {long && (
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="text-xs text-primary font-medium mt-1.5 hover:opacity-80 transition-opacity"
-        >
-          {expanded ? "نمایش کمتر" : "نمایش بیشتر"}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function SaloonsAccordion({ saloons }: { saloons: EventDetail["saloons"] }) {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
-
-  if (!saloons || saloons.length === 0) return null;
-
-  return (
-    <div className="flex flex-col gap-2">
-      {saloons.map((saloon, i) => {
-        const isOpen = openIndex === i;
-        const companies = saloon.company || [];
-        return (
-          <div
-            key={i}
-            className="rounded-xl bg-white/50 dark:bg-white/5 border border-border/30 overflow-hidden"
-          >
-            <button
-              onClick={() => setOpenIndex(isOpen ? null : i)}
-              className="flex items-center justify-between w-full h-12 px-4 text-sm font-medium text-text-primary hover:bg-white/30 dark:hover:bg-white/5 transition-colors"
-            >
-              <span>{saloon.name}</span>
-              <motion.svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="text-text-secondary"
-                animate={{ rotate: isOpen ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </motion.svg>
-            </button>
-            <AnimatePresence>
-              {isOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="px-4 pb-3 border-t border-border/20 pt-3">
-                    {companies.length === 0 ? (
-                      <p className="text-xs text-text-secondary">غرفه‌ای ثبت نشده</p>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        {companies.map((c) => (
-                          <CompanyBoothCard key={c.id} company={c} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function CompanyBoothCard({
-  company,
-}: {
-  company: NonNullable<NonNullable<EventDetail["saloons"]>[number]["company"]>[number];
-}) {
-  const router = useRouter();
-
-  const handleClick = () => {
-    if (company.link) {
-      router.push(company.link);
-    }
-  };
-
-  return (
-    <button
-      onClick={handleClick}
-      className="flex items-center gap-3 p-2.5 rounded-lg bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/10 transition-colors"
-    >
-      <div className="w-9 h-9 rounded-lg bg-white/40 dark:bg-white/5 border border-border/40 flex items-center justify-center overflow-hidden shrink-0">
-        {company.logo ? (
-          <OptimizedImage src={company.logo} alt="" width={36} height={36} className="w-full h-full" />
-        ) : (
-          <span className="text-xs font-bold text-text-secondary/40">{company.name.slice(0, 1)}</span>
-        )}
-      </div>
-      <div className="flex-1 min-w-0 text-right">
-        <p className="text-sm font-medium text-text-primary">{company.name}</p>
-        {company.booth && (
-          <p className="text-[11px] text-text-secondary">غرفه {company.booth}</p>
-        )}
-      </div>
-      {company.link && (
-        <Icon name="chevronLeft" size="sm" className="shrink-0 text-text-secondary" />
-      )}
-    </button>
-  );
-}
-
-function ActionIcon({
-  children,
-  onClick,
-  tooltip,
-  active,
-  disabled,
-  className,
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  tooltip?: string;
-  active?: boolean;
-  disabled?: boolean;
-  className?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={tooltip}
-      title={tooltip}
-      className={cn(
-        "flex items-center justify-center h-10 w-10 rounded-xl border border-border/50 bg-surface text-text-secondary hover:border-primary/30 hover:text-primary hover:bg-primary/2 transition-all shadow-xs shadow-border/20",
-        active && "border-primary/30 text-primary bg-primary/5",
-        disabled && "opacity-40 cursor-not-allowed",
-        className
-      )}
-    >
-      {children}
-    </button>
   );
 }

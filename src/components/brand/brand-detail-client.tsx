@@ -5,14 +5,25 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { toJalaali } from "jalaali-js";
-import { getLocationDetail, type LocationDetail, type KenarItem, type BrandEvent } from "@/lib/api/locations";
 import {
+  getLocationDetail,
+  pickFeaturedEvent,
+  resolveActiveEventSlug,
+  type LocationDetail,
+  type KenarItem,
+  type BrandEvent,
+} from "@/lib/api/locations";
+import {
+  getEventDetail,
+  getPublicEventDetail,
   getEventInteractionState,
   toggleGoingEvent,
   toggleLikeEvent,
   toggleSaveEvent,
+  type EventDetail,
   type EventInteractionState,
 } from "@/lib/api/events";
+import { isAuthenticated } from "@/lib/auth-utils";
 import { useCategories } from "@/lib/queries/categories";
 import { goingEventsKeys, savedEventsKeys } from "@/lib/queries/saved-events";
 import { Modal } from "@/components/ui/modal";
@@ -48,13 +59,43 @@ export function BrandDetailClient({
     "going" | "like" | "save" | null
   >(null);
   const [showQr, setShowQr] = useState(false);
+  const [eventDetail, setEventDetail] = useState<EventDetail | null>(null);
   const eventsRef = useRef<HTMLDivElement>(null);
 
   const featuredEvent = useMemo(
     () => pickFeaturedEvent(data?.events, eventFromQuery),
     [data?.events, eventFromQuery]
   );
-  const featuredEventSlug = featuredEvent?.event_slug;
+  const activeEventSlug = useMemo(
+    () => resolveActiveEventSlug(data?.events, eventFromQuery),
+    [data?.events, eventFromQuery]
+  );
+
+  const galleryImages = useMemo(() => {
+    if (eventDetail?.images?.length) {
+      return eventDetail.images.map((image) => ({
+        url: image.url,
+        alt: image.alt || eventDetail.topic,
+      }));
+    }
+
+    const eventThumbnail =
+      eventDetail?.thumbnail || featuredEvent?.thumbnail;
+    if (eventThumbnail) {
+      return [
+        {
+          url: eventThumbnail,
+          alt: eventDetail?.topic || featuredEvent?.topic || data?.name || "",
+        },
+      ];
+    }
+
+    if (data?.banner) {
+      return [{ url: data.banner, alt: data.name }];
+    }
+
+    return [];
+  }, [eventDetail, featuredEvent, data?.banner, data?.name]);
 
   const applyInteractionState = useCallback(
     (
@@ -93,8 +134,8 @@ export function BrandDetailClient({
   ) => {
     const [locationDetail, eventState] = await Promise.all([
       getLocationDetail(slug),
-      featuredEventSlug
-        ? getEventInteractionState(featuredEventSlug)
+      activeEventSlug
+        ? getEventInteractionState(activeEventSlug)
         : Promise.resolve(null),
     ]);
 
@@ -107,7 +148,7 @@ export function BrandDetailClient({
       queryClient.invalidateQueries({ queryKey: savedEventsKeys.all }),
       queryClient.invalidateQueries({ queryKey: goingEventsKeys.all }),
     ]);
-  }, [slug, featuredEventSlug, applyInteractionState, queryClient]);
+  }, [slug, activeEventSlug, applyInteractionState, queryClient]);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,7 +172,37 @@ export function BrandDetailClient({
   }, [slug, initialData]);
 
   useEffect(() => {
-    if (!featuredEventSlug) {
+    if (!activeEventSlug) {
+      setEventDetail(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadEventDetail = async () => {
+      try {
+        const detail = isAuthenticated()
+          ? await getEventDetail(activeEventSlug)
+          : await getPublicEventDetail(activeEventSlug);
+        if (!cancelled) {
+          setEventDetail(detail);
+        }
+      } catch {
+        if (!cancelled) {
+          setEventDetail(null);
+        }
+      }
+    };
+
+    loadEventDetail();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeEventSlug]);
+
+  useEffect(() => {
+    if (!activeEventSlug) {
       setGoing(false);
       setSaved(false);
       setLiked(false);
@@ -141,7 +212,7 @@ export function BrandDetailClient({
 
     let cancelled = false;
 
-    getEventInteractionState(featuredEventSlug)
+    getEventInteractionState(activeEventSlug)
       .then((state) => {
         if (cancelled) return;
         applyInteractionState(state);
@@ -157,16 +228,16 @@ export function BrandDetailClient({
     return () => {
       cancelled = true;
     };
-  }, [featuredEventSlug, applyInteractionState]);
+  }, [activeEventSlug, applyInteractionState]);
 
   const handleSave = useCallback(async () => {
-    if (!featuredEventSlug || actionPending) return;
+    if (!activeEventSlug || actionPending) return;
     const wasSaved = saved;
     const nextSaved = !wasSaved;
     setActionPending("save");
     setSaved(nextSaved);
     try {
-      const result = await toggleSaveEvent(featuredEventSlug);
+      const result = await toggleSaveEvent(activeEventSlug);
       applyInteractionState(result, { is_saved: nextSaved });
       await refreshPageData({ is_saved: nextSaved });
       toast.success(nextSaved ? "رویداد ذخیره شد" : "از ذخیره خارج شد");
@@ -176,10 +247,10 @@ export function BrandDetailClient({
     } finally {
       setActionPending(null);
     }
-  }, [saved, featuredEventSlug, actionPending, applyInteractionState, refreshPageData]);
+  }, [saved, activeEventSlug, actionPending, applyInteractionState, refreshPageData]);
 
   const handleLike = useCallback(async () => {
-    if (!featuredEventSlug || actionPending) return;
+    if (!activeEventSlug || actionPending) return;
     const wasLiked = liked;
     const prevLikes = likes;
     const nextLiked = !wasLiked;
@@ -187,7 +258,7 @@ export function BrandDetailClient({
     setLiked(nextLiked);
     setLikes((count) => Math.max(0, count + (wasLiked ? -1 : 1)));
     try {
-      const result = await toggleLikeEvent(featuredEventSlug);
+      const result = await toggleLikeEvent(activeEventSlug);
       applyInteractionState(result, {
         is_liked: nextLiked,
         likes: Math.max(0, prevLikes + (wasLiked ? -1 : 1)),
@@ -204,16 +275,16 @@ export function BrandDetailClient({
     } finally {
       setActionPending(null);
     }
-  }, [liked, likes, featuredEventSlug, actionPending, applyInteractionState, refreshPageData]);
+  }, [liked, likes, activeEventSlug, actionPending, applyInteractionState, refreshPageData]);
 
   const handleGoing = useCallback(async () => {
-    if (!featuredEventSlug || actionPending) return;
+    if (!activeEventSlug || actionPending) return;
     const wasGoing = going;
     const nextGoing = !wasGoing;
     setActionPending("going");
     setGoing(nextGoing);
     try {
-      const result = await toggleGoingEvent(featuredEventSlug);
+      const result = await toggleGoingEvent(activeEventSlug);
       applyInteractionState(result, { is_going: nextGoing });
       await refreshPageData({ is_going: nextGoing });
       toast.success(nextGoing ? "شرکت شما ثبت شد" : "شرکت لغو شد");
@@ -223,7 +294,7 @@ export function BrandDetailClient({
     } finally {
       setActionPending(null);
     }
-  }, [going, featuredEventSlug, actionPending, applyInteractionState, refreshPageData]);
+  }, [going, activeEventSlug, actionPending, applyInteractionState, refreshPageData]);
 
   const handleShare = useCallback(async () => {
     const result = await shareContent({ title: data?.name });
@@ -258,7 +329,6 @@ export function BrandDetailClient({
   const kenar = data.kenar || [];
   const categoryName =
     categories.find((cat) => cat.id === data.category)?.name || "";
-  const bannerImages = data.banner ? [{ url: data.banner, alt: data.name }] : [];
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#ececec] dark:bg-background">
@@ -272,12 +342,16 @@ export function BrandDetailClient({
         </button>
 
         <div className="overflow-hidden rounded-3xl bg-white shadow-[0_4px_24px_rgba(0,0,0,0.07)] dark:border dark:border-border/30 dark:bg-surface">
-          <BrandGallery images={bannerImages} logo={data.logo} name={data.name} />
+          <BrandGallery
+            images={galleryImages}
+            logo={data.logo}
+            name={eventDetail?.topic || featuredEvent?.topic || data.name}
+          />
           <BrandActionBar
             likes={likes}
             saved={saved}
             liked={liked}
-            eventActionsDisabled={!featuredEventSlug}
+            eventActionsDisabled={!activeEventSlug}
             onSave={handleSave}
             onLike={handleLike}
             onShare={handleShare}
@@ -291,7 +365,7 @@ export function BrandDetailClient({
         <div className="mt-4 flex gap-2.5">
           <button
             onClick={handleGoing}
-            disabled={!featuredEventSlug || actionPending === "going"}
+            disabled={!activeEventSlug || actionPending === "going"}
             className={cn(
               "flex h-12 flex-1 items-center justify-center rounded-full text-sm font-semibold shadow-[0_6px_20px_rgba(255,90,95,0.35)] transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
               going
@@ -345,7 +419,12 @@ export function BrandDetailClient({
 
         {events.length > 0 && (
           <div ref={eventsRef}>
-            <BrandEventsCarousel events={events} brandName={data.name} />
+            <BrandEventsCarousel
+              events={events}
+              brandName={data.name}
+              brandSlug={slug}
+              activeEventSlug={activeEventSlug}
+            />
           </div>
         )}
       </div>
@@ -364,18 +443,6 @@ export function BrandDetailClient({
       </Modal>
     </div>
   );
-}
-
-function pickFeaturedEvent(
-  events?: BrandEvent[],
-  preferredSlug?: string | null
-): BrandEvent | null {
-  if (!events?.length) return null;
-  if (preferredSlug) {
-    const match = events.find((event) => event.event_slug === preferredSlug);
-    if (match) return match;
-  }
-  return events.find((event) => event.is_live) ?? events[0];
 }
 
 function BrandGallery({
@@ -684,9 +751,13 @@ function toShamsiDate(gregDateStr: string): string {
 function BrandEventsCarousel({
   events,
   brandName,
+  brandSlug,
+  activeEventSlug,
 }: {
   events: NonNullable<LocationDetail["events"]>;
   brandName: string;
+  brandSlug: string;
+  activeEventSlug?: string | null;
 }) {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -711,8 +782,15 @@ function BrandEventsCarousel({
           {events.map((ev) => (
             <button
               key={ev.event_slug}
-              onClick={() => router.push(`/events/${ev.event_slug}`)}
-              className="group w-[140px] shrink-0 snap-start overflow-hidden rounded-2xl bg-white text-right shadow-[0_6px_24px_rgba(0,0,0,0.08)] transition-transform active:scale-[0.98] dark:border dark:border-border/30 dark:bg-surface"
+              onClick={() =>
+                router.push(
+                  `/brands/${brandSlug}?event=${encodeURIComponent(ev.event_slug)}`
+                )
+              }
+              className={cn(
+                "group w-[140px] shrink-0 snap-start overflow-hidden rounded-2xl bg-white text-right shadow-[0_6px_24px_rgba(0,0,0,0.08)] transition-transform active:scale-[0.98] dark:border dark:border-border/30 dark:bg-surface",
+                activeEventSlug === ev.event_slug && "ring-2 ring-primary/40"
+              )}
             >
               <div className="relative aspect-[3/4] overflow-hidden bg-surface">
                 {ev.thumbnail ? (

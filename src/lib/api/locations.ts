@@ -5,6 +5,7 @@ import type { Location } from "@/store/map";
 
 export interface BrandEvent {
   event_slug: string;
+  slug?: string;
   topic: string;
   thumbnail?: string;
   start_datetime?: string;
@@ -28,12 +29,39 @@ export interface LocationDetail extends Location {
   telegram?: string;
   banner?: string;
   background_image?: string;
+  subway_station?: string;
+  bus_station?: string;
+  parking?: string;
   events?: BrandEvent[];
   kenar?: KenarItem[];
   qr_code?: string;
   is_saved?: boolean;
   is_liked?: boolean;
   likes?: number;
+}
+
+export function pickFeaturedEvent(
+  events?: BrandEvent[],
+  preferredSlug?: string | null
+): BrandEvent | null {
+  if (!events?.length) return null;
+  const preferred = preferredSlug?.trim();
+  if (preferred) {
+    const match = events.find(
+      (event) => event.event_slug === preferred || event.slug === preferred
+    );
+    if (match) return match;
+  }
+  return events.find((event) => event.is_live) ?? events[0];
+}
+
+export function resolveActiveEventSlug(
+  events: BrandEvent[] | undefined,
+  preferredSlug?: string | null
+): string | null {
+  const preferred = preferredSlug?.trim();
+  if (preferred) return preferred;
+  return pickFeaturedEvent(events)?.event_slug ?? null;
 }
 
 export function normalizeLocationDetail(raw: Record<string, unknown>): LocationDetail {
@@ -46,7 +74,25 @@ export function normalizeLocationDetail(raw: Record<string, unknown>): LocationD
     ...(raw as unknown as LocationDetail),
     banner,
     background_image: banner,
-    events: events as BrandEvent[],
+    subway_station:
+      typeof raw.subway_station === "string" ? raw.subway_station : undefined,
+    bus_station:
+      typeof raw.bus_station === "string" ? raw.bus_station : undefined,
+    parking: typeof raw.parking === "string" ? raw.parking : undefined,
+    events: events
+      .map((item) => {
+        const event = item as Record<string, unknown>;
+        const eventSlug =
+          (typeof event.event_slug === "string" && event.event_slug) ||
+          (typeof event.slug === "string" && event.slug) ||
+          "";
+        if (!eventSlug) return null;
+        return {
+          ...(event as unknown as BrandEvent),
+          event_slug: eventSlug,
+        };
+      })
+      .filter((event): event is BrandEvent => event !== null),
     is_saved: typeof raw.is_saved === "boolean" ? raw.is_saved : undefined,
     is_liked: typeof raw.is_liked === "boolean" ? raw.is_liked : undefined,
     likes: typeof raw.likes === "number" ? raw.likes : undefined,
